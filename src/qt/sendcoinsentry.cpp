@@ -10,6 +10,7 @@
 #include "guiutil.h"
 #include "optionsmodel.h"
 #include "walletmodel.h"
+#include "../namecoin.h"
 
 #include <QApplication>
 #include <QClipboard>
@@ -40,6 +41,7 @@ SendCoinsEntry::SendCoinsEntry(QWidget *parent) :
     connect(ui->deleteButton, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_is, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_s, SIGNAL(clicked()), this, SLOT(deleteClicked()));
+    ui->payTo->setValidator(0);  // emercoin: disable validator so that we can type names
 }
 
 SendCoinsEntry::~SendCoinsEntry()
@@ -252,4 +254,28 @@ bool SendCoinsEntry::updateLabel(const QString &address)
     }
 
     return false;
+}
+
+void SendCoinsEntry::on_payTo_editingFinished()
+{
+    QString name = ui->payTo->text();
+    if (name.isEmpty())
+        return;
+
+    std::string strName = name.toStdString();
+    std::vector<unsigned char> vchName(strName.begin(), strName.end());
+
+    std::string error;
+    CBitcoinAddress address;
+    if (!GetNameCurrentAddress(vchName, address, error))
+        return;
+
+    QString qstrAddress = QString::fromStdString(address.ToString());
+
+    if (QMessageBox::Yes != QMessageBox::question(this, tr("Confirm name as address"),
+            tr("This name exist and still active. Do you wish to use address of its current owner - %1?").arg(qstrAddress),
+            QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel))
+        return;
+    else
+        ui->payTo->setText(qstrAddress);
 }

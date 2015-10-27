@@ -95,7 +95,7 @@ static inline int64_t roundint64(double d)
 CAmount AmountFromValue(const Value& value)
 {
     double dAmount = value.get_real();
-    if (dAmount <= 0.0 || dAmount > 21000000.0)
+    if (dAmount <= 0.0 || dAmount > MAX_MONEY)
         throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount");
     CAmount nAmount = roundint64(dAmount * COIN);
     if (!MoneyRange(nAmount))
@@ -246,6 +246,7 @@ static const CRPCCommand vRPCCommands[] =
     { "control",            "getinfo",                &getinfo,                true,      false,      false }, /* uses wallet if enabled */
     { "control",            "help",                   &help,                   true,      true,       false },
     { "control",            "stop",                   &stop,                   true,      true,       false },
+    { "control",            "reservebalance",         &reservebalance,         false,     false,      false },
 
     /* P2P networking */
     { "network",            "getnetworkinfo",         &getnetworkinfo,         true,      false,      false },
@@ -271,6 +272,12 @@ static const CRPCCommand vRPCCommands[] =
     { "blockchain",         "verifychain",            &verifychain,            true,      false,      false },
     { "blockchain",         "invalidateblock",        &invalidateblock,        true,      true,       false },
     { "blockchain",         "reconsiderblock",        &reconsiderblock,        true,      true,       false },
+
+    { "blockchain",         "name_scan",              &name_scan,              false,     false,      false },
+    { "blockchain",         "name_filter",            &name_filter,            false,     false,      false },
+    { "blockchain",         "name_show",              &name_show,              false,     false,      false },
+//emercoin    { "blockchain",         "gettxlistfor",           &gettxlistfor,              false,     false,      false },
+
 
     /* Mining */
     { "mining",             "getblocktemplate",       &getblocktemplate,       true,      false,      false },
@@ -305,6 +312,8 @@ static const CRPCCommand vRPCCommands[] =
     { "hidden",             "invalidateblock",        &invalidateblock,        true,      true,       false },
     { "hidden",             "reconsiderblock",        &reconsiderblock,        true,      true,       false },
     { "hidden",             "setmocktime",            &setmocktime,            true,      false,      false },
+    { "hidden",             "name_debug",             &name_debug,             false,     false,      false },
+    { "hidden",             "sendalert",              &sendalert,              false,     false,      false },
 
 #ifdef ENABLE_WALLET
     /* Wallet */
@@ -347,7 +356,18 @@ static const CRPCCommand vRPCCommands[] =
     { "wallet",             "walletlock",             &walletlock,             true,      false,      true },
     { "wallet",             "walletpassphrasechange", &walletpassphrasechange, true,      false,      true },
     { "wallet",             "walletpassphrase",       &walletpassphrase,       true,      false,      true },
+    { "wallet",             "makekeypair",            &makekeypair,            false,     false,      false },
+
+    { "wallet",             "name_new",               &name_new,               false,     false,      false },
+    { "wallet",             "name_update",            &name_update,            false,     false,      false },
+    { "wallet",             "name_delete",            &name_delete,            false,     false,      false },
+    { "wallet",             "sendtoname",             &sendtoname,             false,     false,      false },
+    { "wallet",             "name_list",              &name_list,              false,     false,      false },
+
+//emercoin    { "wallet",             "deletetransaction",      &deletetransaction,      false,     false,      false },
 #endif // ENABLE_WALLET
+  //  --------------------- ------------------------  -----------------------  ---------- ---------- ---------
+  //  category              name                      actor (function)         okSafeMode threadSafe reqWallet
 };
 
 CRPCTable::CRPCTable()
@@ -572,7 +592,7 @@ void StartRPCThreads()
         unsigned char rand_pwd[32];
         GetRandBytes(rand_pwd, 32);
         uiInterface.ThreadSafeMessageBox(strprintf(
-            _("To use bitcoind, or the -server option to bitcoin-qt, you must set an rpcpassword in the configuration file:\n"
+            _("To use emercoind, or the -server option to emercoin-qt, you must set an rpcpassword in the configuration file:\n"
               "%s\n"
               "It is recommended you use the following random password:\n"
               "rpcuser=bitcoinrpc\n"
@@ -1022,12 +1042,12 @@ json_spirit::Value CRPCTable::execute(const std::string &strMethod, const json_s
 }
 
 std::string HelpExampleCli(string methodname, string args){
-    return "> bitcoin-cli " + methodname + " " + args + "\n";
+    return "> emercoin-cli " + methodname + " " + args + "\n";
 }
 
 std::string HelpExampleRpc(string methodname, string args){
     return "> curl --user myusername --data-binary '{\"jsonrpc\": \"1.0\", \"id\":\"curltest\", "
-        "\"method\": \"" + methodname + "\", \"params\": [" + args + "] }' -H 'content-type: text/plain;' http://127.0.0.1:8332/\n";
+        "\"method\": \"" + methodname + "\", \"params\": [" + args + "] }' -H 'content-type: text/plain;' http://127.0.0.1:6662/\n";
 }
 
 const CRPCTable tableRPC;

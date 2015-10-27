@@ -14,6 +14,7 @@ class ClientModel;
 class OverviewPage;
 class ReceiveCoinsDialog;
 class SendCoinsDialog;
+class ManageNamesPage;
 class SendCoinsRecipient;
 class TransactionView;
 class WalletModel;
@@ -60,6 +61,7 @@ private:
     QWidget *transactionsPage;
     ReceiveCoinsDialog *receiveCoinsPage;
     SendCoinsDialog *sendCoinsPage;
+    ManageNamesPage *manageNamesPage;
 
     TransactionView *transactionView;
 
@@ -74,6 +76,8 @@ public slots:
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
+    /** Switch to manage names page */
+    void gotoManageNamesPage();
 
     /** Show Sign/Verify Message dialog and switch to sign message tab */
     void gotoSignMessageTab(QString addr = "");
@@ -104,6 +108,9 @@ public slots:
 
     /** Show progress dialog e.g. for rescan */
     void showProgress(const QString &title, int nProgress);
+
+    /** Unlock|Lock wallet when clicking on icon */
+    void on_labelEncryptionIcon_clicked();
 
 signals:
     /** Signal that we want to show the main window */

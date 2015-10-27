@@ -54,6 +54,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "listaccounts", 0 },
     { "listaccounts", 1 },
     { "walletpassphrase", 1 },
+    { "walletpassphrase", 2 },
     { "getblocktemplate", 0 },
     { "listsinceblock", 1 },
     { "listsinceblock", 2 },
@@ -88,6 +89,27 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "estimatepriority", 0 },
     { "prioritisetransaction", 1 },
     { "prioritisetransaction", 2 },
+
+    // ppcoin:
+    { "sendalert", 2 },
+    { "sendalert", 3 },
+    { "sendalert", 4 },
+    { "sendalert", 5 },
+    { "sendalert", 6 },
+    { "reservebalance", 0 },
+    { "reservebalance", 1 },
+
+    // emercoin:
+    { "name_new", 2 },
+    { "name_update", 2 },
+    { "name_filter", 1 },
+    { "name_filter", 2 },
+    { "name_filter", 3 },
+    { "sendtoname", 1 },
+//emercoin    { "gettxlistfor", 0 },
+//    { "gettxlistfor", 1 },
+//    { "gettxlistfor", 3 },
+//    { "gettxlistfor", 4 },
 };
 
 class CRPCConvertTable

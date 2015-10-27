@@ -7,6 +7,7 @@
 #include "base58.h"
 #include "timedata.h"
 #include "wallet.h"
+#include "hooks.h"
 
 #include <stdint.h>
 
@@ -38,7 +39,22 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet *
     uint256 hash = wtx.GetHash();
     std::map<std::string, std::string> mapValue = wtx.mapValue;
 
-    if (nNet > 0 || wtx.IsCoinBase())
+    if (hooks->IsNameTx(wtx.nVersion)) // emercoin: name transaction
+    {
+        std::string address = "failed to get address";
+        for (unsigned int nOut = 0; nOut < wtx.vout.size(); nOut++)
+        {
+            const CTxOut& txout = wtx.vout[nOut];
+            if (hooks->ExtractAddress(txout.scriptPubKey, address))
+                break;
+        }
+        parts.append(TransactionRecord(hash, nTime, TransactionRecord::NameOp, address, nNet, 0));
+    }
+    else if (wtx.IsCoinStake()) // ppcoin: coinstake transaction
+    {
+        parts.append(TransactionRecord(hash, nTime, TransactionRecord::StakeMint, "", -nDebit, wtx.GetValueOut()));
+    }
+    else if (nNet > 0 || wtx.IsCoinBase())
     {
         //
         // Credit
@@ -198,7 +214,7 @@ void TransactionRecord::updateStatus(const CWalletTx &wtx)
         }
     }
     // For generated transactions, determine maturity
-    else if(type == TransactionRecord::Generated)
+    else if(type == TransactionRecord::Generated || type == TransactionRecord::StakeMint)
     {
         if (wtx.GetBlocksToMaturity() > 0)
         {

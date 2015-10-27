@@ -4,11 +4,9 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "script/sign.h"
-
 #include "primitives/transaction.h"
 #include "key.h"
 #include "keystore.h"
-#include "script/standard.h"
 #include "uint256.h"
 
 #include <boost/foreach.hpp>

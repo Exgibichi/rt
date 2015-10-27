@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "amount.h"
-
+#include "primitives/block.h"
 #include "tinyformat.h"
 
 CFeeRate::CFeeRate(const CAmount& nFeePaid, size_t nSize)
@@ -28,4 +28,25 @@ CAmount CFeeRate::GetFee(size_t nSize) const
 std::string CFeeRate::ToString() const
 {
     return strprintf("%d.%08d BTC/kB", nSatoshisPerK / COIN, nSatoshisPerK % COIN);
+}
+
+CAmount GetMinFee(size_t nBytes, size_t nBlockSize)
+{
+    // Base fee is either MIN_TX_FEE or MIN_RELAY_TX_FEE
+    CAmount nBaseFee = SUBCENT;
+
+    size_t nNewBlockSize = nBlockSize + nBytes;
+    CAmount nMinFee = (1 + nBytes / (10 * 1024)) * nBaseFee; // 1 subcent per 10 kb of data
+
+    // Raise the price as the block approaches full
+    if (nBlockSize != 1 && nNewBlockSize >= MAX_BLOCK_SIZE_GEN/2)
+    {
+        if (nNewBlockSize >= MAX_BLOCK_SIZE_GEN)
+            return MAX_MONEY;
+        nMinFee *= MAX_BLOCK_SIZE_GEN / (MAX_BLOCK_SIZE_GEN - nNewBlockSize);
+    }
+
+    if (!MoneyRange(nMinFee))
+        nMinFee = MAX_MONEY;
+    return std::max(nMinFee, MIN_TX_FEE);
 }

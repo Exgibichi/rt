@@ -69,6 +69,7 @@ namespace {
 bool fDiscover = true;
 bool fListen = true;
 uint64_t nLocalServices = NODE_NETWORK;
+CAddress addrSeenByPeer(CService("0.0.0.0", 0), nLocalServices);
 CCriticalSection cs_mapLocalHost;
 map<CNetAddr, LocalServiceInfo> mapLocalHost;
 static bool vfReachable[NET_MAX] = {};
@@ -1613,6 +1614,48 @@ void static Discover(boost::thread_group& threadGroup)
 #endif
 }
 
+/*--------------------------------------------------------------------------*/
+// from file stun.cpp
+int GetExternalIPbySTUN(uint64_t rnd, struct sockaddr_in *mapped, const char **srv);
+
+/*--------------------------------------------------------------------------*/
+void ThreadGetMyExternalIP_STUN() {
+  struct sockaddr_in mapped;
+  uint64_t rnd = GetRand(~0LL);
+  const char *srv;
+  int rc = GetExternalIPbySTUN(rnd, &mapped, &srv);
+  if(rc > 0) {
+    CNetAddr ipRet(mapped.sin_addr);
+    AddLocal(ipRet);
+
+    LogPrintf("GetExternalIPbySTUN() returned %s in attempt %u; flags=%x; Server=%s\n",
+        ipRet.ToStringIP(), rc >> 8, (uint8_t)rc, srv);
+  } else
+    LogPrintf("GetExternalIPbySTUN() failed\n");
+} // GetMyExternalIP_STUN
+
+void GetMyExternalIP_STUN(bool fUse)
+{
+    static boost::thread* stun_thread = NULL;
+
+    if (fUse)
+    {
+        if (stun_thread) {
+            stun_thread->interrupt();
+            stun_thread->join();
+            delete stun_thread;
+        }
+        stun_thread = new boost::thread(boost::bind(&TraceThread<void (*)()>, "stun", &ThreadGetMyExternalIP_STUN));
+    }
+    else if (stun_thread) {
+        stun_thread->interrupt();
+        stun_thread->join();
+        delete stun_thread;
+        stun_thread = NULL;
+    }
+}
+/*--------------------------------------------------------------------------*/
+
 void StartNode(boost::thread_group& threadGroup)
 {
     uiInterface.InitMessage(_("Loading addresses..."));
@@ -1650,6 +1693,9 @@ void StartNode(boost::thread_group& threadGroup)
     // Map ports with UPnP
     MapPort(GetBoolArg("-upnp", DEFAULT_UPNP));
 
+    // Get IP with stun
+    GetMyExternalIP_STUN(true);
+
     // Send and receive from sockets, accept connections
     threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "net", &ThreadSocketHandler));
 
@@ -1669,6 +1715,7 @@ void StartNode(boost::thread_group& threadGroup)
 bool StopNode()
 {
     LogPrintf("StopNode()\n");
+    GetMyExternalIP_STUN(false);
     MapPort(false);
     if (semOutbound)
         for (int i=0; i<MAX_OUTBOUND_CONNECTIONS; i++)

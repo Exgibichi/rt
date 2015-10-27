@@ -36,6 +36,26 @@ class QProgressBar;
 class QProgressDialog;
 QT_END_NAMESPACE
 
+// emercoin : to ensure that we can click on lock icon in GUI
+class ClickableLockLabel : public QLabel
+{
+    Q_OBJECT
+
+public:
+    ClickableLockLabel() : QLabel() {}
+    ~ClickableLockLabel() {}
+
+signals:
+    void clicked();
+
+protected:
+    void mousePressEvent(QMouseEvent * event)
+    {
+        QLabel::mousePressEvent(event);
+        emit clicked();
+    }
+};
+
 /**
   Bitcoin GUI main class. This class represents the main window of the Bitcoin UI. It communicates with both the client and
   wallet models to give the user an up-to-date view of the current core state.
@@ -65,6 +85,7 @@ public:
     void removeAllWallets();
 #endif // ENABLE_WALLET
     bool enableWallet;
+    ClickableLockLabel *labelEncryptionIcon; // emercoin: changed from private to public
 
 protected:
     void changeEvent(QEvent *e);
@@ -78,7 +99,6 @@ private:
     WalletFrame *walletFrame;
 
     UnitDisplayStatusBarControl *unitDisplayControl;
-    QLabel *labelEncryptionIcon;
     QLabel *labelConnectionsIcon;
     QLabel *labelBlocksIcon;
     QLabel *progressBarLabel;
@@ -90,6 +110,7 @@ private:
     QAction *historyAction;
     QAction *quitAction;
     QAction *sendCoinsAction;
+    QAction *manageNamesAction;
     QAction *usedSendingAddressesAction;
     QAction *usedReceivingAddressesAction;
     QAction *signMessageAction;
@@ -176,6 +197,8 @@ private slots:
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
+    /** Switch to manage names page */
+    void gotoManageNamesPage();
 
     /** Show Sign/Verify Message dialog and switch to sign message tab */
     void gotoSignMessageTab(QString addr = "");

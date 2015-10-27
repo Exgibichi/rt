@@ -27,6 +27,11 @@ protected:
     uint32_t pn[WIDTH];
 public:
 
+    const uint32_t *GetDataPtr() const
+    {
+        return pn;
+    }
+
     base_uint()
     {
         for (int i = 0; i < WIDTH; i++)
