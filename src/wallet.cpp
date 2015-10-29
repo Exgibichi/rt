@@ -1319,7 +1319,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
         {
             coinLowestLarger = coin;
         }
-    }
+    } // BOOST_FOREACH - Select available UTXOs
 
     if (nTotalLower == nTargetValue)
     {
@@ -1339,6 +1339,72 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
         nValueRet += coinLowestLarger.first;
         return true;
     }
+
+
+  // If possible, solve subset sum by dynamic programming
+  // Adeed by maxihatop
+
+  // Maximap DP array size
+  static uint32_t nMaxDP = 0;
+  if(nMaxDP == 0) 
+    nMaxDP = GetArg("-maxdp", 8 * 1024 * 1024);
+
+  uint16_t *dp;	// dynamic programming array
+  uint32_t dp_tgt = nTargetValue / MIN_TXOUT_AMOUNT;
+  if(dp_tgt < nMaxDP && (dp = (uint16_t*)calloc(dp_tgt + 1, sizeof(uint16_t))) != NULL) {
+    dp[0] = 1; // Zero CENTs can be reached anyway
+    uint16_t max_utxo_qty((1 << 16) - 3);
+    if(vValue.size() < max_utxo_qty)
+	max_utxo_qty = vValue.size();
+    uint32_t min_over_utxo =  0;
+    uint32_t min_over_sum  = ~0;
+    // Apply UTXOs to DP array, until exact sum will be found
+    for(uint16_t utxo_no = 0; utxo_no < max_utxo_qty && dp[dp_tgt] == 0; utxo_no++) {
+      uint32_t offset = vValue[utxo_no].first / MIN_TXOUT_AMOUNT;
+      for(int32_t ndx = dp_tgt - 1; ndx >= 0; ndx--)
+        if(dp[ndx]) {
+	  uint32_t nxt = ndx + offset;
+          if(nxt <= dp_tgt) {
+	    if(dp[nxt] == 0)
+	      dp[nxt] = utxo_no + 1;
+	  } else
+	    if(nxt < min_over_sum) {
+	      min_over_sum = nxt;
+	      min_over_utxo = utxo_no + 1;
+	    }
+	} // if(dp[ndx])
+    } // for - UTXOs
+
+    if(dp[dp_tgt] != 0)  // Found exactly sum without payback
+      min_over_utxo = dp[min_over_sum = dp_tgt];
+
+    while(min_over_sum) {
+      uint16_t utxo_no = min_over_utxo - 1;
+      if (fDebug && GetBoolArg("-printselectcoin", false)) 
+        printf("SelectCoins() DP Added #%u: Val=%s\n", utxo_no, FormatMoney(vValue[utxo_no].first).c_str());
+      setCoinsRet.insert(vValue[utxo_no].second);
+      nValueRet += vValue[utxo_no].first;
+      min_over_sum -= vValue[utxo_no].first / MIN_TXOUT_AMOUNT;
+      min_over_utxo = dp[min_over_sum];
+    }
+
+    free(dp);
+
+    if(nValueRet >= nTargetValue) {
+      //// debug print
+      if (fDebug && GetBoolArg("-printselectcoin", false)) 
+        printf("SelectCoins() DP subset: Target=%s Found=%s Payback=%s Qty=%u\n", 
+ 	        FormatMoney(nTargetValue).c_str(), 
+ 	        FormatMoney(nValueRet).c_str(), 
+	        FormatMoney(nValueRet - nTargetValue).c_str(), 
+	        (unsigned)setCoinsRet.size()
+	        );
+      return true; // sum found by DP
+    } else {
+	nValueRet = 0;
+	setCoinsRet.clear();
+    }
+  } // DP compute
 
     // Solve subset sum by stochastic approximation
     sort(vValue.rbegin(), vValue.rend(), CompareValueOnly());
