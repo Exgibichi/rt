@@ -342,7 +342,7 @@ public:
         assert(!(nUpTo & ~BLOCK_VALID_MASK)); // Only validity flags allowed.
         if (nStatus & BLOCK_FAILED_MASK)
             return false;
-        return ((nStatus & BLOCK_VALID_MASK) >= nUpTo);
+        return ((nStatus & BLOCK_VALID_MASK) >= (unsigned)nUpTo);
     }
 
     //! Raise the validity level of this block index entry.
@@ -352,7 +352,7 @@ public:
         assert(!(nUpTo & ~BLOCK_VALID_MASK)); // Only validity flags allowed.
         if (nStatus & BLOCK_FAILED_MASK)
             return false;
-        if ((nStatus & BLOCK_VALID_MASK) < nUpTo) {
+        if ((nStatus & BLOCK_VALID_MASK) < (unsigned)nUpTo) {
             nStatus = (nStatus & ~BLOCK_VALID_MASK) | nUpTo;
             return true;
         }

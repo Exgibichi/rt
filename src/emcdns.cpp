@@ -414,7 +414,7 @@ uint16_t EmcDns::HandleQuery() {
   *--key_end = 0; // Remove last dot, set EOLN
 
   if(m_verbose > 3) 
-    printf("EmcDns::HandleQuery: Translated domain name: [%s]; DomainsQty=%li\n", key, domain_ndx_p - domain_ndx);
+    printf("EmcDns::HandleQuery: Translated domain name: [%s]; DomainsQty=%d\n", key, (int)(domain_ndx_p - domain_ndx));
 
   uint16_t qtype  = *m_rcv++; qtype  = (qtype  << 8) + *m_rcv++; 
   uint16_t qclass = *m_rcv++; qclass = (qclass << 8) + *m_rcv++;
