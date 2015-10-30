@@ -1758,7 +1758,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     // NULL -- Block removed after mint, but maybe need reload again into same cell
     static uint256HashMap<pair<CBlockHeader*, unsigned int> > CacheBlockOffset;
     CacheBlockOffset.Set(setCoins.size() << 1); // 2x pointers
-    uint256HashMap<std::pair<CBlockHeader*, unsigned int> >::Data *pbo;
+    uint256HashMap<std::pair<CBlockHeader*, unsigned int> >::Data *pbo = NULL;
 
     BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
     {
