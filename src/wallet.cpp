@@ -1750,65 +1750,51 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     CAmount nCredit = 0;
     CScript scriptPubKeyKernel;
 
-//emercoin    // This is static cache for minimize block loads for each POS-attempt
-//    // Possible values of ->value.first
-//    // Addr > 0x4 -- This is pointer to blockheader in the memory
-//    // Addr = 0x1 -- Was read error, don't load this block anymore
-//    // NULL -- Block removed after mint, but maybe need reload again into same cell
-//    static uint256HashMap<pair<CBlock*, unsigned int> > CacheBlockOffset;
-//    CacheBlockOffset.Set(setCoins.size() << 1); // 2x pointers
-//    uint256HashMap<std::pair<CBlock*, unsigned int> >::Data *pbo;
+//emercoin
+    // This is static cache for minimize block loads for each POS-attempt
+    // Possible values of ->value.first
+    // Addr > 0x4 -- This is pointer to blockheader in the memory
+    // Addr = 0x1 -- Was read error, don't load this block anymore
+    // NULL -- Block removed after mint, but maybe need reload again into same cell
+    static uint256HashMap<pair<CBlockHeader*, unsigned int> > CacheBlockOffset;
+    CacheBlockOffset.Set(setCoins.size() << 1); // 2x pointers
+    uint256HashMap<std::pair<CBlockHeader*, unsigned int> >::Data *pbo;
 
     BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
     {
-//        uint256 tx_hash = pcoin.first->GetHash();
-//        pbo = CacheBlockOffset.Search(tx_hash);
-//        // Try Load, if missing or temporary removed
-//        if (pbo == NULL || pbo->value.first == NULL)
-//        {
-//            CTxDB txdb("r");
-//            CTxIndex txindex;
-//            CBlock *block = (CBlock*)0x1; // default=Error
+        uint256 tx_hash = pcoin.first->GetHash();
 
-//            if(txdb.ReadTxIndex(tx_hash, txindex))
-//            {
-//                // Read block header
-//                block = new CBlock;
-//                if (!block->ReadFromDisk(txindex.pos.nFile, txindex.pos.nBlockPos, false))
-//                {
-//                    delete block;
-//                    block = (CBlock*)0x1;
-//                }
-//            }
-//            if (pbo == NULL)
-//            {
-//                // txindex.pos.nTxPos - txindex.pos.nBlockPos: OFFSET to This TX in the Block = const
-//                pair<CBlock*, unsigned int> bo(block, txindex.pos.nTxPos - txindex.pos.nBlockPos);
-//                pbo = CacheBlockOffset.Insert(tx_hash, bo);
-//            } else
-//                pbo->value.first = block;
-//        }
+        pbo = CacheBlockOffset.Search(tx_hash);
+        // Try Load, if missing or temporary removed
+        if (pbo == NULL || pbo->value.first == NULL) {
+          CDiskTxPos postx;
+          CBlockHeader *cbh = (CBlockHeader *)0x1; // default=Error
+          if(pblocktree->ReadTxIndex(tx_hash, postx)) { 
+            // Read block header
+            CAutoFile file(OpenBlockFile(postx, true), SER_DISK, CLIENT_VERSION);
+            cbh = new CBlockHeader;
+            try {
+              file >> *cbh;
+            } catch (std::exception &e) {
+	      delete cbh;
+	      cbh = (CBlockHeader *)0x1; // Error
+            }
+	  } // ReadTxIndex()
 
-//        // Don't work, if reaadErr=0x1, or temporary removed=NULL
-//        if(pbo->value.first < (CBlock*)0x4)
-//            continue;
+          if (pbo == NULL) {
+              pair<CBlockHeader*, unsigned int> bo(cbh, postx.nTxOffset + sizeof(CBlockHeader));
+              pbo = CacheBlockOffset.Insert(tx_hash, bo);
+          } else
+              pbo->value.first = cbh;
+        } // if(pbo == NULL)
 
-//        CBlock& block       = *(pbo->value.first);
-//        unsigned int offset =   pbo->value.second;
-
-
-        CDiskTxPos postx;
-        if (!pblocktree->ReadTxIndex(pcoin.first->GetHash(), postx))
+        // Don't work, if reaadErr=0x1, or temporary removed=NULL
+        if(pbo->value.first < (CBlock*)0x4)
             continue;
 
-        // Read block header
-        CAutoFile file(OpenBlockFile(postx, true), SER_DISK, CLIENT_VERSION);
-        CBlockHeader header;
-        try {
-            file >> header;
-        } catch (std::exception &e) {
-            return error("%s() : deserialize or I/O error in CreateCoinStake()", __PRETTY_FUNCTION__);
-        }
+        CBlockHeader& header = *(pbo->value.first);
+        unsigned int offset  = pbo->value.second;
+
 
         static int nMaxStakeSearchInterval = 60;
         if (header.GetBlockTime() + nStakeMinAge > txNew.nTime - nMaxStakeSearchInterval)
@@ -1821,7 +1807,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
             // Search nSearchInterval seconds back up to nMaxStakeSearchInterval
             uint256 hashProofOfStake = 0;
             COutPoint prevoutStake = COutPoint(pcoin.first->GetHash(), pcoin.second);
-            if (CheckStakeKernelHash(nBits, header, postx.nTxOffset + sizeof(CBlockHeader), *pcoin.first, prevoutStake, txNew.nTime - n, hashProofOfStake))
+            if (CheckStakeKernelHash(nBits, header, offset, *pcoin.first, prevoutStake, txNew.nTime - n, hashProofOfStake))
             {
                 // Found a kernel
                 if (fDebug && GetBoolArg("-printcoinstake", false))
@@ -1954,10 +1940,10 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     }
 
     // Successfully generated coinstake
-//    // Remove block reference from cache
-//    delete pbo->value.first;
-//    pbo->value.first = NULL; // Set "temporary removed"
-//    CacheBlockOffset.MarkDel(pbo);
+    // Remove block reference from the cache
+    delete pbo->value.first;
+    pbo->value.first = NULL; // Set "temporary removed"
+    CacheBlockOffset.MarkDel(pbo);
     return true;
 }
 
