@@ -1639,7 +1639,7 @@ bool CNamecoinHooks::ConnectBlock(CBlockIndex* pindex, const vector<nameTempProx
             return error("ConnectBlockHook() : failed to write to name DB");
         if  (i.op == OP_NAME_NEW)
             sNameNew.insert(i.vchName);
-        LogPrintf("ConnectBlockHook(): writing %s %s to nameindex.dat\n", nameFromOp(i.op).c_str(), stringFromVch(i.vchName).c_str());
+        LogPrintf("ConnectBlockHook(): writing %s %s in block %d to nameindexV2.dat\n", nameFromOp(i.op), stringFromVch(i.vchName), pindex->nHeight);
 
         {
             // remove from pending names list
