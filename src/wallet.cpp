@@ -1353,6 +1353,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
   uint32_t dp_tgt = nTargetValue / MIN_TXOUT_AMOUNT;
   if(dp_tgt < nMaxDP && (dp = (uint16_t*)calloc(dp_tgt + 1, sizeof(uint16_t))) != NULL) {
     dp[0] = 1; // Zero CENTs can be reached anyway
+    uint32_t rlimit = 0; // Current Right Borer limit
     uint16_t max_utxo_qty((1 << 16) - 3);
     if(vValue.size() < max_utxo_qty)
 	max_utxo_qty = vValue.size();
@@ -1361,7 +1362,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
     // Apply UTXOs to DP array, until exact sum will be found
     for(uint16_t utxo_no = 0; utxo_no < max_utxo_qty && dp[dp_tgt] == 0; utxo_no++) {
       uint32_t offset = vValue[utxo_no].first / MIN_TXOUT_AMOUNT;
-      for(int32_t ndx = dp_tgt - 1; ndx >= 0; ndx--)
+      for(int32_t ndx = rlimit; ndx >= 0; ndx--)
         if(dp[ndx]) {
 	  uint32_t nxt = ndx + offset;
           if(nxt <= dp_tgt) {
@@ -1372,7 +1373,10 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
 	      min_over_sum = nxt;
 	      min_over_utxo = utxo_no + 1;
 	    }
-	} // if(dp[ndx])
+	} // for + if(dp[ndx])
+        rlimit += offset;
+	if(rlimit >= dp_tgt)
+	  rlimit = dp_tgt - 1;
     } // for - UTXOs
 
     if(dp[dp_tgt] != 0)  // Found exactly sum without payback
