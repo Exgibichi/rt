@@ -4640,29 +4640,31 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         static map<uint256, CBlock> blocks;
         blocks[block.hashPrevBlock] = block;
 
-        bool connected = true;
-        while(connected)
+        while (!blocks.empty())
         {
             uint256 lastAcceptedHash = chainActive.Tip()->GetBlockHeader().GetHash();
-            if (blocks.count(lastAcceptedHash))
-            {
-                CValidationState state;
-                ProcessNewBlock(state, pfrom, &blocks[lastAcceptedHash]);
-                int nDoS;
-                if (state.IsInvalid(nDoS)) {
-                    pfrom->PushMessage("reject", strCommand, state.GetRejectCode(),
-                                       state.GetRejectReason().substr(0, MAX_REJECT_MESSAGE_LENGTH), inv.hash);
-                    if (nDoS > 0) {
-                        LOCK(cs_main);
-                        Misbehaving(pfrom->GetId(), nDoS);
-                    }
-                }
+            uint256 lastPrevHash = chainActive.Tip()->GetBlockHeader().hashPrevBlock;
 
-                // emercoin: in either case (added/rejected) we should remove this block at this point
-                blocks.erase(lastAcceptedHash);
+            bool fNewBlock     = blocks.count(lastAcceptedHash);
+            bool fReplaceBlock = blocks.count(lastPrevHash);
+
+            if (!(fNewBlock || fReplaceBlock))
+                break; // we have no blocks that can be replaced or placed on top
+
+            CValidationState state;
+            ProcessNewBlock(state, pfrom, fReplaceBlock ? &blocks[lastPrevHash] : &blocks[lastAcceptedHash]);
+            int nDoS;
+            if (state.IsInvalid(nDoS)) {
+                pfrom->PushMessage("reject", strCommand, state.GetRejectCode(),
+                                   state.GetRejectReason().substr(0, MAX_REJECT_MESSAGE_LENGTH), inv.hash);
+                if (nDoS > 0) {
+                    LOCK(cs_main);
+                    Misbehaving(pfrom->GetId(), nDoS);
+                }
             }
-            else
-                connected = false;
+
+            // emercoin: in either case (added/rejected) we should remove this block at this point
+            blocks.erase(fReplaceBlock ? lastPrevHash : lastAcceptedHash);
         }
     }
 
