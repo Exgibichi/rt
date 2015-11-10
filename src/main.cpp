@@ -4637,34 +4637,43 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         pfrom->AddInventoryKnown(inv);
 
         // emercoin: 'blocks' is used to process blocks one by one in height order.
-        static map<uint256, CBlock> blocks;
-        blocks[block.hashPrevBlock] = block;
+        typedef map<int, CBlock> heightMap;
+        static heightMap blocks;
 
-        while (!blocks.empty())
+        assert(mapBlockIndex.count(block.GetHash())); // sanity check - if we are downloading a block we should have already downloaded header for this block
+        blocks[ mapBlockIndex[block.GetHash()]->nHeight ] = block;
+
+
+        for ( heightMap::iterator it = blocks.begin();  // map should be sorted by height. if so - start with lowest height
+              it != blocks.end();)
         {
-            uint256 lastAcceptedHash = chainActive.Tip()->GetBlockHeader().GetHash();
-            uint256 lastPrevHash = chainActive.Tip()->GetBlockHeader().hashPrevBlock;
+            // find block height
+            int nHeight = it->first;
 
-            bool fNewBlock     = blocks.count(lastAcceptedHash);
-            bool fReplaceBlock = blocks.count(lastPrevHash);
-
-            if (!(fNewBlock || fReplaceBlock))
-                break; // we have no blocks that can be replaced or placed on top
-
-            CValidationState state;
-            ProcessNewBlock(state, pfrom, fReplaceBlock ? &blocks[lastPrevHash] : &blocks[lastAcceptedHash]);
-            int nDoS;
-            if (state.IsInvalid(nDoS)) {
-                pfrom->PushMessage("reject", strCommand, state.GetRejectCode(),
-                                   state.GetRejectReason().substr(0, MAX_REJECT_MESSAGE_LENGTH), inv.hash);
-                if (nDoS > 0) {
-                    LOCK(cs_main);
-                    Misbehaving(pfrom->GetId(), nDoS);
+            // check if height allows to connect in-between (fork) or on top of blockain (normal) &&
+            // check if block connects to previous block in blockchain
+            if (nHeight <= chainActive.Height() + 1 &&
+                chainActive[nHeight - 1]->GetBlockHash() == it->second.hashPrevBlock)
+            {
+                // connect block
+                CValidationState state;
+                ProcessNewBlock(state, pfrom, &(it->second));
+                int nDoS;
+                if (state.IsInvalid(nDoS)) {
+                    pfrom->PushMessage("reject", strCommand, state.GetRejectCode(),
+                                       state.GetRejectReason().substr(0, MAX_REJECT_MESSAGE_LENGTH), inv.hash);
+                    if (nDoS > 0) {
+                        LOCK(cs_main);
+                        Misbehaving(pfrom->GetId(), nDoS);
+                    }
                 }
+                heightMap::iterator it2 = it;
+                it++;
+                blocks.erase(it2);
             }
-
-            // emercoin: in either case (added/rejected) we should remove this block at this point
-            blocks.erase(fReplaceBlock ? lastPrevHash : lastAcceptedHash);
+            else
+                break; // next block in 'blocks' should have even higher height
+                       // no point in trying to connect block with higher height if we failed to connect block with lower height
         }
     }
 
