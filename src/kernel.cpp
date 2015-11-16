@@ -410,12 +410,13 @@ bool CheckProofOfStake(CValidationState &state,const CTransaction& tx, unsigned 
         return error("CheckProofOfStake() : transaction index not available");
 
     // First try finding the previous transaction in database
-    CCoinsViewCache view(*pcoinsTip);
-    CCoins coins;
-    if (!view.GetCoins(txin.prevout.hash, coins))
+    CTransaction txTmp;
+    uint256 hashBlock = 0;
+    if (!GetTransaction(txin.prevout.hash, txTmp, hashBlock))
         return state.DoS(1, error("CheckProofOfStake() : txPrev not found")); // previous transaction not in main chain, may occur during initial download
 
     // Verify signature
+    CCoins coins(txTmp, 0);
     if (!CScriptCheck(coins, tx, 0, true, 0)())
         return state.DoS(100, error("CheckProofOfStake() : VerifySignature failed on coinstake %s", tx.GetHash().ToString()));
 

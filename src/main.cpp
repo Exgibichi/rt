@@ -22,7 +22,6 @@
 #include "kernel.h"
 #include "keystore.h"
 #include "namecoin.h"
-#include "uint256hm.h"
 
 #include <sstream>
 
@@ -62,7 +61,7 @@ unsigned int nCoinCacheSize = 5000;
 unsigned int nStakeMinAge = STAKE_MIN_AGE;
 string strMintWarning;
 set<pair<COutPoint, unsigned int> > setStakeSeen;
-uint256HashMap<uint256> mapProofOfStake;
+map<uint256, uint256> mapProofOfStake;
 
 
 /** Fees smaller than this (in satoshi) are considered zero fee (for relaying and mining) */
@@ -2558,11 +2557,10 @@ bool ppcoinIndexChecks(CBlockIndex *pindex, const CBlock& block)
         pindex->nStakeTime = block.vtx[1].nTime;
 
         // ppcoin: record proof-of-stake hash value
-        uint256HashMap<uint256>::Data *hash_pos = mapProofOfStake.Search(block.GetHash());
-        if (hash_pos)
-            pindex->hashProofOfStake = hash_pos->value;
-        else
-            return error("ppcoinIndexChecks() : hashProofOfStake not found in map");
+        uint256 hash = block.GetHash();
+        if (!mapProofOfStake.count(hash))
+            return error("AddToBlockIndex() : hashProofOfStake not found in map");
+        pindex->hashProofOfStake = mapProofOfStake[hash];
     }
 
     // ppcoin: compute stake entropy bit for stake modifier
@@ -3024,11 +3022,6 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
     if (!AcceptBlockHeader(block, block.IsProofOfStake(), state, &pindex))
         return false;
 
-    // emercoin: EvgenijM86: I moved those checks from AddToBlockIndex, because in this version of bitcoin AddToBlockIndex may execute before we got actual block (during header-first sync)
-    // note: we need to do same step separately for genesis block
-    if (!ppcoinIndexChecks(pindex, block))
-            return false;
-
     if (pindex->nStatus & BLOCK_HAVE_DATA) {
         // TODO: deal better with duplicate blocks.
         // return state.DoS(20, error("AcceptBlock() : already have block %d %s", pindex->nHeight, pindex->GetBlockHash().ToString()), REJECT_DUPLICATE, "duplicate");
@@ -3042,6 +3035,11 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
         }
         return false;
     }
+
+    // emercoin: EvgenijM86: I moved those checks from AddToBlockIndex, because in this version of bitcoin AddToBlockIndex may execute before we got actual block (during header-first sync)
+    // note: we need to do same step separately for genesis block
+    if (!ppcoinIndexChecks(pindex, block))
+            return false;
 
     int nHeight = pindex->nHeight;
 
@@ -3149,7 +3147,8 @@ bool ProcessNewBlock(CValidationState &state, CNode* pfrom, CBlock* pblock, CDis
             LogPrintf("WARNING: %s: check proof-of-stake failed for block %s\n", __func__, hash.ToString());
             return false; // do not error here as we expect this during initial block download
         }
-        mapProofOfStake.Insert(hash, hashProofOfStake);
+        if (!mapProofOfStake.count(hash)) // add to mapProofOfStake
+            mapProofOfStake.insert(make_pair(hash, hashProofOfStake));
     }
 
     {
