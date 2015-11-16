@@ -142,10 +142,8 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
                 if (txCoinStake.nTime >= max(pindexPrev->GetMedianTimePast()+1, pindexPrev->GetBlockTime() - nMaxClockDrift))
                 {   // make sure coinstake would meet timestamp protocol
                     // as it would be the same as the block timestamp
-                    CMutableTransaction tx0(pblock->vtx[0]);
-                    tx0.vout[0].SetEmpty();
-                    tx0.nTime = txCoinStake.nTime;
-                    pblock->vtx[0] = CTransaction(tx0);
+                    txNew.vout[0].SetEmpty();
+                    txNew.nTime = txCoinStake.nTime;
                     pblock->vtx.push_back(CTransaction(txCoinStake));
                 }
             }
@@ -374,7 +372,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
 
         CValidationState state;
-        if (!TestBlockValidity(state, *pblock, pindexPrev, false, false))
+        if (!TestBlockValidity(state, *pblock, pindexPrev, false, false, false)) // emercoin: we do not check block signature here, since we did not sign it yet
             throw std::runtime_error("CreateNewBlock() : TestBlockValidity failed");
     }
 

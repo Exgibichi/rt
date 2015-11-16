@@ -420,7 +420,7 @@ Value getblocktemplate(const Array& params, bool fHelp)
             if (block.hashPrevBlock != pindexPrev->GetBlockHash())
                 return "inconclusive-not-best-prevblk";
             CValidationState state;
-            TestBlockValidity(state, block, pindexPrev, false, true);
+            TestBlockValidity(state, block, pindexPrev, false, true, false);
             return BIP22ValidationResult(state);
         }
     }
