@@ -42,7 +42,7 @@ public:
     else
         for(m_mask = 64; m_mask < size; m_mask <<= 1);
 
-    printf("uint256HashMap:Set(%u/%u) data=%u sz=%u\n", size, m_mask, (unsigned)sizeof(struct Data), (unsigned)(m_mask * sizeof(struct Data)));
+    LogPrintf("uint256HashMap:Set(%u/%u) data=%u sz=%u\n", size, m_mask, (unsigned)sizeof(struct Data), (unsigned)(m_mask * sizeof(struct Data)));
     // allocate memory
     m_data = new Data[m_mask];
     // set allowed counter - Max population is 7/8

@@ -22,6 +22,7 @@
 #include "kernel.h"
 #include "keystore.h"
 #include "namecoin.h"
+#include "uint256hm.h"
 
 #include <sstream>
 
@@ -61,7 +62,7 @@ unsigned int nCoinCacheSize = 5000;
 unsigned int nStakeMinAge = STAKE_MIN_AGE;
 string strMintWarning;
 set<pair<COutPoint, unsigned int> > setStakeSeen;
-map<uint256, uint256> mapProofOfStake;
+uint256HashMap<uint256> mapProofOfStake;
 
 
 /** Fees smaller than this (in satoshi) are considered zero fee (for relaying and mining) */
@@ -2555,11 +2556,14 @@ bool ppcoinIndexChecks(CBlockIndex *pindex, const CBlock& block)
     {
         pindex->prevoutStake = block.vtx[1].vin[0].prevout;
         pindex->nStakeTime = block.vtx[1].nTime;
-    }
 
-    // ppcoin: record proof-of-stake hash value
-    if (mapProofOfStake.count(block.GetHash()))
-        pindex->hashProofOfStake = mapProofOfStake[block.GetHash()];
+        // ppcoin: record proof-of-stake hash value
+        uint256HashMap<uint256>::Data *hash_pos = mapProofOfStake.Search(block.GetHash());
+        if (hash_pos)
+            pindex->hashProofOfStake = hash_pos->value;
+        else
+            return error("ppcoinIndexChecks() : hashProofOfStake not found in map");
+    }
 
     // ppcoin: compute stake entropy bit for stake modifier
     if (!pindex->SetStakeEntropyBit(block.GetStakeEntropyBit()))
@@ -3134,7 +3138,7 @@ bool ProcessNewBlock(CValidationState &state, CNode* pfrom, CBlock* pblock, CDis
         return error("ProcessBlock() : duplicate proof-of-stake (%s, %d) for block %s", pblock->GetProofOfStake().first.ToString(), pblock->GetProofOfStake().second, hash.ToString());
 
     // Preliminary checks
-    bool checked = CheckBlock(*pblock, state);
+    //bool checked = CheckBlock(*pblock, state); // emercoin: removed, since this check happens later in AcceptBlock function
 
     // ppcoin: verify hash target and signature of coinstake tx
     if (pblock->IsProofOfStake())
@@ -3145,16 +3149,15 @@ bool ProcessNewBlock(CValidationState &state, CNode* pfrom, CBlock* pblock, CDis
             LogPrintf("WARNING: %s: check proof-of-stake failed for block %s\n", __func__, hash.ToString());
             return false; // do not error here as we expect this during initial block download
         }
-        if (!mapProofOfStake.count(hash)) // add to mapProofOfStake
-            mapProofOfStake.insert(make_pair(hash, hashProofOfStake));
+        mapProofOfStake.Insert(hash, hashProofOfStake);
     }
 
     {
         LOCK(cs_main);
         MarkBlockAsReceived(pblock->GetHash());
-        if (!checked) {
-            return error("%s : CheckBlock FAILED", __func__);
-        }
+//        if (!checked) {
+//            return error("%s : CheckBlock FAILED", __func__);
+//        }
 
         // Store to disk
         CBlockIndex *pindex = NULL;
@@ -4639,8 +4642,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         // emercoin: 'blocks' is used to process blocks one by one in height order.
         typedef map<int, CBlock> heightMap;
         static heightMap blocks;
-
-        assert(mapBlockIndex.count(block.GetHash())); // sanity check - if we are downloading a block we should have already downloaded header for this block
         blocks[ mapBlockIndex[block.GetHash()]->nHeight ] = block;
 
 

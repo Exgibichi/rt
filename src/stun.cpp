@@ -383,7 +383,7 @@ static int stun_handle_packet(int s, struct sockaddr_in *src,
   struct stun_header *hdr = (struct stun_header *)data;
   struct stun_attr *attr;
   int ret = 0;
-  int x;
+  size_t x;
 
   /* On entry, 'len' is the length of the udp payload. After the
    * initial checks it becomes the size of unprocessed options,
