@@ -1270,6 +1270,8 @@ static void ApproximateBestSubset(vector<pair<CAmount, pair<const CWalletTx*,uns
     }
 }
 
+static bool CmpDepth(const COutput &a, const COutput &b) { return a.nDepth < b.nDepth; }
+
 bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int nConfTheirs, vector<COutput> vCoins,
                                  set<pair<const CWalletTx*,unsigned int> >& setCoinsRet, CAmount& nValueRet) const
 {
@@ -1282,8 +1284,19 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
     coinLowestLarger.second.first = NULL;
     vector<pair<CAmount, pair<const CWalletTx*,unsigned int> > > vValue;
     CAmount nTotalLower = 0;
+    static int sortir = -1;
+    if(sortir < 0) 
+	sortir = GetArg("-sortir", 0);
 
-    random_shuffle(vCoins.begin(), vCoins.end(), GetRandInt);
+    switch(sortir) {
+	case 1:
+	  sort(vCoins.begin(), vCoins.end(), CmpDepth);
+	  break;
+	default:
+          random_shuffle(vCoins.begin(), vCoins.end(), GetRandInt);
+	  break;
+    } // switch
+
 
     BOOST_FOREACH(const COutput &output, vCoins)
     {
