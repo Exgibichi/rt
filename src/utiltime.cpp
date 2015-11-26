@@ -68,7 +68,7 @@ std::string DateTimeStrFormat(const char* pszFormat, int64_t nTime)
     return ss.str();
 }
 
-static const std::string strTimestampFormat = "%F %H:%M:%S";
+static const std::string strTimestampFormat = "%Y-%m-%d %H:%M:%S UTC";
 std::string DateTimeStrFormat(int64_t nTime)
 {
     return DateTimeStrFormat(strTimestampFormat.c_str(), nTime);
