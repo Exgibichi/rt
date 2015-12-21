@@ -145,7 +145,8 @@ BITCOIN_CORE_H = \
   kernel.h \
   namecoin.h \
   hooks.h \
-  emcdns.h
+  emcdns.h \
+  checkpoints_eb.h
 
 JSON_H = \
   json/json_spirit.h \
@@ -248,6 +249,7 @@ libbitcoin_common_a_SOURCES = \
   chainparams.cpp \
   coins.cpp \
   compressor.cpp \
+  checkpoints_eb.cpp \
   primitives/block.cpp \
   primitives/transaction.cpp \
   core_read.cpp \

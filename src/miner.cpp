@@ -555,8 +555,11 @@ void BitcoinMiner(CWallet *pwallet, bool fProofOfStake)
                     SetThreadPriority(THREAD_PRIORITY_NORMAL);
                     ProcessBlockFound(pblock, *pwallet, reservekey);
                     SetThreadPriority(THREAD_PRIORITY_LOWEST);
+                    // Rest for ~3 minutes after successful block to preserve close quick
+                    MilliSleep(60 * 1000 + GetRand(4 * 60 * 1000));
                 }
                 MilliSleep(pos_timio);
+
                 continue;
             }
 

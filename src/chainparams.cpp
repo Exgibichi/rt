@@ -57,6 +57,7 @@ static Checkpoints::MapCheckpoints mapCheckpoints =
         ( 25000, uint256("0x20cc6639e9593e4e9344e1d40a234c552da81cb90b991aed6200ff0f72a69719"))
         ( 50000, uint256("0x4c3d02a982bcb47ed9e076f754870606a6892d258720dc13863e10badbfd0e78"))
         (100000, uint256("0x0000000000000071c614fefb88072459cced7b9d9a9cffd04064d3c3d539ecaf"))
+        (137250, uint256("0x6c9e7cebac95ac26e9137765c6ac6361fe3f9cbcbbc49eac73b59504ef3dc7b4"))
         ;
 static const Checkpoints::CCheckpointData data = {
         &mapCheckpoints,
@@ -147,7 +148,8 @@ public:
         assert(hashGenesisBlock == uint256("0x00000000bcccd459d036a588d1008fce8da3754b205736f32ddfd35350e84c2d"));
         assert(genesis.hashMerkleRoot == uint256("0xd8eee032f95716d0cf14231dc7a238b96bbf827e349e75344c9a88e849262ee0"));
 
-        vSeeds.push_back(CDNSSeedData("emercoin.com", "seed.emercoin.com"));
+        vSeeds.push_back(CDNSSeedData("emercoin", "seed.emercoin.com"));
+        vSeeds.push_back(CDNSSeedData("emcdns", "seed.emc"));
 
         base58Prefixes[PUBKEY_ADDRESS] = list_of(33);   // emercoin: addresses begin with 'E'
         base58Prefixes[SCRIPT_ADDRESS] = list_of(92);   // emercoin: addresses begin with 'e'

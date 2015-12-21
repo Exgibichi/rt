@@ -1448,7 +1448,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
                 nValueRet += vValue[i].first;
             }
 
-        LogPrint("selectcoins", "SelectCoins() best subset: ");
+        LogPrint("selectcoins", "SelectCoins() stochastic best subset: ");
         for (unsigned int i = 0; i < vValue.size(); i++)
             if (vfBest[i])
                 LogPrint("selectcoins", "%s ", FormatMoney(vValue[i].first));

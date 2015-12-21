@@ -2564,13 +2564,13 @@ bool ppcoinIndexChecks(CBlockIndex *pindex, const CBlock& block)
     }
 
     // ppcoin: compute stake entropy bit for stake modifier
-    if (!pindex->SetStakeEntropyBit(block.GetStakeEntropyBit()))
+    if (!pindex->SetStakeEntropyBit(block.GetStakeEntropyBit(pindex->nHeight)))
         return error("ppcoinIndexChecks() : SetStakeEntropyBit() failed");
 
     // ppcoin: compute stake modifier
     uint64_t nStakeModifier = 0;
     bool fGeneratedStakeModifier = false;
-    if (!ComputeNextStakeModifier(pindex->pprev, nStakeModifier, fGeneratedStakeModifier))
+    if (!ComputeNextStakeModifier(pindex, nStakeModifier, fGeneratedStakeModifier))
         return error("ppcoinIndexChecks() : ComputeNextStakeModifier() failed");
     pindex->SetStakeModifier(nStakeModifier, fGeneratedStakeModifier);
     pindex->nStakeModifierChecksum = GetStakeModifierChecksum(pindex);
@@ -4633,16 +4633,16 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         CBlock block;
         vRecv >> block;
 
-        CInv inv(MSG_BLOCK, block.GetHash());
-        LogPrint("net", "received block %s peer=%d\n", inv.hash.ToString(), pfrom->id);
-
-        pfrom->AddInventoryKnown(inv);
-
         // emercoin: 'blocks' is used to process blocks one by one in height order.
         typedef map<int, CBlock> heightMap;
         static heightMap blocks;
-        blocks[ mapBlockIndex[block.GetHash()]->nHeight ] = block;
+        int nHeight = mapBlockIndex[block.GetHash()]->nHeight;
+        blocks[ nHeight ] = block;
 
+        CInv inv(MSG_BLOCK, block.GetHash());
+        LogPrint("net", "received block %s peer=%d height=%d\n", inv.hash.ToString(), pfrom->id, nHeight);
+
+        pfrom->AddInventoryKnown(inv);
 
         for ( heightMap::iterator it = blocks.begin();  // map should be sorted by height. if so - start with lowest height
               it != blocks.end();)

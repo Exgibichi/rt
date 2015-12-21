@@ -142,3 +142,28 @@ std::string CInv::ToString() const
 {
     return strprintf("%s %s", GetCommand(), hash.ToString());
 }
+
+
+
+// ppcoin protocol switch times
+unsigned int nProtocolV03SwitchTime     = 1363800000;
+unsigned int nProtocolV04SwitchTime     = 1449100800;  // 12/03/2015 00:00:00 GMT
+
+// TxDB upgrade time for v0.4 protocol
+// Note: v0.4 upgrade does not require block chain re-download. However,
+//       user must upgrade before the protocol switch deadline, otherwise
+//       re-download of blockchain is required. The timestamp of upgrade
+//       is recorded in transaction database to alert user of the requirement.
+unsigned int nProtocolV04UpgradeTime    = 0;
+
+// Whether the given coinstake is subject to new v0.3 protocol
+bool IsProtocolV03(unsigned int nTimeCoinStake)
+{
+    return (nTimeCoinStake >= nProtocolV03SwitchTime);
+}
+
+// Whether the given block is subject to new v0.4 protocol
+bool IsProtocolV04(unsigned int nTimeBlock)
+{
+    return (nTimeBlock >= nProtocolV04SwitchTime);
+}

@@ -149,4 +149,15 @@ enum {
     MSG_FILTERED_BLOCK,
 };
 
+// ppcoin protocol switch times
+extern unsigned int nProtocolV03SwitchTime;
+extern unsigned int nProtocolV04SwitchTime;
+
+// TxDB upgrade time for v0.4 protocol
+extern unsigned int nProtocolV04UpgradeTime;
+
+// Whether a given coinstake is subject to a given protocol version
+bool IsProtocolV03(unsigned int nTimeCoinStake);
+bool IsProtocolV04(unsigned int nTimeBlock);
+
 #endif // BITCOIN_PROTOCOL_H

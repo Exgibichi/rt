@@ -967,6 +967,23 @@ bool createNameScript(CScript& nameScript, const vector<unsigned char> &vchName,
     return true;
 }
 
+bool IsWalletLocked(NameTxReturn& ret)
+{
+    if (pwalletMain->IsLocked())
+    {
+        ret.err_code = RPC_WALLET_UNLOCK_NEEDED;
+        ret.err_msg = "Error: Please enter the wallet passphrase with walletpassphrase first.";
+        return true;
+    }
+    if (fWalletUnlockMintOnly)
+    {
+        ret.err_code = RPC_WALLET_UNLOCK_NEEDED;
+        ret.err_msg = "Error: Wallet unlocked for block minting only, unable to create transaction.";
+        return true;
+    }
+    return false;
+}
+
 Value name_new(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() != 3)
@@ -997,6 +1014,9 @@ NameTxReturn name_new(const vector<unsigned char> &vchName,
     ret.err_code = RPC_INTERNAL_ERROR; //default value
     ret.ok = false;
 
+    if (IsWalletLocked(ret))
+        return ret;
+
     CMutableTransaction tmpTx;
     tmpTx.nVersion = NAMECOIN_TX_VERSION;
     CWalletTx wtx(pwalletMain, tmpTx);
@@ -1021,8 +1041,6 @@ NameTxReturn name_new(const vector<unsigned char> &vchName,
             return ret;
         }
 
-        EnsureWalletIsUnlocked();
-
         CPubKey vchPubKey;
         if (!pwalletMain->GetKeyFromPool(vchPubKey))
         {
@@ -1036,8 +1054,6 @@ NameTxReturn name_new(const vector<unsigned char> &vchName,
 
         scriptPubKey = GetScriptForDestination(vchPubKey.GetID());
         nameScript += scriptPubKey;
-
-        EnsureWalletIsUnlocked();
 
         CAmount nameFee = GetNameOpFee(chainActive.Tip(), nRentalDays, OP_NAME_NEW, vchName, vchValue);
         SendName(nameScript, SUBCENT, wtx, CWalletTx(), nameFee);
@@ -1085,6 +1101,9 @@ NameTxReturn name_update(const vector<unsigned char> &vchName,
     NameTxReturn ret;
     ret.err_code = RPC_INTERNAL_ERROR; //default value
     ret.ok = false;
+
+    if (IsWalletLocked(ret))
+        return ret;
 
     CMutableTransaction tmpTx;
     tmpTx.nVersion = NAMECOIN_TX_VERSION;
@@ -1177,8 +1196,6 @@ NameTxReturn name_update(const vector<unsigned char> &vchName,
 
         nameScript += scriptPubKey;
 
-        EnsureWalletIsUnlocked();
-
         CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
         CAmount nameFee = GetNameOpFee(chainActive.Tip(), nRentalDays, OP_NAME_UPDATE, vchName, vchValue);
         SendName(nameScript, SUBCENT, wtx, wtxIn, nameFee);
@@ -1221,6 +1238,9 @@ NameTxReturn name_delete(const vector<unsigned char> &vchName)
     NameTxReturn ret;
     ret.err_code = RPC_INTERNAL_ERROR; //default value
     ret.ok = false;
+
+    if (IsWalletLocked(ret))
+        return ret;
 
     CMutableTransaction tmpTx;
     tmpTx.nVersion = NAMECOIN_TX_VERSION;
@@ -1301,8 +1321,6 @@ NameTxReturn name_delete(const vector<unsigned char> &vchName)
 
         scriptPubKey = GetScriptForDestination(vchPubKey.GetID());
         nameScript += scriptPubKey;
-
-        EnsureWalletIsUnlocked();
 
         CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
         CAmount nameFee = GetNameOpFee(chainActive.Tip(), 0, OP_NAME_DELETE, vchName, vector<unsigned char>());
