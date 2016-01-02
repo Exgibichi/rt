@@ -23,7 +23,7 @@ public:
 
     void GetPubKey(std::vector<unsigned char>& pubkey, bool fCompressed);
     bool SetPubKey(const unsigned char* pubkey, size_t size);
-    bool Verify(const uint256 &hash, const std::vector<unsigned char>& vchSig);
+    bool Verify(const uint256 &hash, const std::vector<unsigned char>& vchSigParam);
 
     /**
      * reconstruct public key from a compact signature
