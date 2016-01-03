@@ -1799,7 +1799,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 	  } // ReadTxIndex()
 
           if (pbo == NULL) {
-              pair<CBlockHeader*, unsigned int> bo(cbh, postx.nTxOffset + sizeof(CBlockHeader));
+              pair<CBlockHeader*, unsigned int> bo(cbh, postx.nTxOffset + CBlockHeader::NORMAL_SERIALIZE_SIZE);
               pbo = CacheBlockOffset.Insert(tx_hash, bo);
           } else
               pbo->value.first = cbh;
