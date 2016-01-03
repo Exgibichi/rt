@@ -628,7 +628,7 @@ void BitcoinGUI::gotoSendCoinsPage(QString addr)
 void BitcoinGUI::gotoManageNamesPage()
 {
     manageNamesAction->setChecked(true);
-    if (walletFrame) walletFrame->gotoSendCoinsPage();
+    if (walletFrame) walletFrame->gotoManageNamesPage();
 }
 
 void BitcoinGUI::gotoSignMessageTab(QString addr)
