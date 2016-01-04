@@ -977,11 +977,23 @@ bool AppInit2(boost::thread_group& threadGroup)
     // ********************************************************* Step 7: load block chain
 
     fReindex = GetBoolArg("-reindex", false);
-    if (!(filesystem::exists(filesystem::path(GetDataDir()) / "nameindexV2.dat")))
     {
-        fReindex = true;
+        filesystem::path path = GetDataDir() / "nameindexV2.dat";
+        bool fNameIndexExists = filesystem::exists(path);
         extern void createNameIndexFile();
-        createNameIndexFile();
+
+        // Recreate nameindex if doing reindex
+        if (fReindex && fNameIndexExists)
+        {
+            filesystem::remove(path);
+            createNameIndexFile();
+        }
+        // Do reindex if nameindex did not exist
+        if (!fNameIndexExists)
+        {
+            fReindex = true;
+            createNameIndexFile();
+        }
     }
 
     // Upgrading to 0.8; hard-link the old blknnnn.dat files into /blocks/
