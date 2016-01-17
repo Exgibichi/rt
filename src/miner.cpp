@@ -666,7 +666,8 @@ void BitcoinMiner(CWallet *pwallet, bool fProofOfStake)
     catch (boost::thread_interrupted)
     {
         LogPrintf("BitcoinMiner terminated\n");
-        throw;
+	return;
+        // throw;
     }
     catch (const std::runtime_error &e)
     {
