@@ -146,7 +146,8 @@ BITCOIN_CORE_H = \
   namecoin.h \
   hooks.h \
   emcdns.h \
-  checkpoints_eb.h
+  checkpoints_eb.h \
+  ministun.h
 
 JSON_H = \
   json/json_spirit.h \
@@ -366,6 +367,7 @@ emercoin_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 if BUILD_BITCOIN_LIBS
 include_HEADERS = script/bitcoinconsensus.h
 libbitcoinconsensus_la_SOURCES = \
+  script/bitcoinconsensus_dummy.cpp \
   primitives/transaction.cpp \
   crypto/hmac_sha512.cpp \
   crypto/sha1.cpp \
