@@ -1,6 +1,7 @@
 #ifndef EMCDNS_H
 #define EMCDNS_H
 
+#include <boost/thread.hpp>
 
 #define EMCDNS_DAPSIZE     (8 * 1024)
 #define EMCDNS_DAPTRESHOLD 300 // 20K/min limit answer
@@ -35,11 +36,10 @@ struct DNSAP {		// DNS Amplifier Protector ExpDecay structure
 
 class EmcDns {
   public:
-     EmcDns();
+     EmcDns(const char *bind_ip, uint16_t port_no,
+	    const char *gw_suffix, const char *allowed_suff, const char *local_fname, uint8_t verbose);
     ~EmcDns();
 
-    int Reset(const char *bind_ip, uint16_t port_no, 
-	    const char *gw_suffix, const char *allowed_suff, const char *local_fname, uint8_t verbose); 
     void Run();
 
   private:
@@ -69,18 +69,20 @@ class EmcDns {
     int       m_rcvlen;
     uint32_t  m_daprand;	// DAP random value for universal hashing
     uint32_t  m_ttl;
-    uint16_t  m_port;
     uint16_t  m_label_ref;
     uint16_t  m_gw_suf_len;
     uint8_t   m_gw_suf_dots;
     uint8_t   m_verbose;
     uint8_t   m_allowed_qty;
+    uint8_t   m_status;
     char     *m_allowed_base;
     char     *m_local_base;
     int16_t   m_ht_offset[0x100]; // Hashtable for allowed TLD-suffixes(>0) and local names(<0)
     struct sockaddr_in m_clientAddress;
     struct sockaddr_in m_address;
     socklen_t m_addrLen;
+
+    boost::thread m_thread;
 }; // class EmcDns
 
 #endif // EMCDNS_H

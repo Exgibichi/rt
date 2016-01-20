@@ -1342,8 +1342,6 @@ bool AppInit2(boost::thread_group& threadGroup)
     if (GetBoolArg("-emcdns", false))
     {
         #define EMCDNS_PORT 5335
-        emcdns = new EmcDns();
-        LogPrintf("DNS server started\n");
         int port = GetArg("-emcdnsport", EMCDNS_PORT);
         int verbose = GetArg("-emcdnsverbose", 1);
         if (port <= 0)
@@ -1352,15 +1350,9 @@ bool AppInit2(boost::thread_group& threadGroup)
         string bind_ip = GetArg("-emcdnsbindip", "");
         string allowed = GetArg("-emcdnsallowed", "");
         string localcf = GetArg("-emcdnslocalcf", "");
-        int rc = emcdns->Reset(bind_ip.c_str(), port,
+        emcdns = new EmcDns(bind_ip.c_str(), port,
         suffix.c_str(), allowed.c_str(), localcf.c_str(), verbose);
-        LogPrintf("dnssrv.Reset executed=%d\n", rc);
-        if (rc < 0)
-        {
-            LogPrintf("Error when creating dns server: %d", rc);
-        delete emcdns;
-        emcdns = NULL;
-        }
+        LogPrintf("DNS server started\n");
     }
 
     return !fRequestShutdown;

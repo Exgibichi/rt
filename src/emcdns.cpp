@@ -81,39 +81,10 @@ int inet_pton(int af, const char *src, void *dst)
 
 /*---------------------------------------------------*/
 
-EmcDns::EmcDns() : m_port(0) {
-} // EmcDns::EmcDns
+EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
+	  const char *gw_suffix, const char *allowed_suff, const char *local_fname, uint8_t verbose) 
+    : m_status(0), m_thread(StatRun, this) {
 
-/*---------------------------------------------------*/
-
-EmcDns::~EmcDns() {
-  Reset(NULL, 0, NULL, NULL, NULL, 0);
-} // EmcDns::~EmcDns
-
-
-/*---------------------------------------------------*/
-
-int EmcDns::Reset(const char *bind_ip, uint16_t port_no, 
-  const char *gw_suffix, const char *allowed_suff, const char *local_fname, uint8_t verbose) {
-  if(m_port != 0) {
-    // reset current object to initial state
-#ifndef WIN32
-    shutdown(m_sockfd, SHUT_RDWR);
-#endif
-    CloseSocket(m_sockfd);
-    MilliSleep(100); // Allow 0.1s external thread to exit
-#ifndef WIN32
-    // pthread_join(m_thread, NULL);
-#endif
-    free(m_value);
-    free(m_dap_ht);
-    m_port = 0;
-    if(m_verbose > 0)
-	 LogPrintf("EmcDns::Reset: Destroyed OK\n");
-  }
-
-  // Initialize new object here
-  if(port_no != 0) { 
     // Set object to a new state
     memset(this, 0, sizeof(EmcDns)); // Clear previous state
     m_verbose = verbose;
@@ -121,7 +92,7 @@ int EmcDns::Reset(const char *bind_ip, uint16_t port_no,
     // Create and socket
     int ret = socket(PF_INET, SOCK_DGRAM, 0);
     if(ret < 0) {
-      return -2; // Cannot create socket
+      throw runtime_error("EmcDns::EmcDns: Cannot create socket");
     } else {
       m_sockfd = ret;
     }
@@ -135,10 +106,8 @@ int EmcDns::Reset(const char *bind_ip, uint16_t port_no,
     if(bind(m_sockfd, (struct sockaddr *) &m_address,
                      sizeof (struct sockaddr_in)) < 0) {
       char buf[80];
-      sprintf(buf, "EmcDns::Reset: Cannot bind to port %u", port_no);
-      perror(buf);
-      CloseSocket(m_sockfd);
-      return -3; // Cannot bind socket
+      sprintf(buf, "EmcDns::EmcDns: Cannot bind to port %u", port_no);
+      throw runtime_error(buf);
     }
 
     // Create temporary local buf on stack
@@ -182,11 +151,8 @@ int EmcDns::Reset(const char *bind_ip, uint16_t port_no,
     m_value  = (char *)malloc(VAL_SIZE + BUF_SIZE + 2 + 
 	    m_gw_suf_len + allowed_len + local_len + 4);
  
-    if(m_value == NULL) {
-      perror("EmcDns::Reset: Cannot allocate buffer");
-      CloseSocket(m_sockfd);
-      return -5; // no memory for buffers
-    }
+    if(m_value == NULL) 
+      throw runtime_error("EmcDns::EmcDns: Cannot allocate buffer");
 
     m_buf    = (uint8_t *)(m_value + VAL_SIZE);
     m_bufend = m_buf + MAX_OUT;
@@ -209,7 +175,7 @@ int EmcDns::Reset(const char *bind_ip, uint16_t port_no,
 	  if(p[1] > 040) { // if allowed domain is not empty - save it into ht
 	    step |= 1;
 	    if(m_verbose > 3)
-	      LogPrintf("\tEmcDns::Reset: Insert TLD=%s: pos=%u step=%u\n", p + 1, pos, step);
+	      LogPrintf("\tEmcDns::EmcDns: Insert TLD=%s: pos=%u step=%u\n", p + 1, pos, step);
 	    do 
 	      pos += step;
             while(m_ht_offset[pos] != 0);
@@ -240,7 +206,7 @@ int EmcDns::Reset(const char *bind_ip, uint16_t port_no,
         } // while
 	step |= 1;
 	if(m_verbose > 3)
-	  LogPrintf("\tEmcDns::Reset: Insert Local:[%s]->[%s] pos=%u step=%u\n", p, p_eq, pos, step);
+	  LogPrintf("\tEmcDns::EmcDns: Insert Local:[%s]->[%s] pos=%u step=%u\n", p, p_eq, pos, step);
 	do 
 	  pos += step;
         while(m_ht_offset[pos] != 0);
@@ -249,27 +215,30 @@ int EmcDns::Reset(const char *bind_ip, uint16_t port_no,
       } // while
     } //  if(local_len)
 
-    // Create own listener, only if GUI; 
-    // Otherwise, Run() will be called from AppInit2
-#ifdef QT_GUI
-    // Create listener thread
-    if (!CreateThread(StatRun, this))
-    {
-      perror("EmcDns::Reset: Cannot create thread");
-      closesocket(m_sockfd);
-      free(m_value);
-      return -6; // cannot create inner thread
-    }
-#endif
-
     if(m_verbose > 0)
-	 LogPrintf("EmcDns::Reset: Created/Attached: %s:%u; Qty=%u:%u\n", 
+	 LogPrintf("EmcDns::EmcDns: Created/Attached: %s:%u; Qty=%u:%u\n", 
 		 m_address.sin_addr.s_addr == INADDR_ANY? "INADDR_ANY" : bind_ip, 
 		 port_no, m_allowed_qty, local_qty);
-  } // if(port_no != 0)
-  
-  return m_port = port_no;
-} // EmcDns::Reset
+
+    m_status = 1; // Active 
+} // EmcDns::EmcDns
+
+/*---------------------------------------------------*/
+
+EmcDns::~EmcDns() {
+    // reset current object to initial state
+#ifndef WIN32
+    shutdown(m_sockfd, SHUT_RDWR);
+#endif
+    CloseSocket(m_sockfd);
+    MilliSleep(100); // Allow 0.1s my thread to exit
+    // m_thread.join();
+    free(m_value);
+    free(m_dap_ht);
+    if(m_verbose > 0)
+	 LogPrintf("EmcDns::~EmcDns: Destroyed OK\n");
+} // EmcDns::~EmcDns
+
 
 /*---------------------------------------------------*/
 
@@ -282,6 +251,10 @@ void EmcDns::StatRun(void *p) {
 /*---------------------------------------------------*/
 void EmcDns::Run() {
   if(m_verbose > 2) LogPrintf("EmcDns::Run: started\n");
+
+  while(m_status == 0)
+      MilliSleep(133);
+
   for( ; ; ) {
     m_addrLen = sizeof(m_clientAddress);
     m_rcvlen  = recvfrom(m_sockfd, (char *)m_buf, BUF_SIZE, 0,
