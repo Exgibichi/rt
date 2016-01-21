@@ -1796,7 +1796,6 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     CAmount nCredit = 0;
     CScript scriptPubKeyKernel;
 
-//emercoin
     // This is static cache for minimize block loads for each POS-attempt
     // Possible values of ->value.first
     // Addr > 0x4 -- This is pointer to blockheader in the memory
