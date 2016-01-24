@@ -4646,36 +4646,35 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         pfrom->AddInventoryKnown(inv);
 
-        for ( heightMap::iterator it = blocks.begin();  // map should be sorted by height. if so - start with lowest height
-              it != blocks.end();)
+        // map should be sorted by height. if so - start with lowest height
+        for ( heightMap::iterator it = blocks.begin(); it != blocks.end();)
         {
-            // find block height
-            int nHeight = it->first;
+            // check if block connects to valid previous block
+            // otherwise break:
+            //   next block in 'blocks' should have even higher height
+            //   no point in trying to connect block with higher height if we failed to connect block with lower height
+            if (!mapBlockIndex.count(it->second.hashPrevBlock))
+                break;
 
-            // check if height allows to connect in-between (fork) or on top of blockain (normal) &&
-            // check if block connects to previous block in blockchain
-            if (nHeight <= chainActive.Height() + 1 &&
-                chainActive[nHeight - 1]->GetBlockHash() == it->second.hashPrevBlock)
-            {
-                // connect block
-                CValidationState state;
-                ProcessNewBlock(state, pfrom, &(it->second));
-                int nDoS;
-                if (state.IsInvalid(nDoS)) {
-                    pfrom->PushMessage("reject", strCommand, state.GetRejectCode(),
-                                       state.GetRejectReason().substr(0, MAX_REJECT_MESSAGE_LENGTH), inv.hash);
-                    if (nDoS > 0) {
-                        LOCK(cs_main);
-                        Misbehaving(pfrom->GetId(), nDoS);
-                    }
+            const CBlockIndex* pindexPrev = mapBlockIndex[it->second.hashPrevBlock];
+            if (!pindexPrev->IsValid(BLOCK_VALID_TRANSACTIONS))
+                break;
+
+            // connect block
+            CValidationState state;
+            ProcessNewBlock(state, pfrom, &(it->second));
+            int nDoS;
+            if (state.IsInvalid(nDoS)) {
+                pfrom->PushMessage("reject", strCommand, state.GetRejectCode(),
+                                   state.GetRejectReason().substr(0, MAX_REJECT_MESSAGE_LENGTH), inv.hash);
+                if (nDoS > 0) {
+                    LOCK(cs_main);
+                    Misbehaving(pfrom->GetId(), nDoS);
                 }
-                heightMap::iterator it2 = it;
-                it++;
-                blocks.erase(it2);
             }
-            else
-                break; // next block in 'blocks' should have even higher height
-                       // no point in trying to connect block with higher height if we failed to connect block with lower height
+            heightMap::iterator it2 = it;
+            it++;
+            blocks.erase(it2);
         }
     }
 
