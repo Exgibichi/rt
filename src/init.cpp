@@ -514,6 +514,31 @@ bool InitSanityCheck(void)
     return true;
 }
 
+void nameindexCheck()
+{
+    filesystem::path path = GetDataDir() / "nameindexV2.dat";
+    bool fNameIndexExists = filesystem::exists(path);
+    extern void createNameIndexFile();
+
+    // Create/recreate nameindex if doing reindex
+    if (fReindex)
+    {
+        if (fNameIndexExists)
+            filesystem::remove(path);
+
+        createNameIndexFile();
+    }
+    // Do reindex if nameindex did not exist
+    else
+    {
+        if (!fNameIndexExists)
+        {
+            fReindex = true;
+            createNameIndexFile();
+        } // else: not reindexing and nameindex exists - nothing todo, start normaly
+    }
+}
+
 /** Initialize bitcoin.
  *  @pre Parameters should be parsed and config file should be read.
  */
@@ -977,24 +1002,6 @@ bool AppInit2(boost::thread_group& threadGroup)
     // ********************************************************* Step 7: load block chain
 
     fReindex = GetBoolArg("-reindex", false);
-    {
-        filesystem::path path = GetDataDir() / "nameindexV2.dat";
-        bool fNameIndexExists = filesystem::exists(path);
-        extern void createNameIndexFile();
-
-        // Recreate nameindex if doing reindex
-        if (fReindex && fNameIndexExists)
-        {
-            filesystem::remove(path);
-            createNameIndexFile();
-        }
-        // Do reindex if nameindex did not exist
-        if (!fNameIndexExists)
-        {
-            fReindex = true;
-            createNameIndexFile();
-        }
-    }
 
     // Upgrading to 0.8; hard-link the old blknnnn.dat files into /blocks/
     filesystem::path blocksDir = GetDataDir() / "blocks";
@@ -1116,6 +1123,9 @@ bool AppInit2(boost::thread_group& threadGroup)
             }
         }
     }
+
+    // emercoin: check in nameindex need to be created or recreated
+    nameindexCheck();
 
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.
