@@ -1742,6 +1742,7 @@ bool GetPendingNameValue(const vector<unsigned char> &vchName, vector<unsigned c
         if (mempool.mapTx[hash].GetTx().nTime > nTime)
         {
             tx = mempool.mapTx[hash].GetTx();
+            nTime = tx.nTime;
             found = true;
         }
     }
