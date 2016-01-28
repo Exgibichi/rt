@@ -61,7 +61,6 @@ unsigned int nCoinCacheSize = 5000;
 unsigned int nStakeMinAge = STAKE_MIN_AGE;
 string strMintWarning;
 set<pair<COutPoint, unsigned int> > setStakeSeen;
-map<uint256, uint256> mapProofOfStake;
 
 
 /** Fees smaller than this (in satoshi) are considered zero fee (for relaying and mining) */
@@ -1774,8 +1773,77 @@ static int64_t nTimeIndex = 0;
 static int64_t nTimeCallbacks = 0;
 static int64_t nTimeTotal = 0;
 
+
+// these checks can only be done when all previous block have been added.
+bool ppcoinContextualBlockChecks(const CBlock& block, CValidationState& state, CBlockIndex* pindex, bool fJustCheck)
+{
+    uint256 hashProofOfStake = 0;
+    if (block.IsProofOfStake())
+    {
+        // ppcoin: verify hash target and signature of coinstake tx
+        if (!CheckProofOfStake(state, block.vtx[1], block.nBits, hashProofOfStake))
+        {
+            LogPrintf("WARNING: %s: check proof-of-stake failed for block %s\n", __func__, block.GetHash().ToString());
+            return false; // do not error here as we expect this during initial block download
+        }
+    }
+
+    // ppcoin: compute stake entropy bit for stake modifier
+    unsigned int nEntropyBit = block.GetStakeEntropyBit(pindex->nHeight);
+
+    // ppcoin: compute stake modifier
+    uint64_t nStakeModifier = 0;
+    bool fGeneratedStakeModifier = false;
+    if (!ComputeNextStakeModifier(pindex, nStakeModifier, fGeneratedStakeModifier))
+        return error("ConnectBlock() : ComputeNextStakeModifier() failed");
+
+  // compute nStakeModifierChecksum begin
+    unsigned int nFlagsBackup      = pindex->nFlags;
+    uint64_t nStakeModifierBackup  = pindex->nStakeModifier;
+    uint256 hashProofOfStakeBackup = pindex->hashProofOfStake;
+
+    // set necessary pindex fields
+    if (!pindex->SetStakeEntropyBit(nEntropyBit))
+        return error("ConnectBlock() : SetStakeEntropyBit() failed");
+    pindex->SetStakeModifier(nStakeModifier, fGeneratedStakeModifier);
+    pindex->hashProofOfStake = hashProofOfStake;
+
+    unsigned int nStakeModifierChecksum = GetStakeModifierChecksum(pindex);
+
+    // undo pindex fields
+    pindex->nFlags           = nFlagsBackup;
+    pindex->nStakeModifier   = nStakeModifierBackup;
+    pindex->hashProofOfStake = hashProofOfStakeBackup;
+  // compute nStakeModifierChecksum end
+
+    if (!CheckStakeModifierCheckpoints(pindex->nHeight, nStakeModifierChecksum))
+        return error("ConnectBlock() : Rejected by stake modifier checkpoint height=%d, modifier=0x%016llx", pindex->nHeight, nStakeModifier);
+
+    if (fJustCheck)
+        return true;
+
+
+    // write everything to index
+    if (block.IsProofOfStake())
+    {
+        pindex->prevoutStake = block.vtx[1].vin[0].prevout;
+        pindex->nStakeTime = block.vtx[1].nTime;
+        pindex->hashProofOfStake = hashProofOfStake;
+        setStakeSeen.insert(make_pair(pindex->prevoutStake, pindex->nStakeTime));
+    }
+    if (!pindex->SetStakeEntropyBit(nEntropyBit))
+        return error("ConnectBlock() : SetStakeEntropyBit() failed");
+    pindex->SetStakeModifier(nStakeModifier, fGeneratedStakeModifier);
+    pindex->nStakeModifierChecksum = nStakeModifierChecksum;
+
+    return true;
+}
+
 bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view, bool fJustCheck, bool fWriteNames)
 {
+    if (!ppcoinContextualBlockChecks(block, state, pindex, fJustCheck))
+        return false;
+
     AssertLockHeld(cs_main);
     // Check it again in case a previous version let a bad block in
     if (!CheckBlock(block, state, !fJustCheck, !fJustCheck, !fJustCheck))
@@ -2550,42 +2618,6 @@ CBlockIndex* AddToBlockIndex(const CBlockHeader& block)
     return pindexNew;
 }
 
-// emercoin: checks and updates index information for ppcoin.
-bool ppcoinIndexChecks(CBlockIndex *pindex, const CBlock& block)
-{
-    if (block.IsProofOfStake())
-    {
-        pindex->prevoutStake = block.vtx[1].vin[0].prevout;
-        pindex->nStakeTime = block.vtx[1].nTime;
-
-        // ppcoin: record proof-of-stake hash value
-        uint256 hash = block.GetHash();
-        if (!mapProofOfStake.count(hash))
-            return error("AddToBlockIndex() : hashProofOfStake not found in map");
-        pindex->hashProofOfStake = mapProofOfStake[hash];
-    }
-
-    // ppcoin: compute stake entropy bit for stake modifier
-    if (!pindex->SetStakeEntropyBit(block.GetStakeEntropyBit(pindex->nHeight)))
-        return error("ppcoinIndexChecks() : SetStakeEntropyBit() failed");
-
-    // ppcoin: compute stake modifier
-    uint64_t nStakeModifier = 0;
-    bool fGeneratedStakeModifier = false;
-    if (!ComputeNextStakeModifier(pindex, nStakeModifier, fGeneratedStakeModifier))
-        return error("ppcoinIndexChecks() : ComputeNextStakeModifier() failed");
-    pindex->SetStakeModifier(nStakeModifier, fGeneratedStakeModifier);
-    pindex->nStakeModifierChecksum = GetStakeModifierChecksum(pindex);
-    if (!CheckStakeModifierCheckpoints(pindex->nHeight, pindex->nStakeModifierChecksum))
-        return error("ppcoinIndexChecks() : Rejected by stake modifier checkpoint height=%d, modifier=0x%016llx", pindex->nHeight, nStakeModifier);
-
-    // ppcoin: remember stake
-    if (pindex->IsProofOfStake())
-        setStakeSeen.insert(make_pair(pindex->prevoutStake, pindex->nStakeTime));
-
-    return true;
-}
-
 /** Mark a block as having its data received and checked (up to BLOCK_VALID_TRANSACTIONS). */
 bool ReceivedBlockTransactions(const CBlock &block, CValidationState& state, CBlockIndex *pindexNew, const CDiskBlockPos& pos)
 {
@@ -2855,7 +2887,6 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
         }
     }
 
-
     // Check timestamp against prev
     if (block.GetBlockTime() <= pindexPrev->GetMedianTimePast() || block.GetBlockTime() + nMaxClockDrift < pindexPrev->GetBlockTime())
         return state.Invalid(error("%s : block's timestamp is too early", __func__),
@@ -3038,11 +3069,6 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
         return false;
     }
 
-    // emercoin: EvgenijM86: I moved those checks from AddToBlockIndex, because in this version of bitcoin AddToBlockIndex may execute before we got actual block (during header-first sync)
-    // note: we need to do same step separately for genesis block
-    if (!ppcoinIndexChecks(pindex, block))
-            return false;
-
     int nHeight = pindex->nHeight;
 
     // Write block to history file
@@ -3131,7 +3157,6 @@ bool ProcessNewBlock(CValidationState &state, CNode* pfrom, CBlock* pblock, CDis
 {
     uint256 hash = pblock->GetHash();
 
-    // ppcoin: check proof-of-stake
     // Limited duplicity on stake: prevents block flood attack
     // EvgenijM86: Since there is no orhpan blocks now - check should execute without them?
     if (pblock->IsProofOfStake() && setStakeSeen.count(pblock->GetProofOfStake()))
@@ -3140,22 +3165,9 @@ bool ProcessNewBlock(CValidationState &state, CNode* pfrom, CBlock* pblock, CDis
     // Preliminary checks
     //bool checked = CheckBlock(*pblock, state); // emercoin: removed, since this check happens later in AcceptBlock function
 
-    // ppcoin: verify hash target and signature of coinstake tx
-    if (pblock->IsProofOfStake())
-    {
-        uint256 hashProofOfStake = 0;
-        if (!CheckProofOfStake(state, pblock->vtx[1], pblock->nBits, hashProofOfStake))
-        {
-            LogPrintf("WARNING: %s: check proof-of-stake failed for block %s\n", __func__, hash.ToString());
-            return false; // do not error here as we expect this during initial block download
-        }
-        if (!mapProofOfStake.count(hash)) // add to mapProofOfStake
-            mapProofOfStake.insert(make_pair(hash, hashProofOfStake));
-    }
-
     {
         LOCK(cs_main);
-        MarkBlockAsReceived(pblock->GetHash());
+        MarkBlockAsReceived(hash);
 //        if (!checked) {
 //            return error("%s : CheckBlock FAILED", __func__);
 //        }
@@ -3373,8 +3385,8 @@ bool static LoadBlockIndexDB()
         if (pindex->IsValid(BLOCK_VALID_TREE) && (pindexBestHeader == NULL || CBlockIndexWorkComparator()(pindexBestHeader, pindex)))
             pindexBestHeader = pindex;
 
-        // ppcoin: calculate stake modifier checksum - for those blocks that we have downloaded
-        if (pindex->nStatus & BLOCK_HAVE_DATA)
+        // ppcoin: calculate stake modifier checksum
+        if (pindex->IsValid(BLOCK_VALID_SCRIPTS))
         {
             pindex->nStakeModifierChecksum = GetStakeModifierChecksum(pindex);
             if (!CheckStakeModifierCheckpoints(pindex->nHeight, pindex->nStakeModifierChecksum))
@@ -3572,8 +3584,6 @@ bool InitBlockIndex() {
             if (!WriteBlockToDisk(block, blockPos))
                 return error("LoadBlockIndex() : writing genesis block to disk failed");
             CBlockIndex *pindex = AddToBlockIndex(block);
-            if (!ppcoinIndexChecks(pindex, block))
-                    return false;
             if (!ReceivedBlockTransactions(block, state, pindex, blockPos))
                 return error("LoadBlockIndex() : genesis block not accepted");
             if (!ActivateBestChain(state, &block))
@@ -4635,47 +4645,23 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         CBlock block;
         vRecv >> block;
 
-        // emercoin: 'blocks' is used to process blocks one by one in height order.
-        typedef map<int, CBlock> heightMap;
-        static heightMap blocks;
-        int nHeight = mapBlockIndex[block.GetHash()]->nHeight;
-        blocks[ nHeight ] = block;
-
         CInv inv(MSG_BLOCK, block.GetHash());
-        LogPrint("net", "received block %s peer=%d height=%d\n", inv.hash.ToString(), pfrom->id, nHeight);
+        LogPrint("net", "received block %s peer=%d\n", inv.hash.ToString(), pfrom->id);
 
         pfrom->AddInventoryKnown(inv);
 
-        // map should be sorted by height. if so - start with lowest height
-        for ( heightMap::iterator it = blocks.begin(); it != blocks.end();)
-        {
-            // check if block connects to valid previous block
-            // otherwise break:
-            //   next block in 'blocks' should have even higher height
-            //   no point in trying to connect block with higher height if we failed to connect block with lower height
-            if (!mapBlockIndex.count(it->second.hashPrevBlock))
-                break;
-
-            const CBlockIndex* pindexPrev = mapBlockIndex[it->second.hashPrevBlock];
-            if (!pindexPrev->IsValid(BLOCK_VALID_TRANSACTIONS))
-                break;
-
-            // connect block
-            CValidationState state;
-            ProcessNewBlock(state, pfrom, &(it->second));
-            int nDoS;
-            if (state.IsInvalid(nDoS)) {
-                pfrom->PushMessage("reject", strCommand, state.GetRejectCode(),
-                                   state.GetRejectReason().substr(0, MAX_REJECT_MESSAGE_LENGTH), inv.hash);
-                if (nDoS > 0) {
-                    LOCK(cs_main);
-                    Misbehaving(pfrom->GetId(), nDoS);
-                }
+        CValidationState state;
+        ProcessNewBlock(state, pfrom, &block);
+        int nDoS;
+        if (state.IsInvalid(nDoS)) {
+            pfrom->PushMessage("reject", strCommand, state.GetRejectCode(),
+                               state.GetRejectReason().substr(0, MAX_REJECT_MESSAGE_LENGTH), inv.hash);
+            if (nDoS > 0) {
+                LOCK(cs_main);
+                Misbehaving(pfrom->GetId(), nDoS);
             }
-            heightMap::iterator it2 = it;
-            it++;
-            blocks.erase(it2);
         }
+
     }
 
 

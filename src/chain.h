@@ -244,18 +244,6 @@ public:
         nTime          = block.nTime;
         nBits          = block.nBits;
         nNonce         = block.nNonce;
-
-//ppcoin        if (block.IsProofOfStakeHeader())
-//        {
-//            SetProofOfStake();
-//            prevoutStake = block.vtx[1].vin[0].prevout;
-//            nStakeTime = block.vtx[1].nTime;
-//        }
-//        else
-//        {
-//            prevoutStake.SetNull();
-//            nStakeTime = 0;
-//        }
     }
 
     CDiskBlockPos GetBlockPos() const {
