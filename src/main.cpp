@@ -3386,12 +3386,10 @@ bool static LoadBlockIndexDB()
             pindexBestHeader = pindex;
 
         // ppcoin: calculate stake modifier checksum
-        if (pindex->IsValid(BLOCK_VALID_SCRIPTS))
-        {
-            pindex->nStakeModifierChecksum = GetStakeModifierChecksum(pindex);
+        pindex->nStakeModifierChecksum = GetStakeModifierChecksum(pindex);
+        if (chainActive.Contains(pindex))
             if (!CheckStakeModifierCheckpoints(pindex->nHeight, pindex->nStakeModifierChecksum))
-                return error("CTxDB::LoadBlockIndex() : Failed stake modifier checkpoint height=%d, modifier=0x%016llx", pindex->nHeight, pindex->nStakeModifier);
-        }
+                return error("LoadBlockIndex() : Failed stake modifier checkpoint height=%d, modifier=0x%016llx", pindex->nHeight, pindex->nStakeModifier);
     }
 
     // Load block file info
