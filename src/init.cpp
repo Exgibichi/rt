@@ -514,31 +514,6 @@ bool InitSanityCheck(void)
     return true;
 }
 
-void nameindexCheck()
-{
-    filesystem::path path = GetDataDir() / "nameindexV2.dat";
-    bool fNameIndexExists = filesystem::exists(path);
-    extern void createNameIndexFile();
-
-    // Create/recreate nameindex if doing reindex
-    if (fReindex)
-    {
-        if (fNameIndexExists)
-            filesystem::remove(path);
-
-        createNameIndexFile();
-    }
-    // Do reindex if nameindex did not exist
-    else
-    {
-        if (!fNameIndexExists)
-        {
-            fReindex = true;
-            createNameIndexFile();
-        } // else: not reindexing and nameindex exists - nothing todo, start normaly
-    }
-}
-
 /** Initialize bitcoin.
  *  @pre Parameters should be parsed and config file should be read.
  */
@@ -1044,6 +1019,31 @@ bool AppInit2(boost::thread_group& threadGroup)
     nTotalCache -= nCoinDBCache;
     nCoinCacheSize = nTotalCache / 300; // coins in memory require around 300 bytes
 
+    // emercoin: check in nameindex need to be created or recreated
+    {
+        filesystem::path path = GetDataDir() / "nameindexV2.dat";
+        bool fNameIndexExists = filesystem::exists(path);
+        extern void createNameIndexFile();
+
+        // Create/recreate nameindex if doing reindex
+        if (fReindex)
+        {
+            if (fNameIndexExists)
+                filesystem::remove(path);
+
+            createNameIndexFile();
+        }
+        // Do reindex if nameindex did not exist
+        else
+        {
+            if (!fNameIndexExists)
+            {
+                fReindex = true;  // IMPORTANT: this should be executed before we are doing index wipe
+                createNameIndexFile();
+            } // else: not reindexing and nameindex exists - nothing todo, start normaly
+        }
+    }
+
     bool fLoaded = false;
     while (!fLoaded) {
         bool fReset = fReindex;
@@ -1123,9 +1123,6 @@ bool AppInit2(boost::thread_group& threadGroup)
             }
         }
     }
-
-    // emercoin: check in nameindex need to be created or recreated
-    nameindexCheck();
 
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.
