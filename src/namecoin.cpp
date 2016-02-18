@@ -11,6 +11,7 @@ extern std::map<uint256, CTransaction> mapTransactions;
 #include "rpcserver.h"
 
 #include <boost/xpressive/xpressive_dynamic.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <fstream>
@@ -231,6 +232,23 @@ bool CNameDB::ScanNames(
     }
     pcursor->close();
     return true;
+}
+
+bool CNameDB::ReadName(const std::vector<unsigned char>& name, CNameRecord &rec)
+{
+    bool ret = Read(make_pair(std::string("namei"), name), rec);
+    int s = rec.vtxPos.size();
+
+     // check if array index is out of array bounds
+    if (s > 0 && rec.nLastActiveChainIndex >= s)
+    {
+        // delete nameindex and kill the application. nameindex should be recreated on next start
+        boost::system::error_code err;
+        boost::filesystem::remove(GetDataDir() / this->strFile, err);
+        LogPrintf("Nameindex is corrupt! It will be recreated on next start.");
+        assert(rec.nLastActiveChainIndex < s);
+    }
+    return ret;
 }
 
 CHooks* InitHook()
@@ -1339,10 +1357,55 @@ NameTxReturn name_delete(const vector<unsigned char> &vchName)
     return ret;
 }
 
-void createNameIndexFile()
+bool createNameIndexFile()
 {
     LogPrintf("Scanning blockchain for names to create fast index...\n");
     CNameDB dbName("cr+");
+
+    if (!fTxIndex)
+        return error("createNameIndexFile() : transaction index not available");
+
+    int maxHeight = chainActive.Height();
+    for (int nHeight=0; nHeight<=maxHeight; nHeight++)
+    {
+        CBlockIndex* pindex = chainActive[nHeight];
+        CBlock block;
+        if (!ReadBlockFromDisk(block, pindex))
+            return error("createNameIndexFile() : *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
+
+        // collect name tx from block
+        vector<nameTempProxy> vName;
+        CDiskTxPos pos(pindex->GetBlockPos(), GetSizeOfCompactSize(block.vtx.size())); // start position
+        for (unsigned int i=0; i<block.vtx.size(); i++)
+        {
+            const CTransaction &tx = block.vtx[i];
+            if (tx.IsCoinStake() || tx.IsCoinBase())
+            {
+                pos.nTxOffset += ::GetSerializeSize(tx, SER_DISK, CLIENT_VERSION);  // set next tx position
+                continue;
+            }
+
+            // calculate tx fee
+            CAmount input = 0;
+            BOOST_FOREACH(const CTxIn& txin, tx.vin)
+            {
+                CTransaction txPrev;
+                uint256 hashBlock = 0;
+                if (!GetTransaction(txin.prevout.hash, txPrev, hashBlock))
+                    return error("createNameIndexFile() : prev transaction not found");
+
+                input += txPrev.vout[txin.prevout.n].nValue;
+            }
+            CAmount fee = input - tx.GetValueOut();
+
+            hooks->CheckInputs(tx, pindex, vName, pos, fee);                    // collect valid name tx to vName
+            pos.nTxOffset += ::GetSerializeSize(tx, SER_DISK, CLIENT_VERSION);  // set next tx position
+        }
+
+        // execute name operations, if any
+        hooks->ConnectBlock(pindex, vName);
+    }
+    return true;
 }
 
 // read name tx and extract: name, value and rentalDays

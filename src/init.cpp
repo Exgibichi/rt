@@ -1019,31 +1019,6 @@ bool AppInit2(boost::thread_group& threadGroup)
     nTotalCache -= nCoinDBCache;
     nCoinCacheSize = nTotalCache / 300; // coins in memory require around 300 bytes
 
-    // emercoin: check in nameindex need to be created or recreated
-    {
-        filesystem::path path = GetDataDir() / "nameindexV2.dat";
-        bool fNameIndexExists = filesystem::exists(path);
-        extern void createNameIndexFile();
-
-        // Create/recreate nameindex if doing reindex
-        if (fReindex)
-        {
-            if (fNameIndexExists)
-                filesystem::remove(path);
-
-            createNameIndexFile();
-        }
-        // Do reindex if nameindex did not exist
-        else
-        {
-            if (!fNameIndexExists)
-            {
-                fReindex = true;  // IMPORTANT: this should be executed before we are doing index wipe
-                createNameIndexFile();
-            } // else: not reindexing and nameindex exists - nothing todo, start normaly
-        }
-    }
-
     bool fLoaded = false;
     while (!fLoaded) {
         bool fReset = fReindex;
@@ -1060,6 +1035,11 @@ bool AppInit2(boost::thread_group& threadGroup)
                 delete pcoinscatcher;
                 delete pblocktree;
 
+                if (fReindex)
+                {
+                    system::error_code err;
+                    filesystem::remove(GetDataDir() / "nameindexV2.dat", err);
+                }
                 pblocktree = new CBlockTreeDB(nBlockTreeDBCache, false, fReindex);
                 pcoinsdbview = new CCoinsViewDB(nCoinDBCache, false, fReindex);
                 pcoinscatcher = new CCoinsViewErrorCatcher(pcoinsdbview);
@@ -1133,6 +1113,15 @@ bool AppInit2(boost::thread_group& threadGroup)
         return false;
     }
     LogPrintf(" block index %15dms\n", GetTimeMillis() - nStart);
+
+    // emercoin: check in nameindex need to be created or recreated
+    // we should have block index fully loaded by now
+    extern bool createNameIndexFile();
+    if (!filesystem::exists(GetDataDir() / "nameindexV2.dat") && !createNameIndexFile())
+    {
+        LogPrintf("Fatal error: Failed to create nameindex.\n");
+        return false;
+    }
 
     boost::filesystem::path est_path = GetDataDir() / FEE_ESTIMATES_FILENAME;
     CAutoFile est_filein(fopen(est_path.string().c_str(), "rb"), SER_DISK, CLIENT_VERSION);

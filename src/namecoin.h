@@ -78,14 +78,7 @@ public:
         return Write(make_pair(std::string("namei"), name), rec);
     }
 
-    bool ReadName(const std::vector<unsigned char>& name, CNameRecord &rec)
-    {
-        bool ret = Read(make_pair(std::string("namei"), name), rec);
-        int s = rec.vtxPos.size();
-        if (s > 0)
-            assert(s > rec.nLastActiveChainIndex);
-        return ret;
-    }
+    bool ReadName(const std::vector<unsigned char>& name, CNameRecord &rec);
 
     bool ExistsName(const std::vector<unsigned char>& name)
     {
