@@ -86,7 +86,7 @@ void UpdateTime(CBlockHeader* pblock, const CBlockIndex* pindexPrev)
     pblock->nTime = std::max(pblock->GetBlockTime(), GetAdjustedTime());
 }
 
-CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, bool fProofOfStake)
+CBlockTemplate* CreateNewBlockInner(const CScript& scriptPubKeyIn, bool fAddProofOfStake, bool& fPoSCancel, CWallet* pwallet)
 {
     // Create new block
     auto_ptr<CBlockTemplate> pblocktemplate(new CBlockTemplate());
@@ -130,8 +130,9 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
     static int64_t nLastCoinStakeSearchTime = GetAdjustedTime();  // only initialized at startup
     CBlockIndex* pindexPrev = chainActive.Tip();
 
-    if (fProofOfStake)  // attemp to find a coinstake
+    if (fAddProofOfStake)  // attemp to find a coinstake
     {
+        fPoSCancel = true;
         pblock->nBits = GetNextTargetRequired(pindexPrev, true);
         CMutableTransaction txCoinStake;
         int64_t nSearchTime = txCoinStake.nTime; // search to current time
@@ -145,14 +146,17 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
                     txNew.vout[0].SetEmpty();
                     txNew.nTime = txCoinStake.nTime;
                     pblock->vtx.push_back(CTransaction(txCoinStake));
+                    fPoSCancel = false;
                 }
             }
             nLastCoinStakeSearchInterval = nSearchTime - nLastCoinStakeSearchTime;
             nLastCoinStakeSearchTime = nSearchTime;
         }
+        if (fPoSCancel)
+            return NULL; // emercoin: there is no point to continue if we failed to create coinstake
     }
-
-    pblock->nBits = GetNextTargetRequired(pindexPrev, pblock->IsProofOfStake());
+    else
+        pblock->nBits = GetNextTargetRequired(pindexPrev, false);
 
     // Collect memory pool transactions into the block
     CAmount nFees = 0;
@@ -441,14 +445,33 @@ bool static ScanHash(const CBlockHeader *pblock, uint32_t& nNonce, uint256 *phas
     }
 }
 
-CBlockTemplate* CreateNewBlockWithKey(CReserveKey& reservekey, CWallet* pwallet, bool fProofOfStake)
+// create PoW block
+CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
+{
+    bool fPoSCancel;
+    return CreateNewBlockInner(scriptPubKeyIn, false, fPoSCancel, NULL);
+}
+
+// create PoW block with key
+CBlockTemplate* CreateNewBlockWithKey(CReserveKey& reservekey)
 {
     CPubKey pubkey;
     if (!reservekey.GetReservedKey(pubkey))
         return NULL;
 
     CScript scriptPubKey = CScript() << ToByteVector(pubkey) << OP_CHECKSIG;
-    return CreateNewBlock(scriptPubKey, pwallet, fProofOfStake);
+    return CreateNewBlock(scriptPubKey);
+}
+
+// create PoS block with key
+CBlockTemplate* CreateNewPoSBlockWithKey(CReserveKey& reservekey, bool& fPoSCancel, CWallet* pwallet)
+{
+    CPubKey pubkey;
+    if (!reservekey.GetReservedKey(pubkey))
+        return NULL;
+
+    CScript scriptPubKey = CScript() << ToByteVector(pubkey) << OP_CHECKSIG;
+    return CreateNewBlockInner(scriptPubKey, true, fPoSCancel, pwallet);
 }
 
 bool ProcessBlockFound(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
@@ -531,7 +554,19 @@ void BitcoinMiner(CWallet *pwallet, bool fProofOfStake)
             unsigned int nTransactionsUpdatedLast = mempool.GetTransactionsUpdated();
             CBlockIndex* pindexPrev = chainActive.Tip();
 
-            auto_ptr<CBlockTemplate> pblocktemplate(CreateNewBlockWithKey(reservekey, pwallet, fProofOfStake));
+            bool fPoSCancel = false;  // fPoSCancel == true means that we failed to create coinstake and exited without going further (by returning NULL)
+            auto_ptr<CBlockTemplate> pblocktemplate;
+            if (fProofOfStake)
+                pblocktemplate = auto_ptr<CBlockTemplate> (CreateNewPoSBlockWithKey(reservekey, fPoSCancel, pwallet));
+            else
+                pblocktemplate = auto_ptr<CBlockTemplate> (CreateNewBlockWithKey(reservekey));
+
+            if (fProofOfStake && fPoSCancel)  // if we tried to create PoS block and failed - sleep
+            {
+                MilliSleep(pos_timio);
+                continue;
+            }
+
             if (!pblocktemplate.get())
             {
                 LogPrintf("Error in BitcoinMiner: Keypool ran out, please call keypoolrefill before restarting the mining thread\n");
