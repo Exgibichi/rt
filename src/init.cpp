@@ -1037,7 +1037,7 @@ bool AppInit2(boost::thread_group& threadGroup)
 
                 if (fReindex)
                 {
-                    system::error_code err;
+		    boost::system::error_code err;
                     filesystem::remove(GetDataDir() / "nameindexV2.dat", err);
                 }
                 pblocktree = new CBlockTreeDB(nBlockTreeDBCache, false, fReindex);

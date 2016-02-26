@@ -1951,7 +1951,9 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         // Set output amount
         if (txNew.vout.size() == 3)
         {
-            txNew.vout[1].nValue = ((nCredit - nMinFee) / 2 / CENT) * CENT;
+	    CAmount half_credit = (nCredit - nMinFee) / 2;
+	    CAmount vout1 = half_credit - GetRand(half_credit / 4);
+            txNew.vout[1].nValue = (vout1 / CENT) * CENT;
             txNew.vout[2].nValue = nCredit - nMinFee - txNew.vout[1].nValue;
         }
         else
@@ -1974,6 +1976,8 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         if (nMinFee < txNew.GetMinFee() - MIN_TX_FEE)
         {
             nMinFee = txNew.GetMinFee() - MIN_TX_FEE;
+	    if(nMinFee > nCredit)
+              return error("CreateCoinStake : Unable to create: nMinFee > nCredit");
             continue; // try signing again
         }
         else
