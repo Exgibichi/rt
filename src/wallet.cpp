@@ -1951,8 +1951,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         // Set output amount
         if (txNew.vout.size() == 3)
         {
-	    CAmount half_credit = (nCredit - nMinFee) / 2;
-	    CAmount vout1 = half_credit - GetRand(half_credit / 4);
+	    CAmount vout1 = nCredit / 4 + GetRand(nCredit / 2);
             txNew.vout[1].nValue = (vout1 / CENT) * CENT;
             txNew.vout[2].nValue = nCredit - nMinFee - txNew.vout[1].nValue;
         }
