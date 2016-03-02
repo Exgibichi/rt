@@ -82,7 +82,7 @@ static void CheckBlockIndex();
 CScript COINBASE_FLAGS;
 
 const string strMessageMagic = "EmerCoin Signed Message:\n";
-CHooks* hooks; //this adds namecoin hooks which allow splicing of code inside standart emercoin functions.
+CHooks* hooks = InitHook(); //this adds namecoin hooks which allow splicing of code inside standart emercoin functions.
 
 // Internal stuff
 namespace {

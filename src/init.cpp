@@ -821,7 +821,8 @@ bool AppInit2(boost::thread_group& threadGroup)
         StartRPCThreads();
     }
 
-    hooks = InitHook();
+    // do not use hooks below this line
+    // hooks = InitHook();
 
     int64_t nStart;
 
