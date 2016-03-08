@@ -58,51 +58,40 @@ public:
         // add info about existing names
         BOOST_FOREACH(const PAIRTYPE(vector<unsigned char>, NameTxInfo)& item, mapNames)
         {
-             // name is mine and user asked to hide my names
+            // name is mine and user asked to hide my names
+            if (item.second.fIsMine && !fMyNames)
+                continue;
+            // name is _not_ mine and user asked to hide other names
+            if (!item.second.fIsMine && !fOtherNames)
+                continue;
+            // name have expired and users asked to hide expired names
+            if (item.second.nExpiresAt - chainActive.Height() <= 0 && !fExpired)
+                continue;
+
+            NameTableEntry nte(stringFromVch(item.second.vchName), stringFromVch(item.second.vchValue), item.second.strAddress, item.second.nExpiresAt, item.second.fIsMine);
+            cachedNameTable.append(nte);
+        }
+
+        // add pending name operations
+        BOOST_FOREACH(const PAIRTYPE(vector<unsigned char>, NameTxInfo)& item, mapPending)
+        {
+            // name is mine and user asked to hide my names
             if (item.second.fIsMine && !fMyNames)
                 continue;
             // name is _not_ mine and user asked to hide other names
             if (!item.second.fIsMine && !fOtherNames)
                 continue;
 
-            // add pending updates|deletes to existing names or name_new to expired names
-            if (mapPending.count(item.second.vchName))
-            {
-                NameTxInfo nti = mapPending[item.second.vchName];
+            int nHeightStatus = NameTableEntry::NAME_NON_EXISTING;
+            if (item.second.op == OP_NAME_NEW)
+                nHeightStatus = NameTableEntry::NAME_NEW;
+            else if (item.second.op == OP_NAME_UPDATE)
+                nHeightStatus = NameTableEntry::NAME_UPDATE;
+            else if (item.second.op == OP_NAME_DELETE)
+                nHeightStatus = NameTableEntry::NAME_DELETE;
 
-                int nHeightStatus = NameTableEntry::NAME_NON_EXISTING;;
-                if (nti.op == OP_NAME_NEW)
-                    nHeightStatus = NameTableEntry::NAME_NEW;
-                else if (nti.op == OP_NAME_UPDATE)
-                    nHeightStatus = NameTableEntry::NAME_UPDATE;
-                else if (nti.op == OP_NAME_DELETE)
-                    nHeightStatus = NameTableEntry::NAME_DELETE;
-                NameTableEntry nte(stringFromVch(nti.vchName), stringFromVch(nti.vchValue), nti.strAddress, nHeightStatus, item.second.fIsMine);
-                cachedNameTable.append(nte);
-            }
-            else
-            {
-                // name have expired and users asked to hide expired names
-                if (item.second.nExpiresAt - chainActive.Height() <= 0 && !fExpired)
-                    continue;
-                NameTableEntry nte(stringFromVch(item.second.vchName), stringFromVch(item.second.vchValue), item.second.strAddress, item.second.nExpiresAt, item.second.fIsMine);
-                cachedNameTable.append(nte);
-            }
-        }
-
-        // add pending new names that did not previously exist
-        BOOST_FOREACH(const PAIRTYPE(vector<unsigned char>, NameTxInfo)& item, mapPending)
-        {
-            if (item.second.fIsMine && !fMyNames)     // name is mine      and  user have asked to hide my names
-                continue;
-            if (!item.second.fIsMine && !fOtherNames) // name is not mine  and  user have asked to hide other names
-                continue;
-
-            if (mapNames.count(item.second.vchName) == 0 && item.second.op == OP_NAME_NEW)
-            {
-                NameTableEntry nte(stringFromVch(item.second.vchName), stringFromVch(item.second.vchValue), item.second.strAddress, NameTableEntry::NAME_NEW, item.second.fIsMine);
-                cachedNameTable.append(nte);
-            }
+            NameTableEntry nte(stringFromVch(item.second.vchName), stringFromVch(item.second.vchValue), item.second.strAddress, nHeightStatus, item.second.fIsMine);
+            cachedNameTable.append(nte);
         }
 
         // qLowerBound() and qUpperBound() require our cachedNameTable list to be sorted in asc order
@@ -204,7 +193,7 @@ NameTableModel::NameTableModel(CWallet *wallet, WalletModel *parent) :
 
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(update()));
-    timer->start(MODEL_UPDATE_DELAY);
+    timer->start(NAME_MODEL_UPDATE_DELAY);
 }
 
 NameTableModel::~NameTableModel()

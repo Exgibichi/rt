@@ -1087,6 +1087,6 @@ private:
 };
 
 void SendMoney(const CTxDestination &address, CAmount nValue, CWalletTx& wtxNew);
-void SendName(const CTxDestination &address, CAmount nValue, CWalletTx& wtxNew, const CWalletTx &wtxNameIn, CAmount nFeeInput);
+void SendName(CScript scriptPubKey, CAmount nValue, CWalletTx& wtxNew, const CWalletTx &wtxNameIn, CAmount nFeeInput);
 
 #endif // BITCOIN_WALLET_H
