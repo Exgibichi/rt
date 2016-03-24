@@ -1074,7 +1074,7 @@ NameTxReturn name_new(const vector<unsigned char> &vchName,
         nameScript += scriptPubKey;
 
         CAmount nameFee = GetNameOpFee(chainActive.Tip(), nRentalDays, OP_NAME_NEW, vchName, vchValue);
-        SendName(nameScript, SUBCENT, wtx, CWalletTx(), nameFee);
+        SendName(nameScript, MIN_TXOUT_AMOUNT, wtx, CWalletTx(), nameFee);
     }
 
     //success! collect info and return
@@ -1216,7 +1216,7 @@ NameTxReturn name_update(const vector<unsigned char> &vchName,
 
         CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
         CAmount nameFee = GetNameOpFee(chainActive.Tip(), nRentalDays, OP_NAME_UPDATE, vchName, vchValue);
-        SendName(nameScript, SUBCENT, wtx, wtxIn, nameFee);
+        SendName(nameScript, MIN_TXOUT_AMOUNT, wtx, wtxIn, nameFee);
     }
 
     //success! collect info and return
@@ -1342,7 +1342,7 @@ NameTxReturn name_delete(const vector<unsigned char> &vchName)
 
         CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
         CAmount nameFee = GetNameOpFee(chainActive.Tip(), 0, OP_NAME_DELETE, vchName, vector<unsigned char>());
-        SendName(nameScript, SUBCENT, wtx, wtxIn, nameFee);
+        SendName(nameScript, MIN_TXOUT_AMOUNT, wtx, wtxIn, nameFee);
     }
 
     //success! collect info and return
