@@ -4081,6 +4081,17 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
     }
 
 
+    // emercoin: set/unset network serialization mode for new clients
+    if (pfrom->nVersion < 70002)
+    {
+        vRecv.nType         &= ~SER_POSMARKER;
+        pfrom->ssSend.nType &= ~SER_POSMARKER;
+    }
+    else
+    {
+        vRecv.nType         |= SER_POSMARKER;
+        pfrom->ssSend.nType |= SER_POSMARKER;
+    }
 
 
     if (strCommand == "version")
@@ -4578,26 +4589,11 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         }
         headers.resize(nCount);
 
-        bool fOld = pfrom->nVersion < PROTOCOL_VERSION;
-        if (fOld)
-        {
-            for (unsigned int n = 0; n < nCount; n++) {
-                vRecv >> headers[n];
-                ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
-                ReadCompactSize(vRecv); // ignore vchBlockSig.
-            }
-        }
-        else
-        {
-            // emercoin: we are expecting additional field here (nFlags)
-            int nTypeBackup = vRecv.nType;
-            vRecv.nType = SER_POSMARKER;
-            for (unsigned int n = 0; n < nCount; n++) {
-                vRecv >> headers[n];
-                ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
-                ReadCompactSize(vRecv); // ignore vchBlockSig.
-            }
-            vRecv.nType = nTypeBackup;
+        bool fOld = !(vRecv.nType & SER_POSMARKER);
+        for (unsigned int n = 0; n < nCount; n++) {
+            vRecv >> headers[n];
+            ReadCompactSize(vRecv);  // ignore tx count; assume it is 0.
+            ReadCompactSize(vRecv);  // ignore vchBlockSig.
         }
 
         LOCK(cs_main);
