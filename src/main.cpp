@@ -60,7 +60,6 @@ unsigned int nCoinCacheSize = 5000;
 // ppcoin values
 unsigned int nStakeMinAge = STAKE_MIN_AGE;
 string strMintWarning;
-set<pair<COutPoint, unsigned int> > setStakeSeen;
 
 
 /** Fees smaller than this (in satoshi) are considered zero fee (for relaying and mining) */
@@ -82,7 +81,7 @@ static void CheckBlockIndex();
 CScript COINBASE_FLAGS;
 
 const string strMessageMagic = "EmerCoin Signed Message:\n";
-CHooks* hooks; //this adds namecoin hooks which allow splicing of code inside standart emercoin functions.
+CHooks* hooks = InitHook(); //this adds namecoin hooks which allow splicing of code inside standart emercoin functions.
 
 // Internal stuff
 namespace {
@@ -1829,7 +1828,6 @@ bool ppcoinContextualBlockChecks(const CBlock& block, CValidationState& state, C
         pindex->prevoutStake = block.vtx[1].vin[0].prevout;
         pindex->nStakeTime = block.vtx[1].nTime;
         pindex->hashProofOfStake = hashProofOfStake;
-        setStakeSeen.insert(make_pair(pindex->prevoutStake, pindex->nStakeTime));
     }
     if (!pindex->SetStakeEntropyBit(nEntropyBit))
         return error("ConnectBlock() : SetStakeEntropyBit() failed");
@@ -3155,19 +3153,12 @@ void CBlockIndex::BuildSkip()
 
 bool ProcessNewBlock(CValidationState &state, CNode* pfrom, CBlock* pblock, CDiskBlockPos *dbp)
 {
-    uint256 hash = pblock->GetHash();
-
-    // Limited duplicity on stake: prevents block flood attack
-    // EvgenijM86: Since there is no orhpan blocks now - check should execute without them?
-    if (pblock->IsProofOfStake() && setStakeSeen.count(pblock->GetProofOfStake()))
-        return error("ProcessBlock() : duplicate proof-of-stake (%s, %d) for block %s", pblock->GetProofOfStake().first.ToString(), pblock->GetProofOfStake().second, hash.ToString());
-
     // Preliminary checks
     //bool checked = CheckBlock(*pblock, state); // emercoin: removed, since this check happens later in AcceptBlock function
 
     {
         LOCK(cs_main);
-        MarkBlockAsReceived(hash);
+        MarkBlockAsReceived(pblock->GetHash());
 //        if (!checked) {
 //            return error("%s : CheckBlock FAILED", __func__);
 //        }
@@ -4081,6 +4072,17 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
     }
 
 
+    // emercoin: set/unset network serialization mode for new clients
+    if (pfrom->nVersion < 70002)
+    {
+        vRecv.nType         &= ~SER_POSMARKER;
+        pfrom->ssSend.nType &= ~SER_POSMARKER;
+    }
+    else
+    {
+        vRecv.nType         |= SER_POSMARKER;
+        pfrom->ssSend.nType |= SER_POSMARKER;
+    }
 
 
     if (strCommand == "version")
@@ -4578,26 +4580,11 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         }
         headers.resize(nCount);
 
-        bool fOld = pfrom->nVersion < PROTOCOL_VERSION;
-        if (fOld)
-        {
-            for (unsigned int n = 0; n < nCount; n++) {
-                vRecv >> headers[n];
-                ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
-                ReadCompactSize(vRecv); // ignore vchBlockSig.
-            }
-        }
-        else
-        {
-            // emercoin: we are expecting additional field here (nFlags)
-            int nTypeBackup = vRecv.nType;
-            vRecv.nType = SER_POSMARKER;
-            for (unsigned int n = 0; n < nCount; n++) {
-                vRecv >> headers[n];
-                ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
-                ReadCompactSize(vRecv); // ignore vchBlockSig.
-            }
-            vRecv.nType = nTypeBackup;
+        bool fOld = !(vRecv.nType & SER_POSMARKER);
+        for (unsigned int n = 0; n < nCount; n++) {
+            vRecv >> headers[n];
+            ReadCompactSize(vRecv);  // ignore tx count; assume it is 0.
+            ReadCompactSize(vRecv);  // ignore vchBlockSig.
         }
 
         LOCK(cs_main);

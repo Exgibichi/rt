@@ -116,7 +116,6 @@ static const int64_t nMaxClockDrift = 2 * 60 * 60;       // two hours
 /** ppcoin values */
 extern unsigned int nStakeMinAge;
 extern std::string strMintWarning;
-extern std::set<std::pair<COutPoint, unsigned int> > setStakeSeen;
 
 
 struct BlockHasher

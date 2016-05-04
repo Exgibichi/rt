@@ -7,6 +7,7 @@
 
 /* Milliseconds between model updates */
 static const int MODEL_UPDATE_DELAY = 250;
+static const int NAME_MODEL_UPDATE_DELAY = 2000;
 
 /* AskPassphraseDialog -- Maximum passphrase length */
 static const int MAX_PASSPHRASE_SIZE = 1024;

@@ -1544,6 +1544,7 @@ bool CWallet::CreateTransactionInner(const vector<pair<CScript, CAmount> >& vecS
     wtxNew.fTimeReceivedIsTxTime = true;
     wtxNew.BindWallet(this);
     CMutableTransaction txNew;
+    txNew.nVersion = wtxNew.nVersion; // emercoin: important for name transactions
 
     {
         LOCK2(cs_main, cs_wallet);
@@ -1951,7 +1952,8 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         // Set output amount
         if (txNew.vout.size() == 3)
         {
-            txNew.vout[1].nValue = ((nCredit - nMinFee) / 2 / CENT) * CENT;
+	    CAmount vout1 = nCredit / 4 + GetRand(nCredit / 2);
+            txNew.vout[1].nValue = (vout1 / CENT) * CENT;
             txNew.vout[2].nValue = nCredit - nMinFee - txNew.vout[1].nValue;
         }
         else
@@ -1974,6 +1976,8 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         if (nMinFee < txNew.GetMinFee() - MIN_TX_FEE)
         {
             nMinFee = txNew.GetMinFee() - MIN_TX_FEE;
+	    if(nMinFee > nCredit)
+              return error("CreateCoinStake : Unable to create: nMinFee > nCredit");
             continue; // try signing again
         }
         else
@@ -2789,7 +2793,7 @@ bool CMerkleTx::AcceptToMemoryPool(bool fLimitFree, bool fRejectInsaneFee)
 }
 
 extern CWallet* pwalletMain;
-void SendMoneyInner(const CTxDestination &address, CAmount nValue, CWalletTx& wtxNew, const CWalletTx& wtxNameIn, CAmount nFeeInput)
+void SendMoneyCheck(CAmount nValue)
 {
     // Check amount
     if (nValue <= 0)
@@ -2805,28 +2809,27 @@ void SendMoneyInner(const CTxDestination &address, CAmount nValue, CWalletTx& wt
         LogPrintf("SendMoney() : %s", strError);
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
     }
+
     if (fWalletUnlockMintOnly)
     {
         string strError = _("Error: Wallet unlocked for block minting only, unable to create transaction.");
         LogPrintf("SendMoney() : %s", strError);
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
     }
+}
+
+void SendMoney(const CTxDestination &address, CAmount nValue, CWalletTx& wtxNew)
+{
+    SendMoneyCheck(nValue);
 
     // Parse Bitcoin address
     CScript scriptPubKey = GetScriptForDestination(address);
 
     // Create and send the transaction
+    string strError;
     CReserveKey reservekey(pwalletMain);
     CAmount nFeeRequired;
-    bool fSuccess;
-
-    // check for name tx
-    if (!wtxNameIn.IsNull() || nFeeInput > 0)
-        fSuccess = pwalletMain->CreateNameTx(scriptPubKey, nValue, wtxNameIn, nFeeInput, wtxNew, reservekey, nFeeRequired, strError);
-    else
-        fSuccess = pwalletMain->CreateTransaction(scriptPubKey, nValue, wtxNew, reservekey, nFeeRequired, strError);
-
-    if (!fSuccess)
+    if (!pwalletMain->CreateTransaction(scriptPubKey, nValue, wtxNew, reservekey, nFeeRequired, strError))
     {
         if (nValue + nFeeRequired > pwalletMain->GetBalance())
             strError = strprintf("Error: This transaction requires a transaction fee of at least %s because of its amount, complexity, or use of recently received funds!", FormatMoney(nFeeRequired));
@@ -2837,12 +2840,21 @@ void SendMoneyInner(const CTxDestination &address, CAmount nValue, CWalletTx& wt
         throw JSONRPCError(RPC_WALLET_ERROR, "Error: The transaction was rejected! This might happen if some of the coins in your wallet were already spent, such as if you used a copy of wallet.dat and coins were spent in the copy but not marked as spent here.");
 }
 
-void SendMoney(const CTxDestination &address, CAmount nValue, CWalletTx& wtxNew)
+void SendName(CScript scriptPubKey, CAmount nValue, CWalletTx& wtxNew, const CWalletTx& wtxNameIn, CAmount nFeeInput)
 {
-    SendMoneyInner(address, nValue, wtxNew, CWalletTx(), 0);
-}
+    SendMoneyCheck(nValue);
 
-void SendName(const CTxDestination &address, CAmount nValue, CWalletTx& wtxNew, const CWalletTx& wtxNameIn, CAmount nFeeInput)
-{
-    SendMoneyInner(address, nValue, wtxNew, wtxNameIn, nFeeInput);
+    // Create and send the transaction
+    string strError;
+    CReserveKey reservekey(pwalletMain);
+    CAmount nFeeRequired;
+    if (!pwalletMain->CreateNameTx(scriptPubKey, nValue, wtxNameIn, nFeeInput, wtxNew, reservekey, nFeeRequired, strError))
+    {
+        if (nValue + nFeeRequired > pwalletMain->GetBalance())
+            strError = strprintf("Error: This transaction requires a transaction fee of at least %s because of its amount, complexity, or use of recently received funds!", FormatMoney(nFeeRequired));
+        LogPrintf("SendMoney() : %s\n", strError);
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+    if (!pwalletMain->CommitTransaction(wtxNew, reservekey))
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: The transaction was rejected! This might happen if some of the coins in your wallet were already spent, such as if you used a copy of wallet.dat and coins were spent in the copy but not marked as spent here.");
 }
