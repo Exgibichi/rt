@@ -9,6 +9,7 @@
 #include "keystore.h"
 #include "script/script.h"
 #include "script/standard.h"
+#include "hooks.h"
 
 #include <boost/foreach.hpp>
 
@@ -26,13 +27,7 @@ unsigned int HaveKeys(const vector<valtype>& pubkeys, const CKeyStore& keystore)
     return nResult;
 }
 
-isminetype IsMine(const CKeyStore &keystore, const CTxDestination& dest)
-{
-    CScript script = GetScriptForDestination(dest);
-    return IsMine(keystore, script);
-}
-
-isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey)
+isminetype IsMineInner(const CKeyStore &keystore, const CScript& scriptPubKey)
 {
     vector<valtype> vSolutions;
     txnouttype whichType;
@@ -86,4 +81,35 @@ isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey)
     if (keystore.HaveWatchOnly(scriptPubKey))
         return ISMINE_WATCH_ONLY;
     return ISMINE_NO;
+}
+
+isminetype IsMine(const CKeyStore &keystore, const CTxDestination& dest)
+{
+    CScript script = GetScriptForDestination(dest);
+    return IsMineInner(keystore, script);
+}
+
+// normal check + name check
+isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey, bool &fName)
+{
+    fName = false;
+
+    // normal check
+    isminetype ret = IsMineInner(keystore, scriptPubKey);
+
+    // check for name script
+    CScript scriptPubKeyOut;
+    if (ret == ISMINE_NO && hooks->RemoveNameScriptPrefix(scriptPubKey, scriptPubKeyOut))
+    {
+        fName = true;
+        ret = IsMineInner(keystore, scriptPubKeyOut);
+    }
+
+    return ret;
+}
+
+isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey)
+{
+    bool fName;
+    return IsMine(keystore, scriptPubKey, fName);
 }

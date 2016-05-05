@@ -16,7 +16,6 @@
 #include "ui_interface.h"
 #include "wallet_ismine.h"
 #include "walletdb.h"
-#include "hooks.h"
 
 #include <algorithm>
 #include <map>
@@ -341,7 +340,7 @@ public:
     bool IsMine(const CTransaction& tx) const
     {
         BOOST_FOREACH(const CTxOut& txout, tx.vout)
-            if (IsMine(txout) || hooks->IsMine(txout))
+            if (IsMine(txout))
                 return true;
         return false;
     }

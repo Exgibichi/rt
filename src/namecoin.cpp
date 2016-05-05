@@ -33,7 +33,7 @@ public:
     virtual bool ConnectBlock(CBlockIndex* pindex, const vector<nameTempProxy> &vName);
     virtual bool ExtractAddress(const CScript& script, string& address);
     virtual void AddToPendingNames(const CTransaction& tx);
-    virtual bool IsMine(const CTxOut& txout);
+    virtual bool RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut);
     virtual bool IsNameTx(int nVersion);
     virtual bool IsNameScript(CScript scr);
     virtual bool deletePendingName(const CTransaction& tx);
@@ -546,13 +546,9 @@ bool GetNameCurrentAddress(const vector<unsigned char> &vchName, CBitcoinAddress
     return true;
 }
 
-bool CNamecoinHooks::IsMine(const CTxOut& txout)
+bool CNamecoinHooks::RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut)
 {
-    CScript scriptPubKey;
-    if (!RemoveNameScriptPrefix(txout.scriptPubKey, scriptPubKey))
-        return false;
-
-    return ::IsMine(*pwalletMain, scriptPubKey);
+    return ::RemoveNameScriptPrefix(scriptIn, scriptOut);
 }
 
 Value name_list(const Array& params, bool fHelp)
@@ -1162,7 +1158,7 @@ NameTxReturn name_update(const vector<unsigned char> &vchName,
             CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
             int nTxOut = IndexOfNameOutput(wtxIn);
 
-            if (!hooks->IsMine(wtxIn.vout[nTxOut]))
+            if (::IsMine(*pwalletMain, wtxIn.vout[nTxOut].scriptPubKey))
             {
                 ss << "this name is not yours: " << wtxInHash.GetHex().c_str();
                 ret.err_msg = ss.str();
@@ -1299,7 +1295,7 @@ NameTxReturn name_delete(const vector<unsigned char> &vchName)
             CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
             int nTxOut = IndexOfNameOutput(wtxIn);
 
-            if (!hooks->IsMine(wtxIn.vout[nTxOut]))
+            if (::IsMine(*pwalletMain, wtxIn.vout[nTxOut].scriptPubKey))
             {
                 ss << "this name is not yours: " << wtxInHash.GetHex().c_str();
                 ret.err_msg = ss.str();

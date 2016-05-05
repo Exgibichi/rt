@@ -784,8 +784,12 @@ bool CWallet::IsChange(const CTxOut& txout) const
     // a better way of identifying which outputs are 'the send' and which are
     // 'the change' will need to be implemented (maybe extend CWalletTx to remember
     // which output, if any, was change).
-    if (::IsMine(*this, txout.scriptPubKey))
+    bool fName;
+    if (::IsMine(*this, txout.scriptPubKey, fName))
     {
+        if (fName)
+            return false;   // names are technicaly change, but they are much more than that, so we do not want to group them with change.
+
         CTxDestination address;
         if (!ExtractDestination(txout.scriptPubKey, address))
             return true;
