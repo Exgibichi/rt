@@ -1217,7 +1217,7 @@ CAmount CWallet::GetImmatureWatchOnlyBalance() const
 }
 
 /**
- * populate vCoins with vector of available COutputs.
+ * populate vCoins with vector of available COutputs. Outputs with names are ignored.
  */
 void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const CCoinControl *coinControl, unsigned int nSpendTime) const
 {
@@ -1246,7 +1246,12 @@ void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const
             if (nDepth < 0)
                 continue;
 
-            for (unsigned int i = 0; i < pcoin->vout.size(); i++) {
+            for (unsigned int i = 0; i < pcoin->vout.size(); i++)
+            {
+                // ignore namecoin TxOut
+                if (hooks->IsNameTx(pcoin->nVersion) && hooks->IsNameScript(pcoin->vout[i].scriptPubKey))
+                    continue;
+
                 isminetype mine = IsMine(pcoin->vout[i]);
                 if (!(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
                     !IsLockedCoin((*it).first, i) && pcoin->vout[i].nValue > 0 &&
