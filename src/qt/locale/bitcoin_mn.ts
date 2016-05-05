@@ -96,8 +96,8 @@
         <translation>Түрүйвч цоожлогдлоо</translation>
     </message>
     <message>
-        <source>Bitcoin will close now to finish the encryption process. Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation>Цоожлолтын процесыг дуусгахын тулд Биткойн одоо хаагдана. Ѳѳрийн түрүйвчийг цоожлох нь таны биткойнуудыг компьютерийн вирус хулгайлахаас бүрэн сэргийлж чадахгүй гэдгийг санаарай.</translation>
+        <source>Emercoin will close now to finish the encryption process. Remember that encrypting your wallet cannot fully protect your emercoins from being stolen by malware infecting your computer.</source>
+        <translation>Цоожлолтын процесыг дуусгахын тулд Емеркойн одоо хаагдана. Ѳѳрийн түрүйвчийг цоожлох нь таны емеркойнуудыг компьютерийн вирус хулгайлахаас бүрэн сэргийлж чадахгүй гэдгийг санаарай.</translation>
     </message>
     <message>
         <source>Wallet encryption failed</source>
@@ -191,8 +191,8 @@
         <translation>Оношилгоо ба засварын консолыг онгойлго</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
-        <translation>Биткойн</translation>
+        <source>Emercoin</source>
+        <translation>Емеркойн</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -215,8 +215,8 @@
         <translation>&amp;Тусламж</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network</source>
-        <translation><numerusform>Биткойны сүлжээрүү %n идэвхитэй холболт байна </numerusform><numerusform>Биткойны сүлжээрүү %n идэвхитэй холболтууд байна </numerusform></translation>
+        <source>%n active connection(s) to Emercoin network</source>
+        <translation><numerusform>Емеркойны сүлжээрүү %n идэвхитэй холболт байна </numerusform><numerusform>Емеркойны сүлжээрүү %n идэвхитэй холболтууд байна </numerusform></translation>
     </message>
     <message numerus="yes">
         <source>%n hour(s)</source>
@@ -656,8 +656,8 @@ Address: %4
         <translation>Гүйлгээний тѳлбѳр %1-ийг тооцхоор нийт дүн нь таны балансаас хэтрээд байна.</translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
-        <translation>Анхаар:Буруу Биткойны хаяг байна</translation>
+        <source>Warning: Invalid Emercoin address</source>
+        <translation>Анхаар:Буруу Емеркойны хаяг байна</translation>
     </message>
     <message>
         <source>(no label)</source>
@@ -702,8 +702,8 @@ Address: %4
 <context>
     <name>ShutdownWindow</name>
     <message>
-        <source>Bitcoin Core is shutting down...</source>
-        <translation>Биткойны цѳм хаагдаж байна...</translation>
+        <source>Emercoin Core is shutting down...</source>
+        <translation>Емеркойны цѳм хаагдаж байна...</translation>
     </message>
     <message>
         <source>Do not shut down the computer until this window disappears.</source>

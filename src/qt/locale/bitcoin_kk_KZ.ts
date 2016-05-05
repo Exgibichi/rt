@@ -107,8 +107,8 @@
         <translation>Құпия сөзді өзгерту</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
-        <translation>Биткоин</translation>
+        <source>Emercoin</source>
+        <translation>Емеркоин</translation>
     </message>
     <message>
         <source>Wallet</source>

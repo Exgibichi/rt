@@ -183,8 +183,8 @@
         <translation>Ndrysho frazkalimin e përdorur per enkriptimin e portofolit</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
-        <translation>Bitcoin</translation>
+        <source>Emercoin</source>
+        <translation>Emercoin</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -219,12 +219,12 @@
         <translation>Shiriti i mjeteve</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Berthama Bitcoin</translation>
+        <source>Emercoin Core</source>
+        <translation>Berthama Emercoin</translation>
     </message>
     <message>
-        <source>&amp;About Bitcoin Core</source>
-        <translation>Rreth Berthames Bitkoin</translation>
+        <source>&amp;About Emercoin Core</source>
+        <translation>Rreth Berthames Emerkoin</translation>
     </message>
     <message numerus="yes">
         <source>%n hour(s)</source>
@@ -374,16 +374,16 @@
 <context>
     <name>HelpMessageDialog</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Berthama Bitcoin</translation>
+        <source>Emercoin Core</source>
+        <translation>Berthama Emercoin</translation>
     </message>
     <message>
         <source>version</source>
         <translation>versioni</translation>
     </message>
     <message>
-        <source>About Bitcoin Core</source>
-        <translation>Rreth Berthames Bitkoin</translation>
+        <source>About Emercoin Core</source>
+        <translation>Rreth Berthames Emerkoin</translation>
     </message>
     </context>
 <context>
@@ -393,12 +393,12 @@
         <translation>Miresevini</translation>
     </message>
     <message>
-        <source>Welcome to Bitcoin Core.</source>
-        <translation>Miresevini ne Berthamen Bitcoin</translation>
+        <source>Welcome to Emercoin Core.</source>
+        <translation>Miresevini ne Berthamen Emercoin</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Berthama Bitcoin</translation>
+        <source>Emercoin Core</source>
+        <translation>Berthama Emercoin</translation>
     </message>
     <message>
         <source>Error</source>
@@ -585,8 +585,8 @@
 <context>
     <name>SplashScreen</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Berthama Bitcoin</translation>
+        <source>Emercoin Core</source>
+        <translation>Berthama Emercoin</translation>
     </message>
     <message>
         <source>[testnet]</source>

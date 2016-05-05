@@ -62,12 +62,12 @@
         <translation>Ricevaj adresoj</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Jen viaj Bitmon-adresoj por sendi pagojn. Zorge kontrolu la sumon kaj la alsendan adreson antaŭ ol sendi.</translation>
+        <source>These are your Emercoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation>Jen viaj Emermon-adresoj por sendi pagojn. Zorge kontrolu la sumon kaj la alsendan adreson antaŭ ol sendi.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
-        <translation>Jen viaj bitmonaj adresoj por ricevi pagojn. Estas konsilinde uzi apartan ricevan adreson por ĉiu transakcio.</translation>
+        <source>These are your Emercoin addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
+        <translation>Jen viaj emermonaj adresoj por ricevi pagojn. Estas konsilinde uzi apartan ricevan adreson por ĉiu transakcio.</translation>
     </message>
     <message>
         <source>Copy &amp;Label</source>
@@ -156,8 +156,8 @@
         <translation>Konfirmo de ĉifrado de la monujo</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation>Atentu! Se vi ĉifras vian monujon kaj perdas la pasfrazon, vi &lt;b&gt;PERDOS LA TUTON DE VIA BITMONO&lt;b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR EMERCOINS&lt;/b&gt;!</source>
+        <translation>Atentu! Se vi ĉifras vian monujon kaj perdas la pasfrazon, vi &lt;b&gt;PERDOS LA TUTON DE VIA EMERMONO&lt;b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -176,8 +176,8 @@
         <translation>La monujo estas ĉifrita</translation>
     </message>
     <message>
-        <source>Bitcoin will close now to finish the encryption process. Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation>Bitmono nun fermiĝos por fini la ĉifradon. Memoru, ke eĉ ĉifrado ne protektas kontraŭ ĉiu atako, ekz. se viruso infektus vian komputilon.</translation>
+        <source>Emercoin will close now to finish the encryption process. Remember that encrypting your wallet cannot fully protect your emercoins from being stolen by malware infecting your computer.</source>
+        <translation>Emermono nun fermiĝos por fini la ĉifradon. Memoru, ke eĉ ĉifrado ne protektas kontraŭ ĉiu atako, ekz. se viruso infektus vian komputilon.</translation>
     </message>
     <message>
         <source>Wallet encryption failed</source>
@@ -283,8 +283,8 @@
         <translation>Malfermi &amp;URI-on...</translation>
     </message>
     <message>
-        <source>Bitcoin Core client</source>
-        <translation>kliento de bitmon-kerno</translation>
+        <source>Emercoin Core client</source>
+        <translation>kliento de emermon-kerno</translation>
     </message>
     <message>
         <source>Importing blocks from disk...</source>
@@ -295,12 +295,12 @@
         <translation>Reindeksado de blokoj sur disko...</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation>Sendi monon al Bitmon-adreso</translation>
+        <source>Send coins to a Emercoin address</source>
+        <translation>Sendi monon al Emermon-adreso</translation>
     </message>
     <message>
-        <source>Modify configuration options for Bitcoin</source>
-        <translation>Modifi agordaĵojn por Bitmono</translation>
+        <source>Modify configuration options for Emercoin</source>
+        <translation>Modifi agordaĵojn por Emermono</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -323,8 +323,8 @@
         <translation>&amp;Kontroli mesaĝon...</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
-        <translation>Bitmono</translation>
+        <source>Emercoin</source>
+        <translation>Emermono</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -351,12 +351,12 @@
         <translation>Ĉifri la privatajn ŝlosilojn de via monujo</translation>
     </message>
     <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation>Subskribi mesaĝojn per via Bitmon-adresoj por pravigi, ke vi estas la posedanto</translation>
+        <source>Sign messages with your Emercoin addresses to prove you own them</source>
+        <translation>Subskribi mesaĝojn per via Emermon-adresoj por pravigi, ke vi estas la posedanto</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation>Kontroli mesaĝojn por kontroli ĉu ili estas subskribitaj per specifaj Bitmon-adresoj</translation>
+        <source>Verify messages to ensure they were signed with specified Emercoin addresses</source>
+        <translation>Kontroli mesaĝojn por kontroli ĉu ili estas subskribitaj per specifaj Emermon-adresoj</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -375,16 +375,16 @@
         <translation>Langeto-breto</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Kerno de Bitmono</translation>
+        <source>Emercoin Core</source>
+        <translation>Kerno de Emermono</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation>Peti pagon (kreas QR-kodojn kaj URI-ojn kun prefikso bitcoin:)</translation>
+        <source>Request payments (generates QR codes and emercoin: URIs)</source>
+        <translation>Peti pagon (kreas QR-kodojn kaj URI-ojn kun prefikso emercoin:)</translation>
     </message>
     <message>
-        <source>&amp;About Bitcoin Core</source>
-        <translation>&amp;Pri la Bitmona Kerno</translation>
+        <source>&amp;About Emercoin Core</source>
+        <translation>&amp;Pri la Emermona Kerno</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -395,16 +395,16 @@
         <translation>Vidigi la liston de uzitaj ricevaj adresoj kaj etikedoj</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI or payment request</source>
-        <translation>Malfermi bitcoin:-URI-on aŭ pagpeton</translation>
+        <source>Open a emercoin: URI or payment request</source>
+        <translation>Malfermi emercoin:-URI-on aŭ pagpeton</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
         <translation>&amp;Komandliniaj agordaĵoj</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network</source>
-        <translation><numerusform>%n aktiva konekto al la bitmona reto</numerusform><numerusform>%n aktivaj konektoj al la bitmona reto</numerusform></translation>
+        <source>%n active connection(s) to Emercoin network</source>
+        <translation><numerusform>%n aktiva konekto al la emermona reto</numerusform><numerusform>%n aktivaj konektoj al la emermona reto</numerusform></translation>
     </message>
     <message>
         <source>No block source available...</source>
@@ -736,8 +736,8 @@ Adreso: %4
         <translation>La adreso enigita "%1" jam ekzistas en la adresaro.</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation>La adreso enigita "%1" ne estas valida Bitmon-adreso.</translation>
+        <source>The entered address "%1" is not a valid Emercoin address.</source>
+        <translation>La adreso enigita "%1" ne estas valida Emermon-adreso.</translation>
     </message>
     <message>
         <source>Could not unlock wallet.</source>
@@ -774,16 +774,16 @@ Adreso: %4
 <context>
     <name>HelpMessageDialog</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Kerno de Bitmono</translation>
+        <source>Emercoin Core</source>
+        <translation>Kerno de Emermono</translation>
     </message>
     <message>
         <source>version</source>
         <translation>versio</translation>
     </message>
     <message>
-        <source>About Bitcoin Core</source>
-        <translation>Pri la Bitmona Kerno</translation>
+        <source>About Emercoin Core</source>
+        <translation>Pri la Emermona Kerno</translation>
     </message>
     <message>
         <source>Command-line options</source>
@@ -825,16 +825,16 @@ Adreso: %4
         <translation>Bonvenon</translation>
     </message>
     <message>
-        <source>Welcome to Bitcoin Core.</source>
-        <translation>Bonvenon al la bitmona kerno, Bitcoin Core.</translation>
+        <source>Welcome to Emercoin Core.</source>
+        <translation>Bonvenon al la emermona kerno, Emercoin Core.</translation>
     </message>
     <message>
-        <source>As this is the first time the program is launched, you can choose where Bitcoin Core will store its data.</source>
-        <translation>Dum tiu ĉi unua uzo de la programo, vi povas elekti lokon, kie Bitcoin Core stokos siajn datumojn.</translation>
+        <source>As this is the first time the program is launched, you can choose where Emercoin Core will store its data.</source>
+        <translation>Dum tiu ĉi unua uzo de la programo, vi povas elekti lokon, kie Emercoin Core stokos siajn datumojn.</translation>
     </message>
     <message>
-        <source>Bitcoin Core will download and store a copy of the Bitcoin block chain. At least %1GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
-        <translation>Bitcoin Core elŝutos kaj konservos kopion de la bitmona blokĉeno. Almenaŭ %1GB da datumoj konserviĝos en tiu loko, kaj tio poiome kreskos. Ankaŭ via monujo konserviĝos en tiu dosierujo.</translation>
+        <source>Emercoin Core will download and store a copy of the Emercoin block chain. At least %1GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
+        <translation>Emercoin Core elŝutos kaj konservos kopion de la emermona blokĉeno. Almenaŭ %1GB da datumoj konserviĝos en tiu loko, kaj tio poiome kreskos. Ankaŭ via monujo konserviĝos en tiu dosierujo.</translation>
     </message>
     <message>
         <source>Use the default data directory</source>
@@ -845,8 +845,8 @@ Adreso: %4
         <translation>Uzi alian dosierujon por datumoj:</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Kerno de Bitmono</translation>
+        <source>Emercoin Core</source>
+        <translation>Kerno de Emermono</translation>
     </message>
     <message>
         <source>Error</source>
@@ -887,12 +887,12 @@ Adreso: %4
         <translation>Ĉ&amp;efa</translation>
     </message>
     <message>
-        <source>Automatically start Bitcoin after logging in to the system.</source>
-        <translation>Aŭtomate lanĉi Bitmonon post ensaluto al la sistemo.</translation>
+        <source>Automatically start Emercoin after logging in to the system.</source>
+        <translation>Aŭtomate lanĉi Emermonon post ensaluto al la sistemo.</translation>
     </message>
     <message>
-        <source>&amp;Start Bitcoin on system login</source>
-        <translation>&amp;Lanĉi Bitmonon tuj post ensaluto al la sistemo</translation>
+        <source>&amp;Start Emercoin on system login</source>
+        <translation>&amp;Lanĉi Emermonon tuj post ensaluto al la sistemo</translation>
     </message>
     <message>
         <source>Size of &amp;database cache</source>
@@ -915,8 +915,8 @@ Adreso: %4
         <translation>&amp;Reto</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Aŭtomate malfermi la kursilan pordon por Bitmono. Tio funkcias nur se via kursilo havas la UPnP-funkcion, kaj se tiu ĉi estas ŝaltita.</translation>
+        <source>Automatically open the Emercoin client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Aŭtomate malfermi la kursilan pordon por Emermono. Tio funkcias nur se via kursilo havas la UPnP-funkcion, kaj se tiu ĉi estas ŝaltita.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -963,8 +963,8 @@ Adreso: %4
         <translation>&amp;Lingvo de la fasado:</translation>
     </message>
     <message>
-        <source>The user interface language can be set here. This setting will take effect after restarting Bitcoin.</source>
-        <translation>Vi povas elekti la lingvon uzata en la aplikaĵo ĉi tie. Tiu ekefikos nur post relanĉo de Bitmono.</translation>
+        <source>The user interface language can be set here. This setting will take effect after restarting Emercoin.</source>
+        <translation>Vi povas elekti la lingvon uzata en la aplikaĵo ĉi tie. Tiu ekefikos nur post relanĉo de Emermono.</translation>
     </message>
     <message>
         <source>&amp;Unit to show amounts in:</source>
@@ -972,7 +972,7 @@ Adreso: %4
     </message>
     <message>
         <source>Choose the default subdivision unit to show in the interface and when sending coins.</source>
-        <translation>Elekti la defaŭltan manieron por montri bitmonajn sumojn en la interfaco, kaj kiam vi sendos bitmonon.</translation>
+        <translation>Elekti la defaŭltan manieron por montri emermonajn sumojn en la interfaco, kaj kiam vi sendos emermonon.</translation>
     </message>
     <message>
         <source>Whether to show coin control features or not.</source>
@@ -1010,8 +1010,8 @@ Adreso: %4
         <translation>Formularo</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation>Eblas, ke la informoj videblaj ĉi tie estas eksdataj. Via monujo aŭtomate sinkoniĝas kun la bitmona reto kiam ili konektiĝas, sed tiu procezo ankoraŭ ne finfariĝis.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Emercoin network after a connection is established, but this process has not completed yet.</source>
+        <translation>Eblas, ke la informoj videblaj ĉi tie estas eksdataj. Via monujo aŭtomate sinkoniĝas kun la emermona reto kiam ili konektiĝas, sed tiu procezo ankoraŭ ne finfariĝis.</translation>
     </message>
     <message>
         <source>Your current spendable balance</source>
@@ -1061,7 +1061,7 @@ Adreso: %4
         <translation>Eraro dum pagopeto</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start emercoin: click-to-pay handler</source>
         <translation>Ne eblas lanĉi la ilon 'klaki-por-pagi'</translation>
     </message>
     <message>
@@ -1221,16 +1221,16 @@ Adreso: %4
         <translation>Sencimiga protokoldosiero</translation>
     </message>
     <message>
-        <source>Open the Bitcoin debug log file from the current data directory. This can take a few seconds for large log files.</source>
-        <translation>Malfermi la sencimiga protokoldosiero de Bitmono el la aktuala dosierujo por datumoj. Tio eble daŭros plurajn sekundojn por granda protokoldosiero.</translation>
+        <source>Open the Emercoin debug log file from the current data directory. This can take a few seconds for large log files.</source>
+        <translation>Malfermi la sencimiga protokoldosiero de Emermono el la aktuala dosierujo por datumoj. Tio eble daŭros plurajn sekundojn por granda protokoldosiero.</translation>
     </message>
     <message>
         <source>Clear console</source>
         <translation>Malplenigi konzolon</translation>
     </message>
     <message>
-        <source>Welcome to the Bitcoin RPC console.</source>
-        <translation>Bonvenon al la RPC-konzolo de Bitmono.</translation>
+        <source>Welcome to the Emercoin RPC console.</source>
+        <translation>Bonvenon al la RPC-konzolo de Emermono.</translation>
     </message>
     <message>
         <source>Use up and down arrows to navigate history, and &lt;b&gt;Ctrl-L&lt;/b&gt; to clear screen.</source>
@@ -1470,7 +1470,7 @@ Adreso: %4
     </message>
     <message>
         <source>Confirm send coins</source>
-        <translation>Konfirmi sendon de bitmono</translation>
+        <translation>Konfirmi sendon de emermono</translation>
     </message>
     <message>
         <source>%1 to %2</source>
@@ -1537,8 +1537,8 @@ Adreso: %4
         <translation>Kreo de transakcio fiaskis!</translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
-        <translation>Averto: Nevalida Bitmon-adreso</translation>
+        <source>Warning: Invalid Emercoin address</source>
+        <translation>Averto: Nevalida Emermon-adreso</translation>
     </message>
     <message>
         <source>(no label)</source>
@@ -1662,8 +1662,8 @@ Adreso: %4
         <translation>Kopii la aktualan subskribon al la tondejo</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation>Subskribi la mesaĝon por pravigi, ke vi estas la posedanto de tiu Bitmon-adreso</translation>
+        <source>Sign the message to prove you own this Emercoin address</source>
+        <translation>Subskribi la mesaĝon por pravigi, ke vi estas la posedanto de tiu Emermon-adreso</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -1686,8 +1686,8 @@ Adreso: %4
         <translation>Enmeti la subskriban adreson, la mesaĝon (kune kun ĉiu linisalto, spaceto, taboj, ktp. precize) kaj la subskribon ĉi sube por kontroli la mesaĝon. Atentu, ke vi ne komprenu per la subskribo pli ol la enhavo de la mesaĝo mem, por eviti homo-en-la-mezo-atakon.</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation>Kontroli la mesaĝon por pravigi, ke ĝi ja estas subskribita per la specifa Bitmon-adreso</translation>
+        <source>Verify the message to ensure it was signed with the specified Emercoin address</source>
+        <translation>Kontroli la mesaĝon por pravigi, ke ĝi ja estas subskribita per la specifa Emermon-adreso</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -1753,12 +1753,12 @@ Adreso: %4
 <context>
     <name>SplashScreen</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Kerno de Bitmono</translation>
+        <source>Emercoin Core</source>
+        <translation>Kerno de Emermono</translation>
     </message>
     <message>
-        <source>The Bitcoin Core developers</source>
-        <translation>La programistoj de Bitmona Kerno</translation>
+        <source>The Emercoin Core developers</source>
+        <translation>La programistoj de Emermona Kerno</translation>
     </message>
     <message>
         <source>[testnet]</source>
@@ -2138,7 +2138,7 @@ Adreso: %4
     <name>WalletModel</name>
     <message>
         <source>Send Coins</source>
-        <translation>Sendi Bitmonon</translation>
+        <translation>Sendi Emermonon</translation>
     </message>
 </context>
 <context>
