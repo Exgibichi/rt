@@ -48,5 +48,5 @@ CAmount GetMinFee(size_t nBytes, size_t nBlockSize)
 
     if (!MoneyRange(nMinFee))
         nMinFee = MAX_MONEY;
-    return std::max(nMinFee, MIN_TX_FEE);
+    return nMinFee;
 }

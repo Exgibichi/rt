@@ -2820,11 +2820,11 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
                 REJECT_INVALID, "bad-cs-time");
 
     // Check coinbase reward
-    CAmount blockVal = block.IsProofOfWork() ? GetProofOfWorkReward(block.nBits) : 0;
-    if (block.vtx[0].GetValueOut() > blockVal - block.vtx[0].GetMinFee() + MIN_TX_FEE)
+    CAmount powLimit = block.IsProofOfWork() ? GetProofOfWorkReward(block.nBits) - block.vtx[0].GetMinFee() + MIN_TX_FEE : 0;
+    if (block.vtx[0].GetValueOut() > powLimit)
         return state.DoS(100,
                          error("ConnectBlock() : coinbase pays too much (actual=%d vs limit=%d)",
-                               block.vtx[0].GetValueOut(), blockVal),
+                               block.vtx[0].GetValueOut(), powLimit),
                                REJECT_INVALID, "bad-cb-amount");
 
     // Check transactions
