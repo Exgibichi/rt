@@ -46,7 +46,6 @@ public:
     const std::vector<unsigned char>& AlertKey() const { return vAlertPubKey; }
     int GetDefaultPort() const { return nDefaultPort; }
     const uint256& ProofOfWorkLimit() const { return bnProofOfWorkLimit; }
-    int SubsidyHalvingInterval() const { return nSubsidyHalvingInterval; }
     /** Used to check majorities for block version upgrade */
     int EnforceBlockUpgradeMajority() const { return nEnforceBlockUpgradeMajority; }
     int RejectBlockOutdatedMajority() const { return nRejectBlockOutdatedMajority; }
@@ -67,6 +66,7 @@ public:
     /** Make standard checks */
     bool RequireStandard() const { return fRequireStandard; }
     int64_t TargetTimespan() const { return nTargetTimespan; }
+    int64_t TargetSpacing() const { return nTargetSpacing; }
     int64_t StakeTargetSpacing() const { return nStakeTargetSpacing; }
     int64_t TargetSpacingMax() const { return nTargetSpacingMax; }
     /** Make miner stop after a block is found. In RPC, don't return until nGenProcLimit blocks are generated */
@@ -88,11 +88,11 @@ protected:
     std::vector<unsigned char> vAlertPubKey;
     int nDefaultPort;
     uint256 bnProofOfWorkLimit;
-    int nSubsidyHalvingInterval;
     int nEnforceBlockUpgradeMajority;
     int nRejectBlockOutdatedMajority;
     int nToCheckBlockUpgradeMajority;
     int64_t nTargetTimespan;
+    int64_t nTargetSpacing;
     int64_t nStakeTargetSpacing;
     int64_t nTargetSpacingMax;
     int nMinerThreads;
@@ -121,7 +121,6 @@ protected:
 class CModifiableParams {
 public:
     //! Published setters to allow changing values in unit test cases
-    virtual void setSubsidyHalvingInterval(int anSubsidyHalvingInterval) =0;
     virtual void setEnforceBlockUpgradeMajority(int anEnforceBlockUpgradeMajority)=0;
     virtual void setRejectBlockOutdatedMajority(int anRejectBlockOutdatedMajority)=0;
     virtual void setToCheckBlockUpgradeMajority(int anToCheckBlockUpgradeMajority)=0;
