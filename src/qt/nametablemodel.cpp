@@ -7,7 +7,6 @@
 #include "../namecoin.h"
 
 #include <vector>
-#include <QTimer>
 
 using namespace std;
 
@@ -190,10 +189,6 @@ NameTableModel::NameTableModel(CWallet *wallet, WalletModel *parent) :
     fOtherNames = false;
     fExpired = false;
     priv->refreshNameTable(fMyNames, fOtherNames, fExpired);
-
-    QTimer *timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this, SLOT(update()));
-    timer->start(NAME_MODEL_UPDATE_DELAY);
 }
 
 NameTableModel::~NameTableModel()
