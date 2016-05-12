@@ -1158,7 +1158,7 @@ NameTxReturn name_update(const vector<unsigned char> &vchName,
             CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
             int nTxOut = IndexOfNameOutput(wtxIn);
 
-            if (::IsMine(*pwalletMain, wtxIn.vout[nTxOut].scriptPubKey))
+            if (::IsMine(*pwalletMain, wtxIn.vout[nTxOut].scriptPubKey) != ISMINE_SPENDABLE)
             {
                 ss << "this name is not yours: " << wtxInHash.GetHex().c_str();
                 ret.err_msg = ss.str();
@@ -1295,7 +1295,7 @@ NameTxReturn name_delete(const vector<unsigned char> &vchName)
             CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
             int nTxOut = IndexOfNameOutput(wtxIn);
 
-            if (::IsMine(*pwalletMain, wtxIn.vout[nTxOut].scriptPubKey))
+            if (::IsMine(*pwalletMain, wtxIn.vout[nTxOut].scriptPubKey) != ISMINE_SPENDABLE)
             {
                 ss << "this name is not yours: " << wtxInHash.GetHex().c_str();
                 ret.err_msg = ss.str();
