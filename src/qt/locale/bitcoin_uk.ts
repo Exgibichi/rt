@@ -3139,8 +3139,8 @@ rpcpassword=%s
         <translation>Підключитись через SOCKS5-проксі</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Emercoin Core Developers</source>
-        <translation>(C) 2009-%i Розробники Emercoin Core</translation>
+        <source>Copyright (C) 2013-%i The Emercoin Core Developers</source>
+        <translation>(C) 2013-%i Розробники Emercoin Core</translation>
     </message>
     <message>
         <source>Could not parse -rpcbind value %s as network address</source>

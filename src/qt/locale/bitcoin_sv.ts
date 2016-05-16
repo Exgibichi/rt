@@ -3141,8 +3141,8 @@ till exempel: alertnotify=echo %%s | mail -s "Emercoin Alert" admin@foo.com
         <translation>Anslut genom SOCKS5 proxy</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Emercoin Core Developers</source>
-        <translation>Copyright (C) 2009-%i Emercoin Core Utvecklarna</translation>
+        <source>Copyright (C) 2013-%i The Emercoin Core Developers</source>
+        <translation>Copyright (C) 2013-%i Emercoin Core Utvecklarna</translation>
     </message>
     <message>
         <source>Could not parse -rpcbind value %s as network address</source>

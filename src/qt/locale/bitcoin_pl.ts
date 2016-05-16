@@ -2907,8 +2907,8 @@ Adres: %4
         <translation>Połącz przez SOCKS5 proxy</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Emercoin Core Developers</source>
-        <translation>Copyright (C) 2009-%i The Emercoin Core Developers</translation>
+        <source>Copyright (C) 2013-%i The Emercoin Core Developers</source>
+        <translation>Copyright (C) 2013-%i The Emercoin Core Developers</translation>
     </message>
     <message>
         <source>Error loading wallet.dat: Wallet requires newer version of Emercoin Core</source>

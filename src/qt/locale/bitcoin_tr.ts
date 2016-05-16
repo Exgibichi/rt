@@ -3143,8 +3143,8 @@ mesela: alertnotify=echo %%s | mail -s "Emercoin Alert" admin@foo.com
         <translation>SOCKS5 vekil sunucusu vasıtasıyla bağlan</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Emercoin Core Developers</source>
-        <translation>Telif hakkı 2009-%i Emercoin Çekirdeği Geliştiricileri</translation>
+        <source>Copyright (C) 2013-%i The Emercoin Core Developers</source>
+        <translation>Telif hakkı 2013-%i Emercoin Çekirdeği Geliştiricileri</translation>
     </message>
     <message>
         <source>Could not parse -rpcbind value %s as network address</source>

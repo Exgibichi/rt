@@ -2978,8 +2978,8 @@ Osoite: %4</translation>
         <translation>Yhdistä SOCKS5 proxin kautta</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Emercoin Core Developers</source>
-        <translation>Copyright (C) 2009-%i  Emercoin kehittäjät</translation>
+        <source>Copyright (C) 2013-%i The Emercoin Core Developers</source>
+        <translation>Copyright (C) 2013-%i  Emercoin kehittäjät</translation>
     </message>
     <message>
         <source>Error loading wallet.dat: Wallet requires newer version of Emercoin Core</source>

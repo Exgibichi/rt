@@ -4025,7 +4025,7 @@ for example: alertnotify=echo %%s | mail -s &quot;Emercoin Alert&quot; admin@foo
     </message>
     <message>
         <location line="+3"/>
-        <source>Copyright (C) 2009-%i The Emercoin Core Developers</source>
+        <source>Copyright (C) 2013-%i The Emercoin Core Developers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

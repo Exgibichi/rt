@@ -2527,8 +2527,8 @@ Address: %4
         <translation>Свързване чрез SOCKS5  прокси</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Emercoin Core Developers</source>
-        <translation>Всички права запазени (C) 2009-%i Доставчиците на Емеркойн</translation>
+        <source>Copyright (C) 2013-%i The Emercoin Core Developers</source>
+        <translation>Всички права запазени (C) 2013-%i Доставчиците на Емеркойн</translation>
     </message>
     <message>
         <source>Information</source>

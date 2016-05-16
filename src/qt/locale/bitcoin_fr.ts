@@ -3143,8 +3143,8 @@ par exemple : alertnotify=echo %%s | mail -s "Alerte Emercoin" admin@foo.com
         <translation>Se connecter par un mandataire SOCKS5</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Emercoin Core Developers</source>
-        <translation>Copyright © 2009-%i Les développeurs de Emercoin Core</translation>
+        <source>Copyright (C) 2013-%i The Emercoin Core Developers</source>
+        <translation>Copyright © 2013-%i Les développeurs de Emercoin Core</translation>
     </message>
     <message>
         <source>Could not parse -rpcbind value %s as network address</source>

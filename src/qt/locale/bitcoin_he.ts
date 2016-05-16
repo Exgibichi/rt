@@ -2854,8 +2854,8 @@ Address: %4
         <translation>התחברות דרך מתווך SOCKS5</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Emercoin Core Developers</source>
-        <translation>כל הזכויות שמורות (C)‏ 2009‏-%i מתכנתי ליבת ביטקוין</translation>
+        <source>Copyright (C) 2013-%i The Emercoin Core Developers</source>
+        <translation>כל הזכויות שמורות (C)‏ 2013‏-%i מתכנתי ליבת ביטקוין</translation>
     </message>
     <message>
         <source>Could not parse -rpcbind value %s as network address</source>

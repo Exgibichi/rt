@@ -3128,8 +3128,8 @@ Adres: %4
         <translation>Verbind door SOCKS5 proxy</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Emercoin Core Developers</source>
-        <translation>Auteursrecht (C) 2009-%i De Emercoin Core Ontwikkelaars</translation>
+        <source>Copyright (C) 2013-%i The Emercoin Core Developers</source>
+        <translation>Auteursrecht (C) 2013-%i De Emercoin Core Ontwikkelaars</translation>
     </message>
     <message>
         <source>Could not parse -rpcbind value %s as network address</source>

@@ -3148,8 +3148,8 @@ rpcpassword=%s
         <translation>透過 SOCKS5 代理伺服器連線</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Emercoin Core Developers</source>
-        <translation>版權為位元幣核心開發人員自西元 2009 至 %i 年起所有</translation>
+        <source>Copyright (C) 2013-%i The Emercoin Core Developers</source>
+        <translation>版權為位元幣核心開發人員自西元 2013 至 %i 年起所有</translation>
     </message>
     <message>
         <source>Could not parse -rpcbind value %s as network address</source>

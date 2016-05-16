@@ -3158,8 +3158,8 @@ rpcpassword=%s
         <translation>通过 SOCKS5 代理连接</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Emercoin Core Developers</source>
-        <translation>版权所有 (C) 2009-%i Emercoin Core 开发者</translation>
+        <source>Copyright (C) 2013-%i The Emercoin Core Developers</source>
+        <translation>版权所有 (C) 2013-%i Emercoin Core 开发者</translation>
     </message>
     <message>
         <source>Could not parse -rpcbind value %s as network address</source>

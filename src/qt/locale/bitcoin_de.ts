@@ -3150,8 +3150,8 @@ Beispiel: alertnotify=echo %%s | mail -s "Emercoin Alert" admin@foo.com
         <translation>Über einen SOCKS5-Proxy &amp;verbinden</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Emercoin Core Developers</source>
-        <translation>Urheberrecht (C) 2009-%i Die "Emercoin Core"-Entwickler</translation>
+        <source>Copyright (C) 2013-%i The Emercoin Core Developers</source>
+        <translation>Urheberrecht (C) 2013-%i Die "Emercoin Core"-Entwickler</translation>
     </message>
     <message>
         <source>Could not parse -rpcbind value %s as network address</source>
