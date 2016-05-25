@@ -24,17 +24,15 @@ const CBlockIndex* GetLastBlockIndex(const CBlockIndex* pindex, bool fProofOfSta
 unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake)
 {
     using namespace std;
-    unsigned int nProofOfWorkLimit = Params().ProofOfWorkLimit().GetCompact();
-
     if (pindexLast == NULL)
-        return nProofOfWorkLimit; // genesis block
+        return Params().ProofOfWorkLimit().GetCompact(); // genesis block
 
     const CBlockIndex* pindexPrev = GetLastBlockIndex(pindexLast, fProofOfStake);
     if (pindexPrev->pprev == NULL)
-        return nProofOfWorkLimit; // first block
+        return Params().InitialHashTarget().GetCompact(); // first block
     const CBlockIndex* pindexPrevPrev = GetLastBlockIndex(pindexPrev->pprev, fProofOfStake);
     if (pindexPrevPrev->pprev == NULL)
-        return nProofOfWorkLimit; // second block
+        return Params().InitialHashTarget().GetCompact(); // second block
 
     int64_t nActualSpacing = pindexPrev->GetBlockTime() - pindexPrevPrev->GetBlockTime();
 

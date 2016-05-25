@@ -652,6 +652,9 @@ Value submitblock(const Array& params, bool fHelp)
         }
     }
 
+    if (!SignBlock(block, *pwalletMain))
+        throw JSONRPCError(-100, "Unable to sign block, wallet locked?");
+
     CValidationState state;
     submitblock_StateCatcher sc(block.GetHash());
     RegisterValidationInterface(&sc);

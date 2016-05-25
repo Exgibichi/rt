@@ -58,7 +58,6 @@ bool fCheckBlockIndex = false;
 unsigned int nCoinCacheSize = 5000;
 
 // ppcoin values
-unsigned int nStakeMinAge = STAKE_MIN_AGE;
 string strMintWarning;
 
 
@@ -1275,6 +1274,11 @@ double GetDifficulty(unsigned int nBits)
 
 bool GuessPoS(const CBlockHeader& header)
 {
+    // case for testnet
+    if (Params().NetworkIDString() != "main")
+        return header.GetHash() > Params().ProofOfWorkLimit(); // small chance for error 1 / 2^28 = 1 / 100 million
+
+
     // emercoin: return false if time is below block 10 000 - we have no PoS blocks below 10 000 in our official blockchain.
     // this is important, because on early blocks difficulty was very low (starting from 1) and we can confuse PoS with PoW.
     if (header.nTime < 1387258928)
@@ -1536,7 +1540,7 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
 
             // If prev is coinbase, check that it's matured
             if (coins->IsCoinBase() || coins->IsCoinStake()) {
-                if (nSpendHeight - coins->nHeight < COINBASE_MATURITY)
+                if (nSpendHeight - coins->nHeight < Params().CoinbaseMaturity())
                     return state.Invalid(
                         error("CheckInputs() : tried to spend coinbase/coinstake at depth %d", nSpendHeight - coins->nHeight),
                         REJECT_INVALID, "bad-txns-premature-spend-of-coinbase/coinstake");
@@ -2539,7 +2543,7 @@ bool GetCoinAge(const CTransaction& tx, CValidationState &state, const CCoinsVie
             if (txPrev.GetHash() != prevout.hash)
                 return error("%s() : txid mismatch in GetCoinAge()", __PRETTY_FUNCTION__);
 
-            if (header.GetBlockTime() + nStakeMinAge > tx.nTime)
+            if (header.GetBlockTime() + Params().StakeMinAge() > tx.nTime)
                 continue; // only count coins meeting min age requirement
 
             int64_t nValueIn = txPrev.vout[txin.prevout.n].nValue;
@@ -2937,59 +2941,6 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, CBlockIn
         if (block.vtx[0].vin[0].scriptSig.size() < expect.size() ||
             !std::equal(expect.begin(), expect.end(), block.vtx[0].vin[0].scriptSig.begin())) {
             return state.DoS(100, error("%s : block height mismatch in coinbase", __func__), REJECT_INVALID, "bad-cb-height");
-        }
-    }
-
-    return true;
-}
-
-// emercoin: checks that depends on PoS/PoW from CheckBlockHeader and ContextualCheckBlockHeader.
-// EvgenijM86: I have isolated them in this function because they are the only checks that can be skiped when downloading headers from old clients.
-bool CheckHeaderWork(bool fProofOfStake, const CBlockHeader& block, CValidationState& state)
-{
-// from CheckBlockHeader
-    // Check proof of work matches claimed amount
-    if (!fProofOfStake && !CheckProofOfWork(block.GetHash(), block.nBits))
-        return state.DoS(50, error("%s : proof of work failed", __func__),
-                         REJECT_INVALID, "high-hash");
-
-// from AcceptBlockHeader
-    uint256 hash = block.GetHash();
-
-    // Get prev block index
-    CBlockIndex* pindexPrev = NULL;
-    if (hash != Params().HashGenesisBlock()) {
-        BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
-        if (mi == mapBlockIndex.end())
-            return state.DoS(10, error("%s : prev block not found", __func__), 0, "bad-prevblk");
-        pindexPrev = (*mi).second;
-        if (pindexPrev->nStatus & BLOCK_FAILED_MASK)
-            return state.DoS(100, error("%s : prev block invalid", __func__), REJECT_INVALID, "bad-prevblk");
-    }
-
-// from ContextualCheckBlockHeader
-    int nHeight = pindexPrev->nHeight+1;
-
-    if (nHeight == 13548)
-        LogPrintf("stop");
-
-    if (!Params().SkipProofOfWorkCheck())
-    {
-        // Check proof-of-work or proof-of-stake
-        if (nHeight > 10000)
-        {
-            if (block.nBits != GetNextTargetRequired(pindexPrev, fProofOfStake))
-                return state.DoS(100, error("%s : incorrect proof of work", __func__),
-                              REJECT_INVALID, "bad-diffbits");
-        }
-        else
-        {
-            // this is needed only for emercoin official blockchain, because of mistake we made at the beginning
-            unsigned int check = GetNextTargetRequired(pindexPrev, fProofOfStake);
-            unsigned int max_error = check / 100000;
-            if (!(block.nBits >= check - max_error && block.nBits <= check + max_error)) // +- 0.001% interval
-                return state.DoS(100, error("%s : incorrect proof of work", __func__),
-                              REJECT_INVALID, "bad-diffbits");
         }
     }
 
@@ -4404,7 +4355,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 LogPrint("net", "  getblocks stopping at %d %s\n", pindex->nHeight, pindex->GetBlockHash().ToString());
                 // ppcoin: tell downloading node about the latest block if it's
                 // without risk being rejected due to stake connection check
-                if (hashStop != chainActive.Tip()->GetBlockHash() && pindex->GetBlockTime() + nStakeMinAge > chainActive.Tip()->GetBlockTime())
+                if (hashStop != chainActive.Tip()->GetBlockHash() && pindex->GetBlockTime() + Params().StakeMinAge() > chainActive.Tip()->GetBlockTime())
                     pfrom->PushInventory(CInv(MSG_BLOCK, chainActive.Tip()->GetBlockHash()));
                 break;
             }

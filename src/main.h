@@ -71,8 +71,6 @@ static const unsigned int MAX_BLOCKFILE_SIZE = 0x8000000; // 128 MiB
 static const unsigned int BLOCKFILE_CHUNK_SIZE = 0x1000000; // 16 MiB
 /** The pre-allocation chunk size for rev?????.dat files (since 0.8) */
 static const unsigned int UNDOFILE_CHUNK_SIZE = 0x100000; // 1 MiB
-/** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
-static const int COINBASE_MATURITY = 12; //12+20 = 32
 /** Threshold for nLockTime: below this value it is interpreted as block number, otherwise as UNIX timestamp. */
 static const unsigned int LOCKTIME_THRESHOLD = 500000000; // Tue Nov  5 00:53:20 1985 UTC
 /** Maximum number of script-checking threads allowed */
@@ -110,11 +108,9 @@ static const unsigned char REJECT_CHECKPOINT = 0x43;
 static const CAmount MAX_MINT_PROOF_OF_WORK = 5020 * COIN;
 static const CAmount MIN_TXOUT_AMOUNT = MIN_TX_FEE;
 static const int STAKE_MIN_AGE = 60 * 60 * 24 * 30;      // minimum age for coin age
-static const int STAKE_MAX_AGE = 60 * 60 * 24 * 90;      // stake age of full weight
 static const int64_t nMaxClockDrift = 2 * 60 * 60;       // two hours
 
 /** ppcoin values */
-extern unsigned int nStakeMinAge;
 extern std::string strMintWarning;
 
 
