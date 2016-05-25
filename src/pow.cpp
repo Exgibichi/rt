@@ -5,6 +5,7 @@
 
 #include "pow.h"
 
+#include "bignum.h"
 #include "chain.h"
 #include "chainparams.h"
 #include "primitives/block.h"
@@ -38,7 +39,7 @@ unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfS
 
     // ppcoin: target change every block
     // ppcoin: retarget with exponential moving toward target spacing
-    uint256 bnNew;
+    CBigNum bnNew;
     bnNew.SetCompact(pindexPrev->nBits);
 
     // emercoin: first 10 000 blocks are faster to mine.
@@ -52,8 +53,8 @@ unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfS
     bnNew *= ((nInterval - n) * nTargetSpacing + (n + 1) * nActualSpacing);
     bnNew /= ((nInterval + 1) * nTargetSpacing);
 
-    if (bnNew > Params().ProofOfWorkLimit())
-        bnNew = Params().ProofOfWorkLimit();
+    if (bnNew > CBigNum(Params().ProofOfWorkLimit()))
+        bnNew = CBigNum(Params().ProofOfWorkLimit());
 
     return bnNew.GetCompact();
 }

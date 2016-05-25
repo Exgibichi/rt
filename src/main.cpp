@@ -7,6 +7,7 @@
 
 #include "addrman.h"
 #include "alert.h"
+#include "bignum.h"
 #include "chainparams.h"
 #include "checkpoints.h"
 #include "checkqueue.h"
@@ -1292,40 +1293,37 @@ bool GuessPoS(const CBlockHeader& header)
 
 CAmount GetProofOfWorkReward(unsigned int nBits)
 {
-    uint256 bnSubsidyLimit(MAX_MINT_PROOF_OF_WORK);
-    uint256 bnTarget;
+    CBigNum bnSubsidyLimit = MAX_MINT_PROOF_OF_WORK;
+    CBigNum bnTarget;
     bnTarget.SetCompact(nBits);
-    uint256 bnTargetLimit = Params().ProofOfWorkLimit();
+    CBigNum bnTargetLimit(Params().ProofOfWorkLimit());
     bnTargetLimit.SetCompact(bnTargetLimit.GetCompact());
 
     // ppcoin: subsidy is cut in half every 16x multiply of difficulty
     // A reasonably continuous curve is used to avoid shock to market
     // (nSubsidyLimit / nSubsidy) ** 4 == bnProofOfWorkLimit / bnTarget
-    uint256 bnLowerBound(CENT);
-    uint256 bnUpperBound = bnSubsidyLimit;
-    uint256 bnMidPart, bnRewardPart;
+    CBigNum bnLowerBound = CENT;
+    CBigNum bnUpperBound = bnSubsidyLimit;
+    CBigNum bnMidPart, bnRewardPart;
 
     bool bLowDiff = GetDifficulty(nBits) < 512;
-
     bnRewardPart = bLowDiff ? bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit :
                               bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit;
     while (bnLowerBound + CENT <= bnUpperBound)
     {
-        uint256 bnMidValue = (bnLowerBound + bnUpperBound) / 2;
+        CBigNum bnMidValue = (bnLowerBound + bnUpperBound) / 2;
         bnMidPart = bLowDiff ? bnMidValue * bnMidValue * bnMidValue * bnMidValue * bnMidValue * bnMidValue :
                                bnMidValue * bnMidValue * bnMidValue * bnMidValue;
         if (fDebug && GetBoolArg("-printcreation", false))
-            LogPrintf("GetProofOfWorkReward() : lower=%lld upper=%lld mid=%lld\n", bnLowerBound.GetLow64(), bnUpperBound.GetLow64(), bnMidValue.GetLow64());
+            LogPrintf("GetProofOfWorkReward() : lower=%lld upper=%lld mid=%lld\n", bnLowerBound.getuint64(), bnUpperBound.getuint64(), bnMidValue.getuint64());
 
-        // r is used to reduce value to avoid overflow. bnMidPart is choosen because it is alway the lowest number.
-        uint256 r = bnMidPart / bnSubsidyLimit;
-        if ((bnMidPart / r) * (bnTargetLimit / r) > (bnRewardPart / r) * (bnTarget / r))
-            bnUpperBound = bnMidValue; //emer
+        if (bnMidPart * bnTargetLimit > bnRewardPart * bnTarget)
+            bnUpperBound = bnMidValue;
         else
-            bnLowerBound = bnMidValue; //dev
+            bnLowerBound = bnMidValue;
     }
 
-    CAmount nSubsidy = bnUpperBound.GetLow64();
+    CAmount nSubsidy = bnUpperBound.getuint64();
     nSubsidy = (nSubsidy / CENT) * CENT;
     if (fDebug && GetBoolArg("-printcreation", false))
         LogPrintf("GetProofOfWorkReward() : create=%s nBits=0x%08x nSubsidy=%lld\n", FormatMoney(nSubsidy).c_str(), nBits, nSubsidy);
