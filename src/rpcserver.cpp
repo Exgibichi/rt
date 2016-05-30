@@ -276,6 +276,7 @@ static const CRPCCommand vRPCCommands[] =
     { "blockchain",         "name_scan",              &name_scan,              false,     false,      false },
     { "blockchain",         "name_filter",            &name_filter,            false,     false,      false },
     { "blockchain",         "name_show",              &name_show,              false,     false,      false },
+    { "blockchain",         "name_history",           &name_history,           false,     false,      false },
 //emercoin    { "blockchain",         "gettxlistfor",           &gettxlistfor,              false,     false,      false },
 
 
@@ -1039,6 +1040,38 @@ json_spirit::Value CRPCTable::execute(const std::string &strMethod, const json_s
     {
         throw JSONRPCError(RPC_MISC_ERROR, e.what());
     }
+}
+
+/**
+ * Return the help string description to use for name info objects.
+ * @param indent Indentation at the line starts.
+ * @param trailing Trailing string (e. g., comma for an array of these objects).
+ * @return The description string.
+ */
+std::string getNameHistoryHelp (const std::string& indent, const std::string& trailing)
+{
+    std::ostringstream res;
+
+    res << indent << "{" << std::endl;
+    res << indent << "  \"txid\": xxxxx,           "
+        << "(string) transaction id" << std::endl;
+    res << indent << "  \"time\": xxxxx,          "
+        << "(numeric) transaction time" << std::endl;
+    res << indent << "  \"height\": xxxxx,           "
+        << "(numeric) height of block with this transaction" << std::endl;
+    res << indent << "  \"address\": xxxxx,        "
+        << "(string) address to which transaction was sent" << std::endl;
+    res << indent << "  \"address_is_mine\": xxxxx,         "
+        << "(string) shows \"true\" if this is your address, otherwise this field is not visible" << std::endl;
+    res << indent << "  \"operation\": xxxxx,     "
+        << "(string) name operation that was performed in this transaction" << std::endl;
+    res << indent << "  \"days_added\": xxxxx,        "
+        << "(numeric) shows days added (1 day = 175 blocks) to name expiration time if name_update was used, otherwise this field is not visible" << std::endl;
+    res << indent << "  \"value\": xxxxx,        "
+        << "(numeric) name value in this transaction; not visible when name_delete was used" << std::endl;
+    res << indent << "}" << trailing << std::endl;
+
+    return res.str ();
 }
 
 std::string HelpExampleCli(string methodname, string args){

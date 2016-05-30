@@ -366,7 +366,19 @@ bool DecodeNameScript(const CScript& script, NameTxInfo& ret, CScript::const_ite
         if (opcode != OP_DROP)
             return false;
         ret.err_msg = "";
-        ret.fIsMine = true; // name_delete should be always our transaction.
+
+        if (checkAddressAndIfIsMine)
+        {
+            //read address
+            CTxDestination address;
+            CScript scriptPubKey(pc, script.end());
+            if (!ExtractDestination(scriptPubKey, address))
+                ret.strAddress = "";
+            ret.strAddress = CBitcoinAddress(address).ToString();
+
+            // check if this is mine destination
+            ret.fIsMine = IsMine(*pwalletMain, address) == ISMINE_SPENDABLE;
+        }
         return true;
     }
 
@@ -752,6 +764,78 @@ Value name_show(const Array& params, bool fHelp)
 
     return oName;
 }
+
+Value name_history (const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() < 1 || params.size() > 2)
+        throw std::runtime_error (
+            "name_history \"name\" ( fullhistory )\n"
+            "\nLook up the current and all past data for the given name.\n"
+            "\nArguments:\n"
+            "1. \"name\"           (string, required) the name to query for\n"
+            "2. \"fullhistory\"    (boolean, optional) shows full history, even if name is not active\n"
+            "\nResult:\n"
+            "[\n"
+            + getNameHistoryHelp ("  ", ",") +
+            "  ...\n"
+            "]\n"
+            "\nExamples:\n"
+            + HelpExampleCli ("name_history", "\"myname\"")
+            + HelpExampleRpc ("name_history", "\"myname\"")
+        );
+
+    if (IsInitialBlockDownload())
+      throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
+
+    vector<unsigned char> vchName = vchFromValue(params[0]);
+    bool fFullHistory = false;
+    if (params.size() > 1)
+        fFullHistory = params[1].get_bool();
+
+    CNameRecord nameRec;
+    {
+        LOCK(cs_main);
+        CNameDB dbName("r");
+        if (!dbName.ReadName(vchName, nameRec))
+            throw JSONRPCError(RPC_DATABASE_ERROR, "failed to read from name DB");
+    }
+
+    if (nameRec.vtxPos.empty())
+        throw JSONRPCError(RPC_DATABASE_ERROR, "record for this name exists, but transaction list is empty");
+
+    if (!fFullHistory && !NameActive(vchName))
+        throw JSONRPCError(RPC_MISC_ERROR, "record for this name exists, but this name is not active");
+
+    Array res;
+    for (unsigned int i = fFullHistory ? 0 : nameRec.nLastActiveChainIndex; i < nameRec.vtxPos.size(); i++)
+    {
+        CTransaction tx;
+        if (!tx.ReadFromDisk(nameRec.vtxPos[i].txPos))
+            throw JSONRPCError(RPC_DATABASE_ERROR, "could not read transaction from disk");
+
+        NameTxInfo nti;
+        if (!DecodeNameTx(tx, nti, false, true))
+            throw JSONRPCError(RPC_DATABASE_ERROR, "failed to decode namecoin transaction");
+
+        Object obj;
+        obj.push_back(Pair("txid",             tx.GetHash().ToString()));
+        obj.push_back(Pair("time",             (boost::int64_t)tx.nTime));
+        obj.push_back(Pair("height",           nameRec.vtxPos[i].nHeight));
+        obj.push_back(Pair("address",          nti.strAddress));
+      if (nti.fIsMine)
+        obj.push_back(Pair("address_is_mine",  "true"));
+        obj.push_back(Pair("operation",        nameFromOp(nti.op)));
+      if (nti.op == OP_NAME_UPDATE)
+        obj.push_back(Pair("days_added",       nti.nRentalDays));
+      if (nti.op != OP_NAME_DELETE)
+        obj.push_back(Pair("value",            stringFromVch(nti.vchValue)));
+
+        res.push_back(obj);
+    }
+
+    return res;
+}
+
 
 // used for sorting in name_filter by nHeight
 bool mycompare2 (const Object &lhs, const Object &rhs)
