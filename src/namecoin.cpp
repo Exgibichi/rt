@@ -602,7 +602,7 @@ void GetNameList(const CNameVal& nameUniq, std::map<CNameVal, NameTxInfo> &mapNa
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
     // add all names from wallet tx that are in blockchain
-    BOOST_FOREACH(PAIRTYPE(const uint256, CWalletTx) &item, pwalletMain->mapWallet)
+    BOOST_FOREACH(const PAIRTYPE(uint256, CWalletTx) &item, pwalletMain->mapWallet)
     {
         NameTxInfo ntiWalllet;
         if (!DecodeNameTx(item.second, ntiWalllet, false, false))
@@ -631,7 +631,7 @@ void GetNameList(const CNameVal& nameUniq, std::map<CNameVal, NameTxInfo> &mapNa
     }
 
     // add all pending names
-    BOOST_FOREACH(PAIRTYPE(const CNameVal, set<uint256>) &item, mapNamePending)
+    BOOST_FOREACH(const PAIRTYPE(CNameVal, set<uint256>) &item, mapNamePending)
     {
         if (!item.second.size())
             continue;
@@ -640,7 +640,7 @@ void GetNameList(const CNameVal& nameUniq, std::map<CNameVal, NameTxInfo> &mapNa
         CTransaction tx;
         uint32_t nTime = 0;
         bool found = false;
-        BOOST_FOREACH(uint256 hash, item.second)
+        BOOST_FOREACH(const uint256& hash, item.second)
         {
             if (!mempool.exists(hash))
                 continue;
@@ -674,11 +674,10 @@ Value name_debug(const Array& params, bool fHelp)
             "Dump pending transactions id in the debug file.\n");
 
     LogPrintf("Pending:\n----------------------------\n");
-    pair<CNameVal, set<uint256> > pairPending;
 
     {
         LOCK(cs_main);
-        BOOST_FOREACH(pairPending, mapNamePending)
+        BOOST_FOREACH(const PAIRTYPE(CNameVal, set<uint256>) &pairPending, mapNamePending)
         {
             string name = stringFromNameVal(pairPending.first);
             LogPrintf("%s :\n", name);
@@ -695,8 +694,6 @@ Value name_debug(const Array& params, bool fHelp)
     LogPrintf("----------------------------\n");
     return true;
 }
-
-//TODO: name_history, sendtoname
 
 Value name_show(const Array& params, bool fHelp)
 {
@@ -772,8 +769,16 @@ Value name_history (const Array& params, bool fHelp)
             "2. \"fullhistory\"    (boolean, optional) shows full history, even if name is not active\n"
             "\nResult:\n"
             "[\n"
-            + getNameHistoryHelp ("  ", ",") +
-            "  ...\n"
+            "  {\n"
+            "    \"txid\": \"xxxx\",            (string) transaction id"
+            "    \"time\": xxxxx,               (numeric) transaction time"
+            "    \"height\": xxxxx,             (numeric) height of block with this transaction"
+            "    \"address\": \"xxxx\",         (string) address to which transaction was sent"
+            "    \"address_is_mine\": \"xxxx\", (string) shows \"true\" if this is your address, otherwise not visible"
+            "    \"operation\": \"xxxx\",       (string) name operation that was performed in this transaction"
+            "    \"days_added\": xxxx,          (numeric) days added (1 day = 175 blocks) to name expiration time, not visible if 0"
+            "    \"value\": xxxx,               (numeric) name value in this transaction; not visible when name_delete was used"
+            "  }\n"
             "]\n"
             "\nExamples:\n"
             + HelpExampleCli ("name_history", "\"myname\"")
@@ -781,7 +786,7 @@ Value name_history (const Array& params, bool fHelp)
         );
 
     if (IsInitialBlockDownload())
-      throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
 
     CNameVal name = nameValFromValue(params[0]);
     bool fFullHistory = false;
@@ -821,9 +826,9 @@ Value name_history (const Array& params, bool fHelp)
       if (nti.fIsMine)
         obj.push_back(Pair("address_is_mine",  "true"));
         obj.push_back(Pair("operation",        nameFromOp(nti.op)));
-      if (nti.op == OP_NAME_UPDATE)
+      if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
         obj.push_back(Pair("days_added",       nti.nRentalDays));
-      if (nti.op != OP_NAME_DELETE)
+      if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
         obj.push_back(Pair("value",            stringFromNameVal(nti.value)));
 
         res.push_back(obj);
@@ -832,6 +837,62 @@ Value name_history (const Array& params, bool fHelp)
     return res;
 }
 
+Value name_mempool (const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() > 0)
+        throw std::runtime_error (
+            "name_mempool\n"
+            "\nList pending name transactions in mempool.\n"
+            "\nResult:\n"
+            "[\n"
+            "  {\n"
+            "    \"name\": \"xxxx\",            (string) name"
+            "    \"txid\": \"xxxx\",            (string) transaction id"
+            "    \"time\": xxxxx,               (numeric) transaction time"
+            "    \"address\": \"xxxx\",         (string) address to which transaction was sent"
+            "    \"address_is_mine\": \"xxxx\", (string) shows \"true\" if this is your address, otherwise not visible"
+            "    \"operation\": \"xxxx\",       (string) name operation that was performed in this transaction"
+            "    \"days_added\": xxxx,          (numeric) days added (1 day = 175 blocks) to name expiration time, not visible if 0"
+            "    \"value\": xxxx,               (numeric) name value in this transaction; not visible when name_delete was used"
+            "  }\n"
+            "]\n"
+            "\nExamples:\n"
+            + HelpExampleCli ("name_mempool", "" )
+            + HelpExampleRpc ("name_mempool", "" )
+        );
+
+    Array res;
+    BOOST_FOREACH(const PAIRTYPE(CNameVal, set<uint256>) &pairPending, mapNamePending)
+    {
+        string sName = stringFromNameVal(pairPending.first);
+        BOOST_FOREACH(const uint256& hash, pairPending.second)
+        {
+            if (!mempool.exists(hash))
+                continue;
+
+            CTransaction tx = mempool.mapTx[hash].GetTx();
+            NameTxInfo nti;
+            if (!DecodeNameTx(tx, nti, false, true))
+                throw JSONRPCError(RPC_DATABASE_ERROR, "failed to decode namecoin transaction");
+
+            Object obj;
+            obj.push_back(Pair("name",             sName));
+            obj.push_back(Pair("txid",             hash.ToString()));
+            obj.push_back(Pair("time",             (boost::int64_t)tx.nTime));
+            obj.push_back(Pair("address",          nti.strAddress));
+          if (nti.fIsMine)
+            obj.push_back(Pair("address_is_mine",  "true"));
+            obj.push_back(Pair("operation",        nameFromOp(nti.op)));
+          if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
+            obj.push_back(Pair("days_added",       nti.nRentalDays));
+          if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
+            obj.push_back(Pair("value",            stringFromNameVal(nti.value)));
+
+            res.push_back(obj);
+        }
+    }
+    return res;
+}
 
 // used for sorting in name_filter by nHeight
 bool mycompare2 (const Object& lhs, const Object& rhs)
@@ -1100,9 +1161,6 @@ Value name_new(const Array& params, bool fHelp)
                 "Cost is square root of (1% of last PoW + 1% per year of last PoW)."
                 + HelpRequiringPassphrase());
 
-    if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
-
     CNameVal name = nameValFromValue(params[0]);
     CNameVal value = nameValFromValue(params[1]);
     int nRentalDays = params[2].get_int();
@@ -1118,6 +1176,13 @@ NameTxReturn name_new(const CNameVal& name, const CNameVal& value, const int nRe
     NameTxReturn ret;
     ret.err_code = RPC_INTERNAL_ERROR; //default value
     ret.ok = false;
+
+    if (IsInitialBlockDownload())
+    {
+        ret.err_code = RPC_CLIENT_IN_INITIAL_DOWNLOAD;
+        ret.err_msg = "Emercoin is downloading blocks...";
+        return ret;
+    }
 
     if (IsWalletLocked(ret))
         return ret;
@@ -1176,9 +1241,6 @@ Value name_update(const Array& params, bool fHelp)
                 "name_update <name> <value> <days> [<toaddress>]\nUpdate name value, add days to expiration time and possibly transfer a name to diffrent address."
                 + HelpRequiringPassphrase());
 
-    if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
-
     CNameVal name = nameValFromValue(params[0]);
     CNameVal value = nameValFromValue(params[1]);
     int nRentalDays = params[2].get_int();
@@ -1197,6 +1259,13 @@ NameTxReturn name_update(const CNameVal& name, const CNameVal& value, const int 
     NameTxReturn ret;
     ret.err_code = RPC_INTERNAL_ERROR; //default value
     ret.ok = false;
+
+    if (IsInitialBlockDownload())
+    {
+        ret.err_code = RPC_CLIENT_IN_INITIAL_DOWNLOAD;
+        ret.err_msg = "Emercoin is downloading blocks...";
+        return ret;
+    }
 
     if (IsWalletLocked(ret))
         return ret;
@@ -1310,9 +1379,6 @@ Value name_delete(const Array& params, bool fHelp)
                 "name_delete <name>\nDelete a name if you own it. Others may do name_new after this command."
                 + HelpRequiringPassphrase());
 
-    if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
-
     CNameVal name = nameValFromValue(params[0]);
 
     NameTxReturn ret = name_delete(name);
@@ -1328,6 +1394,13 @@ NameTxReturn name_delete(const CNameVal& name)
     NameTxReturn ret;
     ret.err_code = RPC_INTERNAL_ERROR; //default value
     ret.ok = false;
+
+    if (IsInitialBlockDownload())
+    {
+        ret.err_code = RPC_CLIENT_IN_INITIAL_DOWNLOAD;
+        ret.err_msg = "Emercoin is downloading blocks...";
+        return ret;
+    }
 
     if (IsWalletLocked(ret))
         return ret;
@@ -1837,63 +1910,20 @@ bool CNamecoinHooks::getNameValue(const string& sName, string& sValue)
     return true;
 }
 
-bool GetPendingNameValue(const CNameVal& name, CNameVal& value)
+bool GetNameValue(const CNameVal& name, CNameVal& value)
 {
-    if (!mapNamePending.count(name))
+    CNameDB dbName("r");
+    CNameRecord nameRec;
+
+    if (!NameActive(name))
         return false;
-    if (mapNamePending[name].empty())
+    if (!dbName.ReadName(name, nameRec))
+        return false;
+    if (nameRec.vtxPos.empty())
         return false;
 
-    // if there is a set of pending op on a single name - select last one, by nTime
-    CTransaction tx;
-    uint32_t nTime = 0;
-    bool found = false;
-    BOOST_FOREACH(uint256 hash, mapNamePending[name])
-    {
-        if (!mempool.exists(hash))
-            continue;
-        if (mempool.mapTx[hash].GetTx().nTime > nTime)
-        {
-            tx = mempool.mapTx[hash].GetTx();
-            nTime = tx.nTime;
-            found = true;
-        }
-    }
-    if (!found)
-        return false;
-
-    NameTxInfo nti;
-    if (!DecodeNameTx(tx, nti, false, true))
-        return false;
-
-    value = nti.value;
+    value = nameRec.vtxPos.back().value;
     return true;
-}
-
-// if pending is true it will grab value from pending names. If there are no pending names it will grab value from nameindex.dat
-bool GetNameValue(const CNameVal& name, CNameVal& value, bool checkPending)
-{
-    bool found = false;
-    if (checkPending)
-        found = GetPendingNameValue(name, value);
-
-    if (found)
-        return true;
-    else
-    {
-        CNameDB dbName("r");
-        CNameRecord nameRec;
-
-        if (!NameActive(name))
-            return false;
-        if (!dbName.ReadName(name, nameRec))
-            return false;
-        if (nameRec.vtxPos.empty())
-            return false;
-
-        value = nameRec.vtxPos.back().value;
-        return true;
-    }
 }
 
 bool CNamecoinHooks::DumpToTextFile()

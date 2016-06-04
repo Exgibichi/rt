@@ -454,7 +454,7 @@ void ManageNamesPage::onSaveValueAsBinaryAction()
     }
 
     CNameVal value;
-    GetNameValue(name, value, true);
+    GetNameValue(name, value);
 
 
 // select file and save value

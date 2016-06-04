@@ -134,7 +134,6 @@ extern CAmount AmountFromValue(const json_spirit::Value& value);
 extern json_spirit::Value ValueFromAmount(const CAmount& amount);
 extern double GetDifficulty(const CBlockIndex* blockindex = NULL);
 extern std::string HelpRequiringPassphrase();
-extern std::string getNameHistoryHelp(const std::string& indent, const std::string& trailing);
 extern std::string HelpExampleCli(std::string methodname, std::string args);
 extern std::string HelpExampleRpc(std::string methodname, std::string args);
 
@@ -237,6 +236,7 @@ extern json_spirit::Value name_scan(const json_spirit::Array& params, bool fHelp
 extern json_spirit::Value name_filter(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value name_show(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value name_history(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value name_mempool(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value name_debug(const json_spirit::Array& params, bool fHelp);
 
 extern json_spirit::Value reservebalance(const json_spirit::Array& params, bool fHelp); //ppcoin
