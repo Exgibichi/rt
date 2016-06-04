@@ -238,19 +238,19 @@ void ManageNamesPage::on_submitNameButton_clicked()
         return;
 
     QString name = ui->registerName->text();
-    vector<unsigned char> vchValue;  // byte-by-byte value, as is
+    CNameVal value;  // byte-by-byte value, as is
     QString displayValue;            // for displaying value as unicode string
 
     if (ui->registerValue->isEnabled())
     {
         displayValue = ui->registerValue->toPlainText();
         string strValue = displayValue.toStdString();
-        vchValue.assign(strValue.begin(), strValue.end());
+        value.assign(strValue.begin(), strValue.end());
     }
     else
     {
-        vchValue = importedAsBinaryFile;
-        displayValue = QString::fromStdString(stringFromVch(vchValue));
+        value = importedAsBinaryFile;
+        displayValue = QString::fromStdString(stringFromNameVal(value));
     }
 
     int days = ui->registerDays->text().toInt();
@@ -265,7 +265,7 @@ void ManageNamesPage::on_submitNameButton_clicked()
         return;
     }
 
-    if (vchValue.empty() && (txType == "NAME_NEW" || txType == "NAME_UPDATE"))
+    if (value.empty() && (txType == "NAME_NEW" || txType == "NAME_UPDATE"))
     {
         QMessageBox::critical(this, tr("Value is empty"), tr("Enter value please"));
         return;
@@ -287,12 +287,12 @@ void ManageNamesPage::on_submitNameButton_clicked()
     int64_t txFee = MIN_TX_FEE;
     {
         string strName = name.toStdString();
-        vector<unsigned char> vchName(strName.begin(), strName.end());
+        CNameVal name(strName.begin(), strName.end());
 
         if (txType == "NAME_NEW")
-            txFee = GetNameOpFee(chainActive.Tip(), days, OP_NAME_NEW, vchName, vchValue);
+            txFee = GetNameOpFee(chainActive.Tip(), days, OP_NAME_NEW, name, value);
         else if (txType == "NAME_UPDATE")
-            txFee = GetNameOpFee(chainActive.Tip(), days, OP_NAME_UPDATE, vchName, vchValue);
+            txFee = GetNameOpFee(chainActive.Tip(), days, OP_NAME_UPDATE, name, value);
     }
 
     if (QMessageBox::Yes != QMessageBox::question(this, tr("Confirm name registration"),
@@ -318,13 +318,13 @@ void ManageNamesPage::on_submitNameButton_clicked()
         {
             nHeight = NameTableEntry::NAME_NEW;
             status = CT_NEW;
-            res = walletModel->nameNew(name, vchValue, days);
+            res = walletModel->nameNew(name, value, days);
         }
         else if (txType == "NAME_UPDATE")
         {
             nHeight = NameTableEntry::NAME_UPDATE;
             status = CT_UPDATED;
-            res = walletModel->nameUpdate(name, vchValue, days, newAddress);
+            res = walletModel->nameUpdate(name, value, days, newAddress);
         }
         else if (txType == "NAME_DELETE")
         {
@@ -446,15 +446,15 @@ void ManageNamesPage::onSaveValueAsBinaryAction()
     if (selection.isEmpty())
         return;
 
-    vector<unsigned char> vchName;
+    CNameVal name;
     {
         QString tmpName1 = selection.at(0).data(Qt::EditRole).toString();
         string tmpName2 = tmpName1.toStdString();
-        vchName.assign(tmpName2.begin(), tmpName2.end());
+        name.assign(tmpName2.begin(), tmpName2.end());
     }
 
-    vector<unsigned char> vchValue;
-    GetNameValue(vchName, vchValue, true);
+    CNameVal value;
+    GetNameValue(name, value, true);
 
 
 // select file and save value
@@ -465,7 +465,7 @@ void ManageNamesPage::onSaveValueAsBinaryAction()
         return;
 
     QDataStream in(&file);
-    BOOST_FOREACH(const unsigned char& uch, vchValue)
+    BOOST_FOREACH(const unsigned char& uch, value)
         in << uch;
     file.close();
 }
@@ -574,7 +574,7 @@ void ManageNamesPage::on_importValueButton_clicked()
     importedAsBinaryFile.reserve(blob.size());
     for (int i = 0; i < blob.size(); ++i)
         importedAsBinaryFile.push_back(blob.at(i));
-    importedAsTextFile = QString::fromStdString(stringFromVch(importedAsBinaryFile));
+    importedAsTextFile = QString::fromStdString(stringFromNameVal(importedAsBinaryFile));
 
     ui->registerValue->setDisabled(true);
     ui->registerValue->setPlainText(tr(
@@ -590,8 +590,8 @@ void ManageNamesPage::on_registerValue_textChanged()
     if (ui->registerValue->isEnabled())
     {
         string strValue = ui->registerValue->toPlainText().toStdString();
-        vector<unsigned char> vchValue(strValue.begin(), strValue.end());
-        byteSize = vchValue.size();
+        CNameVal value(strValue.begin(), strValue.end());
+        byteSize = value.size();
     }
     else
         byteSize = importedAsBinaryFile.size();

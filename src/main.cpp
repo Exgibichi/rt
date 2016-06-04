@@ -1326,7 +1326,7 @@ CAmount GetProofOfWorkReward(unsigned int nBits)
     CAmount nSubsidy = bnUpperBound.getuint64();
     nSubsidy = (nSubsidy / CENT) * CENT;
     if (fDebug && GetBoolArg("-printcreation", false))
-        LogPrintf("GetProofOfWorkReward() : create=%s nBits=0x%08x nSubsidy=%lld\n", FormatMoney(nSubsidy).c_str(), nBits, nSubsidy);
+        LogPrintf("GetProofOfWorkReward() : create=%s nBits=0x%08x nSubsidy=%lld\n", FormatMoney(nSubsidy), nBits, nSubsidy);
 
     return min(nSubsidy, MAX_MINT_PROOF_OF_WORK);
 }
@@ -1337,7 +1337,7 @@ CAmount GetProofOfStakeReward(int64_t nCoinAge)
     static int64_t nRewardCoinYear = 6 * CENT;  // creation amount per coin-year
     int64_t nSubsidy = nCoinAge * 33 / (365 * 33 + 8) * nRewardCoinYear;
     if (fDebug && GetBoolArg("-printcreation", false))
-        LogPrintf("GetProofOfStakeReward(): create=%s nCoinAge=%lld\n", FormatMoney(nSubsidy).c_str(), nCoinAge);
+        LogPrintf("GetProofOfStakeReward(): create=%s nCoinAge=%lld\n", FormatMoney(nSubsidy), nCoinAge);
     return nSubsidy;
 }
 

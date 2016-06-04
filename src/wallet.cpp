@@ -1469,7 +1469,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
     while(min_over_sum) {
       uint16_t utxo_no = min_over_utxo - 1;
       if (fDebug && GetBoolArg("-printselectcoin", false)) 
-        printf("SelectCoins() DP Added #%u: Val=%s\n", utxo_no, FormatMoney(vValue[utxo_no].first).c_str());
+        LogPrintf("SelectCoins() DP Added #%u: Val=%s\n", utxo_no, FormatMoney(vValue[utxo_no].first));
       setCoinsRet.insert(vValue[utxo_no].second);
       nValueRet += vValue[utxo_no].first;
       min_over_sum -= vValue[utxo_no].first / MIN_TXOUT_AMOUNT;
@@ -1481,10 +1481,10 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
     if(nValueRet >= nTargetValue) {
       //// debug print
       if (fDebug && GetBoolArg("-printselectcoin", false)) 
-        printf("SelectCoins() DP subset: Target=%s Found=%s Payback=%s Qty=%u\n", 
- 	        FormatMoney(nTargetValue).c_str(), 
- 	        FormatMoney(nValueRet).c_str(), 
-	        FormatMoney(nValueRet - nTargetValue).c_str(), 
+        LogPrintf("SelectCoins() DP subset: Target=%s Found=%s Payback=%s Qty=%u\n",
+            FormatMoney(nTargetValue),
+            FormatMoney(nValueRet),
+            FormatMoney(nValueRet - nTargetValue),
 	        (unsigned)setCoinsRet.size()
 	        );
       return true; // sum found by DP
