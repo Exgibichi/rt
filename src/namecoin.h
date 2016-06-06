@@ -110,7 +110,7 @@ int IndexOfNameOutput(const CTransaction& tx);
 bool GetNameCurrentAddress(const CNameVal& name, CBitcoinAddress& address, std::string& error);
 std::string stringFromNameVal(const CNameVal& nameVal);
 CNameVal nameValFromString(const std::string& str);
-std::string nameFromOp(int op);
+std::string stringFromOp(int op);
 
 CAmount GetNameOpFee(const CBlockIndex* pindexBlock, const int nRentalDays, int op, const CNameVal& name, const CNameVal& value);
 
@@ -150,9 +150,7 @@ struct NameTxReturn
      std::string address;
      uint256 hex;   // Transaction hash in hex
 };
-NameTxReturn name_new(const CNameVal& name, const CNameVal& value, const int nRentalDays);
-NameTxReturn name_update(const CNameVal& name, const CNameVal& value, const int nRentalDays, std::string strAddress = "");
-NameTxReturn name_delete(const CNameVal& name);
+NameTxReturn name_operation(const int op, const CNameVal& name, const CNameVal& value, const int nRentalDays, const string strAddress);
 
 
 struct nameTempProxy

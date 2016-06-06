@@ -237,7 +237,7 @@ void ManageNamesPage::on_submitNameButton_clicked()
     if (!walletModel)
         return;
 
-    QString name = ui->registerName->text();
+    QString qsName = ui->registerName->text();
     CNameVal value;  // byte-by-byte value, as is
     QString displayValue;            // for displaying value as unicode string
 
@@ -259,7 +259,7 @@ void ManageNamesPage::on_submitNameButton_clicked()
     if (txType == "NAME_UPDATE")
         newAddress = ui->registerAddress->text();
 
-    if (name == "")
+    if (qsName == "")
     {
         QMessageBox::critical(this, tr("Name is empty"), tr("Enter name please"));
         return;
@@ -273,7 +273,7 @@ void ManageNamesPage::on_submitNameButton_clicked()
 
     // TODO: name needs more exhaustive syntax checking, Unicode characters etc.
     // TODO: maybe it should be done while the user is typing (e.g. show/hide a red notice below the input box)
-    if (name != name.simplified() || name.contains(" "))
+    if (qsName != qsName.simplified() || qsName.contains(" "))
     {
         if (QMessageBox::Yes != QMessageBox::warning(this, tr("Name registration warning"),
               tr("The name you entered contains whitespace characters. Are you sure you want to use this name?"),
@@ -285,10 +285,9 @@ void ManageNamesPage::on_submitNameButton_clicked()
     }
 
     int64_t txFee = MIN_TX_FEE;
+    string strName = qsName.toStdString();
+    CNameVal name(strName.begin(), strName.end());
     {
-        string strName = name.toStdString();
-        CNameVal name(strName.begin(), strName.end());
-
         if (txType == "NAME_NEW")
             txFee = GetNameOpFee(chainActive.Tip(), days, OP_NAME_NEW, name, value);
         else if (txType == "NAME_UPDATE")
@@ -318,19 +317,19 @@ void ManageNamesPage::on_submitNameButton_clicked()
         {
             nHeight = NameTableEntry::NAME_NEW;
             status = CT_NEW;
-            res = walletModel->nameNew(name, value, days);
+            res = name_operation(OP_NAME_NEW, name, value, days, "");
         }
         else if (txType == "NAME_UPDATE")
         {
             nHeight = NameTableEntry::NAME_UPDATE;
             status = CT_UPDATED;
-            res = walletModel->nameUpdate(name, value, days, newAddress);
+            res = name_operation(OP_NAME_UPDATE, name, value, days, newAddress.toStdString());
         }
         else if (txType == "NAME_DELETE")
         {
             nHeight = NameTableEntry::NAME_DELETE;
             status = CT_UPDATED; //we still want to display this name until it is deleted
-            res = walletModel->nameDelete(name);
+            res = name_operation(OP_NAME_DELETE, name, CNameVal(), 0, "");
         }
 
         importedAsBinaryFile.clear();
@@ -346,7 +345,7 @@ void ManageNamesPage::on_submitNameButton_clicked()
             int newRowIndex;
             // FIXME: CT_NEW may have been sent from nameNew (via transaction).
             // Currently updateEntry is modified so it does not complain
-            model->updateEntry(name, displayValue, QString::fromStdString(res.address), nHeight, status, &newRowIndex);
+            model->updateEntry(qsName, displayValue, QString::fromStdString(res.address), nHeight, status, &newRowIndex);
             ui->tableView->selectRow(newRowIndex);
             ui->tableView->setFocus();
             return;
@@ -362,9 +361,6 @@ void ManageNamesPage::on_submitNameButton_clicked()
     {
         err_msg = e.what();
     }
-
-    if (err_msg == "ABORTED")
-        return;
 
     QMessageBox::warning(this, tr("Name registration failed"), err_msg);
 }

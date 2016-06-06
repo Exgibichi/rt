@@ -825,7 +825,7 @@ Value name_history (const Array& params, bool fHelp)
         obj.push_back(Pair("address",          nti.strAddress));
       if (nti.fIsMine)
         obj.push_back(Pair("address_is_mine",  "true"));
-        obj.push_back(Pair("operation",        nameFromOp(nti.op)));
+        obj.push_back(Pair("operation",        stringFromOp(nti.op)));
       if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
         obj.push_back(Pair("days_added",       nti.nRentalDays));
       if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
@@ -882,7 +882,7 @@ Value name_mempool (const Array& params, bool fHelp)
             obj.push_back(Pair("address",          nti.strAddress));
           if (nti.fIsMine)
             obj.push_back(Pair("address_is_mine",  "true"));
-            obj.push_back(Pair("operation",        nameFromOp(nti.op)));
+            obj.push_back(Pair("operation",        stringFromOp(nti.op)));
           if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
             obj.push_back(Pair("days_added",       nti.nRentalDays));
           if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
@@ -1086,14 +1086,11 @@ bool createNameScript(CScript& nameScript, const CNameVal& name, const CNameVal&
         return true;
     }
 
-
+    NameTxInfo nti(name, value, nRentalDays, op, -1, err_msg);
+    if (!checkNameValues(nti))
     {
-        NameTxInfo nti(name, value, nRentalDays, op, -1, err_msg);
-        if (!checkNameValues(nti))
-        {
-            err_msg = nti.err_msg;
-            return false;
-        }
+        err_msg = nti.err_msg;
+        return false;
     }
 
     vector<unsigned char> vchRentalDays = CScriptNum(nRentalDays).getvch();
@@ -1139,19 +1136,6 @@ bool IsWalletLocked(NameTxReturn& ret)
     return false;
 }
 
-bool pendingNameCheck(const CNameVal& name, string& error)
-{
-    if (mapNamePending.count(name) && mapNamePending[name].size())
-    {
-        stringstream ss;
-        ss << "there are " << mapNamePending[name].size() <<
-              " pending operations on that name, including " << mapNamePending[name].begin()->GetHex();
-        error = ss.str();
-        return false;
-    }
-    return true;
-}
-
 Value name_new(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() != 3)
@@ -1165,73 +1149,10 @@ Value name_new(const Array& params, bool fHelp)
     CNameVal value = nameValFromValue(params[1]);
     int nRentalDays = params[2].get_int();
 
-    NameTxReturn ret = name_new(name, value, nRentalDays);
+    NameTxReturn ret = name_operation(OP_NAME_NEW, name, value, nRentalDays, "");
     if (!ret.ok)
         throw JSONRPCError(ret.err_code, ret.err_msg);
     return ret.hex.GetHex();
-}
-
-NameTxReturn name_new(const CNameVal& name, const CNameVal& value, const int nRentalDays)
-{
-    NameTxReturn ret;
-    ret.err_code = RPC_INTERNAL_ERROR; //default value
-    ret.ok = false;
-
-    if (IsInitialBlockDownload())
-    {
-        ret.err_code = RPC_CLIENT_IN_INITIAL_DOWNLOAD;
-        ret.err_msg = "Emercoin is downloading blocks...";
-        return ret;
-    }
-
-    if (IsWalletLocked(ret))
-        return ret;
-
-    CMutableTransaction tmpTx;
-    tmpTx.nVersion = NAMECOIN_TX_VERSION;
-    CWalletTx wtx(pwalletMain, tmpTx);
-    stringstream ss;
-    CScript scriptPubKey;
-
-    {
-        LOCK(cs_main);
-
-        if (!pendingNameCheck(name, ret.err_msg))
-            return ret;
-
-        if (NameActive(name))
-        {
-            ret.err_msg = "name_new on an unexpired name";
-            return ret;
-        }
-
-        CPubKey vchPubKey;
-        if (!pwalletMain->GetKeyFromPool(vchPubKey))
-        {
-            ret.err_msg = "failed to get key from pool";
-            return ret;
-        }
-
-        CScript nameScript;
-        if (!createNameScript(nameScript, name, value, nRentalDays, OP_NAME_NEW, ret.err_msg))
-            return ret;
-
-        scriptPubKey = GetScriptForDestination(vchPubKey.GetID());
-        nameScript += scriptPubKey;
-
-        CAmount nameFee = GetNameOpFee(chainActive.Tip(), nRentalDays, OP_NAME_NEW, name, value);
-        SendName(nameScript, MIN_TXOUT_AMOUNT, wtx, CWalletTx(), nameFee);
-    }
-
-    //success! collect info and return
-    CTxDestination address;
-    if (ExtractDestination(scriptPubKey, address))
-    {
-        ret.address = CBitcoinAddress(address).ToString();
-    }
-    ret.hex = wtx.GetHash();
-    ret.ok = true;
-    return ret;
 }
 
 Value name_update(const Array& params, bool fHelp)
@@ -1248,17 +1169,41 @@ Value name_update(const Array& params, bool fHelp)
     if (params.size() == 4)
         strAddress = params[3].get_str();
 
-    NameTxReturn ret = name_update(name, value, nRentalDays, strAddress);
+    NameTxReturn ret = name_operation(OP_NAME_UPDATE, name, value, nRentalDays, strAddress);
     if (!ret.ok)
         throw JSONRPCError(ret.err_code, ret.err_msg);
     return ret.hex.GetHex();
 }
 
-NameTxReturn name_update(const CNameVal& name, const CNameVal& value, const int nRentalDays, string strAddress)
+Value name_delete(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+                "name_delete <name>\nDelete a name if you own it. Others may do name_new after this command."
+                + HelpRequiringPassphrase());
+
+    CNameVal name = nameValFromValue(params[0]);
+
+    NameTxReturn ret = name_operation(OP_NAME_DELETE, name, CNameVal(), 0, "");
+    if (!ret.ok)
+        throw JSONRPCError(ret.err_code, ret.err_msg);
+    return ret.hex.GetHex();
+
+}
+
+NameTxReturn name_operation(const int op, const CNameVal& name, const CNameVal& value, const int nRentalDays, const string strAddress)
 {
     NameTxReturn ret;
-    ret.err_code = RPC_INTERNAL_ERROR; //default value
+    ret.err_code = RPC_INTERNAL_ERROR; // default value in case of abnormal exit
+    ret.err_msg = "unkown error";
     ret.ok = false;
+
+    // currently supports only new, update and delete operations.
+    if (op != OP_NAME_NEW && op != OP_NAME_UPDATE && op != OP_NAME_DELETE)
+    {
+        ret.err_msg = "illegal name op";
+        return ret;
+    }
 
     if (IsInitialBlockDownload())
     {
@@ -1277,57 +1222,74 @@ NameTxReturn name_update(const CNameVal& name, const CNameVal& value, const int 
     CScript scriptPubKey;
 
     {
-    //4 checks - pending operations?, name exist?, name is yours?, name expired?
         LOCK2(cs_main, pwalletMain->cs_wallet);
 
-        if (!pendingNameCheck(name, ret.err_msg))
-            return ret;
-
-        CNameDB dbName("r");
-        CTransaction tx; //we need to select last input
-        if (!GetLastTxOfName(dbName, name, tx))
+    // wait until other name operation on this name are completed
+        if (mapNamePending.count(name) && mapNamePending[name].size())
         {
-            ret.err_msg = "could not find a coin with this name";
-            return ret;
-        }
-
-        uint256 wtxInHash = tx.GetHash();
-        if (!pwalletMain->mapWallet.count(wtxInHash))
-        {
-            ss << "this coin is not in your wallet: " << wtxInHash.GetHex();
+            ss << "there are " << mapNamePending[name].size() <<
+                  " pending operations on that name, including " << mapNamePending[name].begin()->GetHex();
             ret.err_msg = ss.str();
             return ret;
         }
+
+    // check if op can be aplied to name remaining time
+        if (NameActive(name))
+        {
+            if (op == OP_NAME_NEW)
+            {
+                ret.err_msg = "name_new on an unexpired name";
+                return ret;
+            }
+        }
         else
         {
-            CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
+            if (op == OP_NAME_UPDATE || op == OP_NAME_DELETE)
+            {
+                ret.err_msg = stringFromOp(op) + " on an unexpired name";
+                return ret;
+            }
+        }
+
+    // grab last tx in name chain and check if it can be spent by us
+        CWalletTx wtxIn = CWalletTx();
+        if (op == OP_NAME_UPDATE || op == OP_NAME_DELETE)
+        {
+            CNameDB dbName("r");
+            CTransaction prevTx;
+            if (!GetLastTxOfName(dbName, name, prevTx))
+            {
+                ret.err_msg = "could not find tx with this name";
+                return ret;
+            }
+
+            uint256 wtxInHash = prevTx.GetHash();
+            if (!pwalletMain->mapWallet.count(wtxInHash))
+            {
+                ret.err_msg = "this name tx is not in your wallet: " + wtxInHash.GetHex();
+                return ret;
+            }
+
+            wtxIn = pwalletMain->mapWallet[wtxInHash];
             int nTxOut = IndexOfNameOutput(wtxIn);
 
             if (::IsMine(*pwalletMain, wtxIn.vout[nTxOut].scriptPubKey) != ISMINE_SPENDABLE)
             {
-                ss << "this name is not yours: " << wtxInHash.GetHex();
-                ret.err_msg = ss.str();
-                return ret;
-            }
-
-            // check if prev output is spent
-            if (pwalletMain->IsSpent(wtxInHash, nTxOut))
-            {
-                ss << "Last tx of this name was spent by non-namecoin tx. This means that this name cannot be updated anymore - you will have to wait until it expires:\n"
-                   << wtxInHash.GetHex();
-                ret.err_msg = ss.str();
-                return ret;
-            }
-
-            if (!NameActive(dbName, name))
-            {
-                ret.err_msg = "name_update on an expired name";
+                ret.err_msg = "this name tx is not yours or is not spendable: " + wtxInHash.GetHex();
                 return ret;
             }
         }
 
-    //form script and send
-        if (strAddress != "")
+    // create namescript
+        CScript nameScript;
+        if (!createNameScript(nameScript, name, value, nRentalDays, op, ret.err_msg))
+        {
+            ret.err_msg = "failed to create name script";
+            return ret;
+        }
+
+    // add destination to namescript
+        if (op == OP_NAME_UPDATE && strAddress != "")
         {
             CBitcoinAddress address(strAddress);
             if (!address.IsValid())
@@ -1348,145 +1310,23 @@ NameTxReturn name_update(const CNameVal& name, const CNameVal& value, const int 
             }
             scriptPubKey = GetScriptForDestination(vchPubKey.GetID());
         }
-
-        CScript nameScript;
-        if (!createNameScript(nameScript, name, value, nRentalDays, OP_NAME_UPDATE, ret.err_msg))
-            return ret;
-
         nameScript += scriptPubKey;
 
-        CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
-        CAmount nameFee = GetNameOpFee(chainActive.Tip(), nRentalDays, OP_NAME_UPDATE, name, value);
+    // verify full namescript
+        NameTxInfo nti;
+        if (!DecodeNameScript(nameScript, nti, true, true))
+        {
+            ret.err_msg = "failed to verify name script";
+            return ret;
+        }
+
+    // set fee and send!
+        CAmount nameFee = GetNameOpFee(chainActive.Tip(), nRentalDays, op, name, value);
         SendName(nameScript, MIN_TXOUT_AMOUNT, wtx, wtxIn, nameFee);
     }
 
     //success! collect info and return
     CTxDestination address;
-    ret.address = "";
-    if (ExtractDestination(scriptPubKey, address))
-    {
-        ret.address = CBitcoinAddress(address).ToString();
-    }
-    ret.hex = wtx.GetHash();
-    ret.ok = true;
-    return ret;
-}
-
-Value name_delete(const Array& params, bool fHelp)
-{
-    if (fHelp || params.size() != 1)
-        throw runtime_error(
-                "name_delete <name>\nDelete a name if you own it. Others may do name_new after this command."
-                + HelpRequiringPassphrase());
-
-    CNameVal name = nameValFromValue(params[0]);
-
-    NameTxReturn ret = name_delete(name);
-    if (!ret.ok)
-        throw JSONRPCError(ret.err_code, ret.err_msg);
-    return ret.hex.GetHex();
-
-}
-
-//TODO: finish name_delete
-NameTxReturn name_delete(const CNameVal& name)
-{
-    NameTxReturn ret;
-    ret.err_code = RPC_INTERNAL_ERROR; //default value
-    ret.ok = false;
-
-    if (IsInitialBlockDownload())
-    {
-        ret.err_code = RPC_CLIENT_IN_INITIAL_DOWNLOAD;
-        ret.err_msg = "Emercoin is downloading blocks...";
-        return ret;
-    }
-
-    if (IsWalletLocked(ret))
-        return ret;
-
-    CMutableTransaction tmpTx;
-    tmpTx.nVersion = NAMECOIN_TX_VERSION;
-    CWalletTx wtx(pwalletMain, tmpTx);
-    stringstream ss;
-    CScript scriptPubKey;
-
-    {
-    //4 checks - pending operations?, name exist?, name is yours?, name expired?
-        LOCK2(cs_main, pwalletMain->cs_wallet);
-
-        if (!pendingNameCheck(name, ret.err_msg))
-            return ret;
-
-        CNameDB dbName("r");
-        CTransaction tx; //we need to select last input
-        if (!GetLastTxOfName(dbName, name, tx))
-        {
-            ret.err_msg = "could not find a coin with this name";
-            return ret;
-        }
-
-        uint256 wtxInHash = tx.GetHash();
-        if (!pwalletMain->mapWallet.count(wtxInHash))
-        {
-            ss << "this coin is not in your wallet: " << wtxInHash.GetHex();
-            ret.err_msg = ss.str();
-            return ret;
-        }
-        else
-        {
-            CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
-            int nTxOut = IndexOfNameOutput(wtxIn);
-
-            if (::IsMine(*pwalletMain, wtxIn.vout[nTxOut].scriptPubKey) != ISMINE_SPENDABLE)
-            {
-                ss << "this name is not yours: " << wtxInHash.GetHex();
-                ret.err_msg = ss.str();
-                return ret;
-            }
-
-            // check if prev output is spent
-            if (pwalletMain->IsSpent(wtxInHash, nTxOut))
-            {
-                ss << "Last tx of this name was spent by non-namecoin tx. This means that this name cannot be updated anymore - you will have to wait until it expires:\n"
-                   << wtxInHash.GetHex();
-                ret.err_msg = ss.str();
-                return ret;
-            }
-
-            if (!NameActive(dbName, name))
-            {
-                ret.err_msg = "name_delete on an expired name";
-                return ret;
-            }
-        }
-
-    //form script and send
-        CPubKey vchPubKey;
-        if(!pwalletMain->GetKeyFromPool(vchPubKey))
-        {
-            ret.err_msg = "failed to get key from pool";
-            return ret;
-        }
-
-        CScript nameScript;
-        {
-            CNameVal value;
-            int nDays = 0;
-            createNameScript(nameScript, name, value, nDays, OP_NAME_DELETE, ret.err_msg); //this should never fail for name_delete
-        }
-
-        scriptPubKey = GetScriptForDestination(vchPubKey.GetID());
-        nameScript += scriptPubKey;
-
-        CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
-        CAmount nameFee = GetNameOpFee(chainActive.Tip(), 0, OP_NAME_DELETE, name, CNameVal());
-        SendName(nameScript, MIN_TXOUT_AMOUNT, wtx, wtxIn, nameFee);
-    }
-
-    //success! collect info and return
-    CTxDestination address;
-    ret.address = "";
     if (ExtractDestination(scriptPubKey, address))
     {
         ret.address = CBitcoinAddress(address).ToString();
@@ -1606,7 +1446,7 @@ void CNamecoinHooks::AddToPendingNames(const CTransaction& tx)
     }
 
     mapNamePending[nti.name].insert(tx.GetHash());
-    LogPrintf("AddToPendingNames(): added %s %s from tx %s", nameFromOp(nti.op), stringFromNameVal(nti.name), tx.ToString());
+    LogPrintf("AddToPendingNames(): added %s %s from tx %s", stringFromOp(nti.op), stringFromNameVal(nti.name), tx.ToString());
 }
 
 // Checks name tx and save name data to vName if valid
@@ -1785,7 +1625,7 @@ bool CNamecoinHooks::DisconnectInputs(const CTransaction& tx)
     return true;
 }
 
-string nameFromOp(int op)
+string stringFromOp(int op)
 {
     switch (op)
     {
@@ -1806,7 +1646,7 @@ bool CNamecoinHooks::ExtractAddress(const CScript& script, string& address)
     if (!DecodeNameScript(script, nti))
         return false;
 
-    string strOp = nameFromOp(nti.op);
+    string strOp = stringFromOp(nti.op);
     address = strOp + ": " + stringFromNameVal(nti.name);
     return true;
 }
@@ -1859,7 +1699,7 @@ bool CNamecoinHooks::ConnectBlock(CBlockIndex* pindex, const vector<nameTempProx
             return error("ConnectBlockHook() : failed to write to name DB");
         if  (i.op == OP_NAME_NEW)
             sNameNew.insert(i.name);
-        LogPrintf("ConnectBlockHook(): writing %s %s in block %d to nameindexV2.dat\n", nameFromOp(i.op), stringFromNameVal(i.name), pindex->nHeight);
+        LogPrintf("ConnectBlockHook(): writing %s %s in block %d to nameindexV2.dat\n", stringFromOp(i.op), stringFromNameVal(i.name), pindex->nHeight);
 
         {
             // remove from pending names list
