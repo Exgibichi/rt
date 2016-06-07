@@ -961,7 +961,7 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransa
                          REJECT_INVALID, "coinstake");
 
     // Rather not work on nonstandard transactions (unless -testnet/-regtest)
-    bool isNameTx = hooks->IsNameTx(tx.nVersion);
+    bool isNameTx = tx.nVersion == NAMECOIN_TX_VERSION;
     string reason;
     if (Params().RequireStandard() && !IsStandardTx(tx, reason) && !isNameTx)
         return state.DoS(0,
@@ -1506,7 +1506,7 @@ void UpdateCoins(const CTransaction& tx, CValidationState &state, CCoinsViewCach
 
 bool CScriptCheck::operator()() {
     const CScript &scriptSig = ptxTo->vin[nIn].scriptSig;
-    if (!VerifyScript(scriptSig, scriptPubKey, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, cacheStore), &error)) {
+    if (!VerifyScript(scriptSig, scriptPubKey, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, cacheStore), &error, ptxTo->nVersion == NAMECOIN_TX_VERSION)) {
         return ::error("CScriptCheck(): %s:%d VerifySignature failed: %s", ptxTo->GetHash().ToString(), nIn, ScriptErrorString(error));
     }
     return true;

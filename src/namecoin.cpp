@@ -33,7 +33,6 @@ public:
     virtual bool ExtractAddress(const CScript& script, string& address);
     virtual void AddToPendingNames(const CTransaction& tx);
     virtual bool RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut);
-    virtual bool IsNameTx(int nVersion);
     virtual bool IsNameScript(CScript scr);
     virtual bool getNameValue(const string& sName, string& sValue);
     virtual bool DumpToTextFile();
@@ -1719,11 +1718,6 @@ bool CNamecoinHooks::ConnectBlock(CBlockIndex* pindex, const vector<nameTempProx
     return true;
 }
 
-bool CNamecoinHooks::IsNameTx(int nVersion)
-{
-    return nVersion == NAMECOIN_TX_VERSION;
-}
-
 bool CNamecoinHooks::IsNameScript(CScript scr)
 {
     NameTxInfo nti;
@@ -1850,5 +1844,5 @@ bool SignNameSignature(const CKeyStore& keystore, const CTransaction& txFrom, CM
         return false;
 
     // Test solution
-    return VerifyScript(txin.scriptSig, txout.scriptPubKey, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker(&txTo, nIn));
+    return VerifyScript(txin.scriptSig, txout.scriptPubKey, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker(&txTo, nIn), NULL, txTo.nVersion == NAMECOIN_TX_VERSION);
 }

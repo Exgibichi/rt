@@ -1085,9 +1085,13 @@ bool TransactionSignatureChecker::CheckSig(const vector<unsigned char>& vchSigIn
     return true;
 }
 
-bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, unsigned int flags, const BaseSignatureChecker& checker, ScriptError* serror)
+bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, unsigned int flags, const BaseSignatureChecker& checker, ScriptError* serror, bool fNamecoin)
 {
     set_error(serror, SCRIPT_ERR_UNKNOWN_ERROR);
+
+    // emercoin: for backward compatability namecoin script should not be checked for minimaldata
+    if (fNamecoin)
+        flags &= ~SCRIPT_VERIFY_MINIMALDATA;
 
     if ((flags & SCRIPT_VERIFY_SIGPUSHONLY) != 0 && !scriptSig.IsPushOnly()) {
         return set_error(serror, SCRIPT_ERR_SIG_PUSHONLY);

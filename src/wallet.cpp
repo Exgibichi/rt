@@ -863,7 +863,7 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache) const
     for (unsigned int i = 0; i < vout.size(); i++)
     {
         // ignore namecoin TxOut
-        if (hooks->IsNameTx(nVersion) && hooks->IsNameScript(vout[i].scriptPubKey))
+        if (nVersion == NAMECOIN_TX_VERSION && hooks->IsNameScript(vout[i].scriptPubKey))
             continue;
 
         if (!pwallet->IsSpent(hashTx, i))
@@ -1282,7 +1282,7 @@ void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const
             for (unsigned int i = 0; i < pcoin->vout.size(); i++)
             {
                 // ignore namecoin TxOut
-                if (hooks->IsNameTx(pcoin->nVersion) && hooks->IsNameScript(pcoin->vout[i].scriptPubKey))
+                if (pcoin->nVersion == NAMECOIN_TX_VERSION && hooks->IsNameScript(pcoin->vout[i].scriptPubKey))
                     continue;
 
                 isminetype mine = IsMine(pcoin->vout[i]);
@@ -1383,7 +1383,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
         CAmount n = pcoin->vout[i].nValue;
 
         // ignore namecoin TxOut
-        if (hooks->IsNameTx(pcoin->nVersion) && hooks->IsNameScript(pcoin->vout[i].scriptPubKey))
+        if (pcoin->nVersion == NAMECOIN_TX_VERSION && hooks->IsNameScript(pcoin->vout[i].scriptPubKey))
             continue;
 
         pair<CAmount,pair<const CWalletTx*,unsigned int> > coin = make_pair(n,make_pair(pcoin, i));

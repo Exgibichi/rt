@@ -39,7 +39,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet *
     uint256 hash = wtx.GetHash();
     std::map<std::string, std::string> mapValue = wtx.mapValue;
 
-    if (hooks->IsNameTx(wtx.nVersion)) // emercoin: name transaction
+    if (wtx.nVersion == NAMECOIN_TX_VERSION) // emercoin: name transaction
     {
         std::string address = "failed to get address";
         for (unsigned int nOut = 0; nOut < wtx.vout.size(); nOut++)
