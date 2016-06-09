@@ -1,27 +1,24 @@
-#include <vector>
-using namespace std;
-
-#include "script/script.h"
-#include "wallet.h"
-extern CWallet* pwalletMain;
-extern std::map<uint256, CTransaction> mapTransactions;
-
 #include "namecoin.h"
+#include "script/script.h"
 #include "script/sign.h"
+#include "wallet.h"
 #include "rpcserver.h"
 
-#include <boost/xpressive/xpressive_dynamic.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/xpressive/xpressive_dynamic.hpp>
 #include <fstream>
 
+using namespace std;
 using namespace json_spirit;
 
 map<CNameVal, set<uint256> > mapNamePending; // for pending tx
 
 // forward decls
-extern std::string _(const char* psz);
+extern string _(const char* psz);
+extern map<uint256, CTransaction> mapTransactions;
+extern CWallet* pwalletMain;
 
 class CNamecoinHooks : public CHooks
 {
@@ -105,7 +102,7 @@ bool CalculateExpiresAt(CNameRecord& nameRec)
             return error("CalculateExpiresAt() : could not read tx from disk");
 
         NameTxInfo nti;
-        if (!DecodeNameTx(tx, nti, false))
+        if (!DecodeNameTx(tx, nti))
             return error("CalculateExpiresAt() : %s is not namecoin tx, this should never happen", tx.GetHash().GetHex());
 
         sum += nti.nRentalDays * 175; //days to blocks. 175 is average number of blocks per day
@@ -166,18 +163,6 @@ CAmount GetNameOpFee(const CBlockIndex* pindexBlock, const int nRentalDays, int 
     txMinFee = max(txMinFee, MIN_TX_FEE);
 
     return txMinFee;
-}
-
-bool RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut)
-{
-    NameTxInfo nti;
-    CScript::const_iterator pc = scriptIn.begin();
-
-    if (!DecodeNameScript(scriptIn, nti, pc))
-        return false;
-
-    scriptOut = CScript(pc, scriptIn.end());
-    return true;
 }
 
 // scans nameindex.dat and return names with their last CNameIndex
@@ -284,171 +269,6 @@ bool CNamecoinHooks::IsNameFeeEnough(const CTransaction& tx, const CAmount& txFe
     return ::IsNameFeeEnough(tx, nti, chainActive.Tip(), txFee);
 }
 
-bool checkNameValues(NameTxInfo& ret)
-{
-    ret.err_msg = "";
-    if (ret.name.size() > MAX_NAME_LENGTH)
-        ret.err_msg.append("name is too long.\n");
-
-    if (ret.value.size() > MAX_VALUE_LENGTH)
-        ret.err_msg.append("value is too long.\n");
-
-    if (ret.op == OP_NAME_NEW && ret.nRentalDays < 1)
-        ret.err_msg.append("rental days must be greater than 0.\n");
-
-    if (ret.op == OP_NAME_UPDATE && ret.nRentalDays < 0)
-        ret.err_msg.append("rental days must be greater or equal 0.\n");
-
-    if (ret.nRentalDays > MAX_RENTAL_DAYS)
-        ret.err_msg.append("rental days value is too large.\n");
-
-    if (ret.err_msg != "")
-        return false;
-    return true;
-}
-
-// read name script and extract: name, value and rentalDays
-// optionaly it can extract destination address and check if tx is mine (note: it does not check if address is valid)
-bool DecodeNameScript(const CScript& script, NameTxInfo& ret, bool checkValuesCorrectness  /* = true */, bool checkAddressAndIfIsMine  /* = false */)
-{
-    CScript::const_iterator pc = script.begin();
-    return DecodeNameScript(script, ret, pc, checkValuesCorrectness, checkAddressAndIfIsMine);
-}
-
-bool DecodeNameScript(const CScript& script, NameTxInfo& ret, CScript::const_iterator& pc, bool checkValuesCorrectness, bool checkAddressAndIfIsMine)
-{
-    // script structure:
-    // (name_new | name_update) << OP_DROP << name << days << OP_2DROP << val1 << val2 << .. << valn << OP_DROP2 << OP_DROP2 << ..<< (OP_DROP2 | OP_DROP) << paytoscripthash
-    // or
-    // name_delete << OP_DROP << name << OP_DROP << paytoscripthash
-
-    // NOTE: script structure is strict - it must not contain anything else in the midle of it to be a valid name script. It can, however, contain anything else after the correct structure have been read.
-
-    // read op
-    ret.err_msg = "failed to read op";
-    opcodetype opcode;
-    if (!script.GetOp(pc, opcode))
-        return false;
-    if (opcode < OP_1 || opcode > OP_16)
-        return false;
-    ret.op = opcode - OP_1 + 1;
-
-    if (ret.op != OP_NAME_NEW && ret.op != OP_NAME_UPDATE && ret.op != OP_NAME_DELETE)
-        return false;
-
-    ret.err_msg = "failed to read OP_DROP after op_type";
-    if (!script.GetOp(pc, opcode))
-        return false;
-    if (opcode != OP_DROP)
-        return false;
-
-    vector<unsigned char> vch;
-
-    // read name
-    ret.err_msg = "failed to read name";
-    if (!script.GetOp(pc, opcode, vch))
-        return false;
-    if ((opcode == OP_DROP || opcode == OP_2DROP) || !(opcode >= 0 && opcode <= OP_PUSHDATA4))
-        return false;
-    ret.name = vch;
-
-    // if name_delete - read OP_DROP after name and exit.
-    if (ret.op == OP_NAME_DELETE)
-    {
-        ret.err_msg = "failed to read OP2_DROP in name_delete";
-        if (!script.GetOp(pc, opcode))
-            return false;
-        if (opcode != OP_DROP)
-            return false;
-        ret.err_msg = "";
-
-        if (checkAddressAndIfIsMine)
-        {
-            //read address
-            CTxDestination address;
-            CScript scriptPubKey(pc, script.end());
-            if (!ExtractDestination(scriptPubKey, address))
-                ret.strAddress = "";
-            ret.strAddress = CBitcoinAddress(address).ToString();
-
-            // check if this is mine destination
-            ret.fIsMine = IsMine(*pwalletMain, address) == ISMINE_SPENDABLE;
-        }
-        return true;
-    }
-
-    // read rental days
-    ret.err_msg = "failed to read rental days";
-    if (!script.GetOp(pc, opcode, vch))
-        return false;
-    if ((opcode == OP_DROP || opcode == OP_2DROP) || !(opcode >= 0 && opcode <= OP_PUSHDATA4))
-        return false;
-    ret.nRentalDays = CScriptNum(vch, false).getint();
-
-    // read OP_2DROP after name and rentalDays
-    ret.err_msg = "failed to read delimeter d in: name << rental << d << value";
-    if (!script.GetOp(pc, opcode))
-        return false;
-    if (opcode != OP_2DROP)
-        return false;
-
-    // read value
-    ret.err_msg = "failed to read value";
-    int valueSize = 0;
-    for (;;)
-    {
-        if (!script.GetOp(pc, opcode, vch))
-            return false;
-        if (opcode == OP_DROP || opcode == OP_2DROP)
-            break;
-        if (!(opcode >= 0 && opcode <= OP_PUSHDATA4))
-            return false;
-        ret.value.insert(ret.value.end(), vch.begin(), vch.end());
-        valueSize++;
-    }
-    pc--;
-
-    // read next delimiter and move the pc after it
-    ret.err_msg = "failed to read correct number of DROP operations after value"; //sucess! we have read name script structure
-    int delimiterSize = 0;
-    while (opcode == OP_DROP || opcode == OP_2DROP)
-    {
-        if (!script.GetOp(pc, opcode))
-            break;
-        if (opcode == OP_2DROP)
-            delimiterSize += 2;
-        if (opcode == OP_DROP)
-            delimiterSize += 1;
-    }
-    pc--;
-
-    if (valueSize != delimiterSize)
-        return false;
-
-
-    ret.err_msg = "";     //sucess! we have read name script structure without errors!
-    if (checkValuesCorrectness)
-    {
-        if (!checkNameValues(ret))
-            return false;
-    }
-
-    if (checkAddressAndIfIsMine)
-    {
-        //read address
-        CTxDestination address;
-        CScript scriptPubKey(pc, script.end());
-        if (!ExtractDestination(scriptPubKey, address))
-            ret.strAddress = "";
-        ret.strAddress = CBitcoinAddress(address).ToString();
-
-        // check if this is mine destination
-        ret.fIsMine = IsMine(*pwalletMain, address) == ISMINE_SPENDABLE;
-    }
-
-    return true;
-}
-
 //returns first name operation. I.e. name_new from chain like name_new->name_update->name_update->...->name_update
 bool GetFirstTxOfName(CNameDB& dbName, const CNameVal& name, CTransaction& tx)
 {
@@ -528,7 +348,7 @@ bool GetNameCurrentAddress(const CNameVal& name, CBitcoinAddress& address, strin
 
     CTransaction tx;
     NameTxInfo nti;
-    if (!(GetLastTxOfName(dbName, name, tx) && DecodeNameTx(tx, nti, false, true)))
+    if (!(GetLastTxOfName(dbName, name, tx) && DecodeNameTx(tx, nti, true)))
     {
         error = "Failed to read/decode last name transaction";
         return false;
@@ -604,7 +424,7 @@ void GetNameList(const CNameVal& nameUniq, std::map<CNameVal, NameTxInfo> &mapNa
     BOOST_FOREACH(const PAIRTYPE(uint256, CWalletTx) &item, pwalletMain->mapWallet)
     {
         NameTxInfo ntiWalllet;
-        if (!DecodeNameTx(item.second, ntiWalllet, false, false))
+        if (!DecodeNameTx(item.second, ntiWalllet))
             continue;
 
         if (mapNames.count(ntiWalllet.name)) // already added info about this name
@@ -616,7 +436,7 @@ void GetNameList(const CNameVal& nameUniq, std::map<CNameVal, NameTxInfo> &mapNa
             continue;
 
         NameTxInfo nti;
-        if (!DecodeNameTx(tx, nti, false, true))
+        if (!DecodeNameTx(tx, nti, true))
             continue;
 
         if (nameUniq.size() > 0 && nameUniq != nti.name)
@@ -655,7 +475,7 @@ void GetNameList(const CNameVal& nameUniq, std::map<CNameVal, NameTxInfo> &mapNa
             continue;
 
         NameTxInfo nti;
-        if (!DecodeNameTx(tx, nti, false, true))
+        if (!DecodeNameTx(tx, nti, true))
             continue;
 
         if (nameUniq.size() > 0 && nameUniq != nti.name)
@@ -724,7 +544,7 @@ Value name_show(const Array& params, bool fHelp)
         if (!tx.ReadFromDisk(nameRec.vtxPos.back().txPos))
             throw JSONRPCError(RPC_WALLET_ERROR, "failed to read from from disk");
 
-        if (!DecodeNameTx(tx, nti, false, true))
+        if (!DecodeNameTx(tx, nti, true))
             throw JSONRPCError(RPC_WALLET_ERROR, "failed to decode name");
 
         oName.push_back(Pair("name", sName));
@@ -814,7 +634,7 @@ Value name_history (const Array& params, bool fHelp)
             throw JSONRPCError(RPC_DATABASE_ERROR, "could not read transaction from disk");
 
         NameTxInfo nti;
-        if (!DecodeNameTx(tx, nti, false, true))
+        if (!DecodeNameTx(tx, nti, true))
             throw JSONRPCError(RPC_DATABASE_ERROR, "failed to decode namecoin transaction");
 
         Object obj;
@@ -871,7 +691,7 @@ Value name_mempool (const Array& params, bool fHelp)
 
             CTransaction tx = mempool.mapTx[hash].GetTx();
             NameTxInfo nti;
-            if (!DecodeNameTx(tx, nti, false, true))
+            if (!DecodeNameTx(tx, nti, true))
                 throw JSONRPCError(RPC_DATABASE_ERROR, "failed to decode namecoin transaction");
 
             Object obj;
@@ -1311,9 +1131,9 @@ NameTxReturn name_operation(const int op, const CNameVal& name, const CNameVal& 
         }
         nameScript += scriptPubKey;
 
-    // verify full namescript
+    // verify namescript
         NameTxInfo nti;
-        if (!DecodeNameScript(nameScript, nti, true, true))
+        if (!DecodeNameScript(nameScript, nti))
         {
             ret.err_msg = "failed to verify name script";
             return ret;
@@ -1388,17 +1208,19 @@ bool createNameIndexFile()
 
 // read name tx and extract: name, value and rentalDays
 // optionaly it can extract destination address and check if tx is mine (note: it does not check if address is valid)
-bool DecodeNameTx(const CTransaction& tx, NameTxInfo& nti, bool checkValuesCorrectness /* = true */, bool checkAddressAndIfIsMine /* = false */)
+bool DecodeNameTx(const CTransaction& tx, NameTxInfo& nti, bool checkAddressAndIfIsMine /* = false */)
 {
     if (tx.nVersion != NAMECOIN_TX_VERSION)
         return false;
 
     bool found = false;
+    CScript::const_iterator pc;
     for (unsigned int i = 0; i < tx.vout.size(); i++)
     {
         const CTxOut& out = tx.vout[i];
         NameTxInfo ntiTmp;
-        if (DecodeNameScript(out.scriptPubKey, ntiTmp, checkValuesCorrectness, checkAddressAndIfIsMine))
+        pc = out.scriptPubKey.begin();
+        if (DecodeNameScript(out.scriptPubKey, ntiTmp, pc))
         {
             // If more than one name op, fail
             if (found)
@@ -1406,6 +1228,20 @@ bool DecodeNameTx(const CTransaction& tx, NameTxInfo& nti, bool checkValuesCorre
 
             nti = ntiTmp;
             nti.nOut = i;
+
+            if (checkAddressAndIfIsMine)
+            {
+                //read address
+                CTxDestination address;
+                CScript scriptPubKey(pc, out.scriptPubKey.end());
+                if (!ExtractDestination(scriptPubKey, address))
+                    nti.strAddress = "";
+                nti.strAddress = CBitcoinAddress(address).ToString();
+
+                // check if this is mine destination
+                nti.fIsMine = IsMine(*pwalletMain, address) == ISMINE_SPENDABLE;
+            }
+
             found = true;
         }
     }
@@ -1721,7 +1557,7 @@ bool CNamecoinHooks::ConnectBlock(CBlockIndex* pindex, const vector<nameTempProx
 bool CNamecoinHooks::IsNameScript(CScript scr)
 {
     NameTxInfo nti;
-    return DecodeNameScript(scr, nti, false);
+    return DecodeNameScript(scr, nti);
 }
 
 bool CNamecoinHooks::getNameValue(const string& sName, string& sValue)
@@ -1733,7 +1569,7 @@ bool CNamecoinHooks::getNameValue(const string& sName, string& sValue)
 
     CTransaction tx;
     NameTxInfo nti;
-    if (!(GetLastTxOfName(dbName, name, tx) && DecodeNameTx(tx, nti, false, true)))
+    if (!(GetLastTxOfName(dbName, name, tx) && DecodeNameTx(tx, nti, true)))
         return false;
 
     if (!NameActive(dbName, name))

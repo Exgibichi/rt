@@ -7,17 +7,8 @@
 #include "main.h"
 #include "rpcprotocol.h"
 
-static const unsigned int MAX_NAME_LENGTH = 512;
-static const unsigned int MAX_VALUE_LENGTH = 20*1024;
-static const int MAX_RENTAL_DAYS = 100*365; //100 years
-static const int OP_NAME_NEW = 0x01;
-static const int OP_NAME_UPDATE = 0x02;
-static const int OP_NAME_DELETE = 0x03;
 static const unsigned int NAMEINDEX_CHAIN_SIZE = 100;
-
 static const int RELEASE_HEIGHT = 1<<16;
-
-typedef std::vector<unsigned char> CNameVal;
 
 class CNameIndex
 {
@@ -104,7 +95,6 @@ public:
 
 extern std::map<CNameVal, std::set<uint256> > mapNamePending;
 
-bool RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut);
 int IndexOfNameOutput(const CTransaction& tx);
 bool GetNameCurrentAddress(const CNameVal& name, CBitcoinAddress& address, std::string& error);
 std::string stringFromNameVal(const CNameVal& nameVal);
@@ -113,30 +103,7 @@ std::string stringFromOp(int op);
 
 CAmount GetNameOpFee(const CBlockIndex* pindexBlock, const int nRentalDays, int op, const CNameVal& name, const CNameVal& value);
 
-struct NameTxInfo
-{
-    CNameVal name;
-    CNameVal value;
-    int nRentalDays;
-    int op;
-    int nOut;
-    std::string err_msg; //in case function that takes this as argument have something to say about it
-
-    //used only by DecodeNameScript()
-    std::string strAddress;
-    bool fIsMine;
-
-    //used only by GetNameList()
-    int nExpiresAt;
-
-    NameTxInfo(): nRentalDays(-1), op(-1), nOut(-1), fIsMine(false), nExpiresAt(-1) {}
-    NameTxInfo(CNameVal name, CNameVal value, int nRentalDays, int op, int nOut, std::string err_msg):
-        name(name), value(value), nRentalDays(nRentalDays), op(op), nOut(nOut), err_msg(err_msg), fIsMine(false), nExpiresAt(-1) {}
-};
-
-bool DecodeNameScript(const CScript& script, NameTxInfo& ret, bool checkValuesCorrectness = true, bool checkAddressAndIfIsMine = false);
-bool DecodeNameScript(const CScript& script, NameTxInfo& ret, CScript::const_iterator& pc, bool checkValuesCorrectness = true, bool checkAddressAndIfIsMine = false);
-bool DecodeNameTx(const CTransaction& tx, NameTxInfo& nti, bool checkValuesCorrectness = true, bool checkAddressAndIfIsMine = false);
+bool DecodeNameTx(const CTransaction& tx, NameTxInfo& nti, bool checkAddressAndIfIsMine = false);
 void GetNameList(const CNameVal& nameUniq, std::map<CNameVal, NameTxInfo> &mapNames, std::map<CNameVal, NameTxInfo> &mapPending);
 bool GetNameValue(const CNameVal& name, CNameVal& value);
 bool SignNameSignature(const CKeyStore& keystore, const CTransaction& txFrom, CMutableTransaction& txTo, unsigned int nIn, int nHashType=SIGHASH_ALL);

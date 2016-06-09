@@ -27,10 +27,9 @@ unsigned int HaveKeys(const vector<valtype>& pubkeys, const CKeyStore& keystore)
     return nResult;
 }
 
-isminetype IsMineInner(const CKeyStore &keystore, const CScript& scriptPubKey)
+isminetype IsMineInner(const CKeyStore &keystore, const CScript& scriptPubKey, txnouttype& whichType)
 {
     vector<valtype> vSolutions;
-    txnouttype whichType;
     if (!Solver(scriptPubKey, whichType, vSolutions)) {
         if (keystore.HaveWatchOnly(scriptPubKey))
             return ISMINE_WATCH_ONLY;
@@ -49,6 +48,7 @@ isminetype IsMineInner(const CKeyStore &keystore, const CScript& scriptPubKey)
             return ISMINE_SPENDABLE;
         break;
     case TX_PUBKEYHASH:
+    case TX_NAME:
         keyID = CKeyID(uint160(vSolutions[0]));
         if (keystore.HaveKey(keyID))
             return ISMINE_SPENDABLE;
@@ -86,30 +86,23 @@ isminetype IsMineInner(const CKeyStore &keystore, const CScript& scriptPubKey)
 isminetype IsMine(const CKeyStore &keystore, const CTxDestination& dest)
 {
     CScript script = GetScriptForDestination(dest);
-    return IsMineInner(keystore, script);
+    txnouttype whichType;
+    return IsMineInner(keystore, script, whichType);
+}
+
+isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey)
+{
+    txnouttype whichType;
+    return IsMineInner(keystore, scriptPubKey, whichType);
 }
 
 // normal check + name check
 isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey, bool &fName)
 {
     fName = false;
-
-    // normal check
-    isminetype ret = IsMineInner(keystore, scriptPubKey);
-
-    // check for name script
-    CScript scriptPubKeyOut;
-    if (ret == ISMINE_NO && hooks->RemoveNameScriptPrefix(scriptPubKey, scriptPubKeyOut))
-    {
-        fName = true;
-        ret = IsMineInner(keystore, scriptPubKeyOut);
-    }
+    txnouttype whichType;
+    isminetype ret = IsMineInner(keystore, scriptPubKey, whichType);
+    fName = whichType == TX_NAME;
 
     return ret;
-}
-
-isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey)
-{
-    bool fName;
-    return IsMine(keystore, scriptPubKey, fName);
 }

@@ -111,4 +111,15 @@ public:
 bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& script, unsigned int flags, const BaseSignatureChecker& checker, ScriptError* error = NULL);
 bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, unsigned int flags, const BaseSignatureChecker& checker, ScriptError* error = NULL, bool fNamecoin = false);
 
+
+// namecoin stuff
+static const unsigned int MAX_NAME_LENGTH = 512;
+static const unsigned int MAX_VALUE_LENGTH = 20*1024;
+static const int MAX_RENTAL_DAYS = 100*365; //100 years
+
+bool checkNameValues(NameTxInfo& ret);
+bool DecodeNameScript(const CScript& script, NameTxInfo& ret, CScript::const_iterator& pc);
+bool DecodeNameScript(const CScript& script, NameTxInfo& ret);
+bool RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut);
+
 #endif // BITCOIN_SCRIPT_INTERPRETER_H
