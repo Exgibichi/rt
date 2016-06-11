@@ -1515,11 +1515,12 @@ bool CNamecoinHooks::ConnectBlock(CBlockIndex* pindex, const vector<nameTempProx
         if (i.op == OP_NAME_NEW)
             nameRec.nLastActiveChainIndex = nameRec.vtxPos.size()-1;
 
-        // limit to 100 tx per name or a full single chain - whichever is larger
-        if (nameRec.vtxPos.size() > NAMEINDEX_CHAIN_SIZE &&
-            nameRec.vtxPos.size() - nameRec.nLastActiveChainIndex + 1 <= NAMEINDEX_CHAIN_SIZE)
+        // limit to 1000 tx per name or a full single chain - whichever is larger
+        unsigned int maxSize = GetArg("-nameindexchainsize", NAMEINDEX_CHAIN_SIZE);
+        if (nameRec.vtxPos.size() > maxSize &&
+            nameRec.vtxPos.size() - nameRec.nLastActiveChainIndex + 1 <= maxSize)
         {
-            int d = nameRec.vtxPos.size() - NAMEINDEX_CHAIN_SIZE; // number of elements to delete
+            int d = nameRec.vtxPos.size() - maxSize; // number of elements to delete
             nameRec.vtxPos.erase(nameRec.vtxPos.begin(), nameRec.vtxPos.begin() + d);
             nameRec.nLastActiveChainIndex -= d; // move last index backwards by d elements
             assert(nameRec.nLastActiveChainIndex >= 0);

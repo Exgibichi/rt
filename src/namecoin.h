@@ -7,7 +7,7 @@
 #include "main.h"
 #include "rpcprotocol.h"
 
-static const unsigned int NAMEINDEX_CHAIN_SIZE = 100;
+static const unsigned int NAMEINDEX_CHAIN_SIZE = 1000;
 static const int RELEASE_HEIGHT = 1<<16;
 
 class CNameIndex
