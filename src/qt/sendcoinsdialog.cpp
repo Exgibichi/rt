@@ -169,6 +169,10 @@ void SendCoinsDialog::setModel(WalletModel *model)
         updateMinFeeLabel();
         updateSmartFeeLabel();
         updateGlobalFeeVariables();
+
+        // emercoin: disable fee section
+        ui->frameFee->setHidden(true);
+        ui->frameFee->setDisabled(true);
     }
 }
 
