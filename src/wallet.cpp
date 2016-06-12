@@ -1599,7 +1599,6 @@ bool CWallet::CreateTransactionInner(const vector<pair<CScript, CAmount> >& vecS
                 wtxNew.fFromMe = true;
 
                 CAmount nTotalValue = nValue + nFeeRet;
-                double dPriority = 0;
                 // vouts to the payees
                 BOOST_FOREACH (const PAIRTYPE(CScript, CAmount)& s, vecSend)
                 {
@@ -1635,25 +1634,11 @@ bool CWallet::CreateTransactionInner(const vector<pair<CScript, CAmount> >& vecS
                     return false;
                 }
 
-                BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
-                {
-                    CAmount nCredit = pcoin.first->vout[pcoin.second].nValue;
-                    //The coin age after the next block (depth+1) is used instead of the current,
-                    //reflecting an assumption the user would accept a bit more delay for
-                    //a chance at a free transaction.
-                    //But mempool inputs might still be in the mempool, so their age stays 0
-                    int age = pcoin.first->GetDepthInMainChain();
-                    if (age != 0)
-                        age += 1;
-                    dPriority += (double)nCredit * age;
-                }
-
-                // emercoin: name tx always at first position
+		// emercoin: name tx always at first position
                 if (!wtxNameIn.IsNull())
                 {
                     setCoins.insert(setCoins.begin(), make_pair(&wtxNameIn, nNameTxOut));
                     nValueIn += nNameTxInCredit;
-                    dPriority += (double)nNameTxInCredit * wtxNameIn.GetDepthInMainChain();
                 }
 
                 CAmount nChange = nValueIn - nValue - nFeeRet;
@@ -1758,7 +1743,6 @@ bool CWallet::CreateTransactionInner(const vector<pair<CScript, CAmount> >& vecS
                     strFailReason = _("Transaction too large");
                     return false;
                 }
-                dPriority = wtxNew.ComputePriority(dPriority, nBytes);
 
                 // Check that enough fee is included (at least SUBCENT per 10000 bytes)
                 CAmount nMinFee = max(nFeeInput, wtxNew.GetMinFee());
