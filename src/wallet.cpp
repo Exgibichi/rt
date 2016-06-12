@@ -1760,8 +1760,12 @@ bool CWallet::CreateTransactionInner(const vector<pair<CScript, CAmount> >& vecS
                 }
                 dPriority = wtxNew.ComputePriority(dPriority, nBytes);
 
-                // Check that enough fee is included (at least MIN_TX_FEE per 1000 bytes)
+                // Check that enough fee is included (at least SUBCENT per 10000 bytes)
                 CAmount nMinFee = max(nFeeInput, wtxNew.GetMinFee());
+
+                // we are using MIN_TXOUT_AMOUNT to match it with dp optimizer
+                nMinFee = (nMinFee + MIN_TXOUT_AMOUNT - 1) / MIN_TXOUT_AMOUNT * MIN_TXOUT_AMOUNT;  // round up to MIN_TXOUT_AMOUNT
+
                 if (nFeeRet < nMinFee)
                 {
                     nFeeRet = nMinFee;
