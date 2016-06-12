@@ -1516,7 +1516,8 @@ bool CNamecoinHooks::ConnectBlock(CBlockIndex* pindex, const vector<nameTempProx
             nameRec.nLastActiveChainIndex = nameRec.vtxPos.size()-1;
 
         // limit to 1000 tx per name or a full single chain - whichever is larger
-        unsigned int maxSize = GetArg("-nameindexchainsize", NAMEINDEX_CHAIN_SIZE);
+        static unsigned int maxSize = GetArg("-nameindexchainsize", NAMEINDEX_CHAIN_SIZE);
+
         if (nameRec.vtxPos.size() > maxSize &&
             nameRec.vtxPos.size() - nameRec.nLastActiveChainIndex + 1 <= maxSize)
         {

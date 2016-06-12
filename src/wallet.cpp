@@ -1429,9 +1429,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
   // Adeed by maxihatop
 
   // Maximap DP array size
-  static uint32_t nMaxDP = 0;
-  if(nMaxDP == 0) 
-    nMaxDP = GetArg("-maxdp", 8 * 1024 * 1024);
+  static uint32_t nMaxDP = GetArg("-maxdp", 8 * 1024 * 1024);
 
   uint16_t *dp;	// dynamic programming array
   uint32_t dp_tgt = nTargetValue / MIN_TXOUT_AMOUNT;
