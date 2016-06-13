@@ -320,17 +320,27 @@ void WalletView::showProgress(const QString &title, int nProgress)
         progressDialog->setValue(nProgress);
 }
 
+extern std::string strMintWarning;
+
 void WalletView::on_labelEncryptionIcon_clicked()
 {
     if(!walletModel)
         return;
 
     if (walletModel->getEncryptionStatus() == WalletModel::Unlocked)
+    {
         walletModel->setWalletLocked(true);
+        strMintWarning = "Info: Minting suspended due to locked wallet.";
+        uiInterface.NotifyAlertChanged(0, CT_NEW);
+    }
     else
     {
         AskPassphraseDialog dlg(AskPassphraseDialog::UnlockExtended, this);
         dlg.setModel(walletModel);
-        dlg.exec();
+        if (dlg.exec() == QDialog::Accepted)
+        {
+            strMintWarning = "";
+            uiInterface.NotifyAlertChanged(0, CT_NEW);
+        }
     }
 }
