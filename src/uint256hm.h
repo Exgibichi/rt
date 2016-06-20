@@ -8,6 +8,7 @@
 #define EMC_UINT256HM_H
 
 #include "uint256.h"
+#include "random.h"
 
 // Container - debug version
 template<class DATA>
@@ -20,7 +21,7 @@ public:
 	DATA     value;
     };
 
-   uint256HashMap() : m_head(-2), m_mask(0), m_allowed(0), m_data(NULL) {};
+   uint256HashMap() : m_head(-2), m_mask(0), m_allowed(0), m_randseed((uint32_t)GetRand(1 << 30)), m_data(NULL) {};
   ~uint256HashMap() { Set(0); };
 
   void Set(uint32_t size) {
@@ -101,6 +102,7 @@ public:
 	 m_allowed = rehashed.m_allowed;
 	 m_mask    = rehashed.m_mask;
 	 m_head    = rehashed.m_head;
+	 m_randseed = rehashed.m_randseed;
 	 rehashed.m_data = p; // release current buffer
        } // reahsh
 
@@ -124,7 +126,7 @@ private:
       const uint32_t *p = ((base_uint<256>*)&key)->GetDataPtr();
       // Lowest part left; if changed, need modify indexes
       uint32_t pos  = p[0];
-      uint32_t step = p[1] | 1; // odd step
+      uint32_t step = (p[1] ^ (p[2] + m_randseed)) | 1; // odd step
       Data *rc;
       do {
 	pos = (pos + step) & m_mask;
@@ -136,6 +138,7 @@ private:
   int32_t   m_head;
   uint32_t  m_mask;
   uint32_t  m_allowed;
+  uint32_t  m_randseed;
   Data     *m_data;
 
 }; // uint256HashMap
