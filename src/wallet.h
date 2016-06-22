@@ -16,7 +16,6 @@
 #include "ui_interface.h"
 #include "wallet_ismine.h"
 #include "walletdb.h"
-#include "hooks.h"
 
 #include <algorithm>
 #include <map>
@@ -341,7 +340,7 @@ public:
     bool IsMine(const CTransaction& tx) const
     {
         BOOST_FOREACH(const CTxOut& txout, tx.vout)
-            if (IsMine(txout) || hooks->IsMine(txout))
+            if (IsMine(txout))
                 return true;
         return false;
     }
@@ -791,35 +790,7 @@ public:
         return 0;
     }
 
-    CAmount GetAvailableCredit(bool fUseCache=true) const
-    {
-        if (pwallet == 0)
-            return 0;
-
-        // Must wait until coinbase is safely deep enough in the chain before valuing it
-        if ((IsCoinBase() || IsCoinStake()) && GetBlocksToMaturity() > 0)
-            return 0;
-
-        if (fUseCache && fAvailableCreditCached)
-            return nAvailableCreditCached;
-
-        CAmount nCredit = 0;
-        uint256 hashTx = GetHash();
-        for (unsigned int i = 0; i < vout.size(); i++)
-        {
-            if (!pwallet->IsSpent(hashTx, i))
-            {
-                const CTxOut &txout = vout[i];
-                nCredit += pwallet->GetCredit(txout, ISMINE_SPENDABLE);
-                if (!MoneyRange(nCredit))
-                    throw std::runtime_error("CWalletTx::GetAvailableCredit() : value out of range");
-            }
-        }
-
-        nAvailableCreditCached = nCredit;
-        fAvailableCreditCached = true;
-        return nCredit;
-    }
+    CAmount GetAvailableCredit(bool fUseCache=true) const;
 
     CAmount GetImmatureWatchOnlyCredit(const bool& fUseCache=true) const
     {

@@ -7,7 +7,6 @@
 #include "../namecoin.h"
 
 #include <vector>
-#include <QTimer>
 
 using namespace std;
 
@@ -51,12 +50,12 @@ public:
         parent->beginResetModel();
         cachedNameTable.clear();
 
-        vector<unsigned char> vchNameUniq;
-        map<vector<unsigned char>, NameTxInfo> mapNames, mapPending;
-        GetNameList(vchNameUniq, mapNames, mapPending);
+        CNameVal nameUniq;
+        map<CNameVal, NameTxInfo> mapNames, mapPending;
+        GetNameList(nameUniq, mapNames, mapPending);
 
         // add info about existing names
-        BOOST_FOREACH(const PAIRTYPE(vector<unsigned char>, NameTxInfo)& item, mapNames)
+        BOOST_FOREACH(const PAIRTYPE(CNameVal, NameTxInfo)& item, mapNames)
         {
             // name is mine and user asked to hide my names
             if (item.second.fIsMine && !fMyNames)
@@ -68,12 +67,12 @@ public:
             if (item.second.nExpiresAt - chainActive.Height() <= 0 && !fExpired)
                 continue;
 
-            NameTableEntry nte(stringFromVch(item.second.vchName), stringFromVch(item.second.vchValue), item.second.strAddress, item.second.nExpiresAt, item.second.fIsMine);
+            NameTableEntry nte(stringFromNameVal(item.second.name), stringFromNameVal(item.second.value), item.second.strAddress, item.second.nExpiresAt, item.second.fIsMine);
             cachedNameTable.append(nte);
         }
 
         // add pending name operations
-        BOOST_FOREACH(const PAIRTYPE(vector<unsigned char>, NameTxInfo)& item, mapPending)
+        BOOST_FOREACH(const PAIRTYPE(CNameVal, NameTxInfo)& item, mapPending)
         {
             // name is mine and user asked to hide my names
             if (item.second.fIsMine && !fMyNames)
@@ -90,7 +89,7 @@ public:
             else if (item.second.op == OP_NAME_DELETE)
                 nHeightStatus = NameTableEntry::NAME_DELETE;
 
-            NameTableEntry nte(stringFromVch(item.second.vchName), stringFromVch(item.second.vchValue), item.second.strAddress, nHeightStatus, item.second.fIsMine);
+            NameTableEntry nte(stringFromNameVal(item.second.name), stringFromNameVal(item.second.value), item.second.strAddress, nHeightStatus, item.second.fIsMine);
             cachedNameTable.append(nte);
         }
 
@@ -190,10 +189,6 @@ NameTableModel::NameTableModel(CWallet *wallet, WalletModel *parent) :
     fOtherNames = false;
     fExpired = false;
     priv->refreshNameTable(fMyNames, fOtherNames, fExpired);
-
-    QTimer *timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this, SLOT(update()));
-    timer->start(NAME_MODEL_UPDATE_DELAY);
 }
 
 NameTableModel::~NameTableModel()

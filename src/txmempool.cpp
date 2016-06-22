@@ -495,7 +495,7 @@ void CTxMemPool::removeCoinbaseSpends(const CCoinsViewCache *pcoins, unsigned in
                 continue;
             const CCoins *coins = pcoins->AccessCoins(txin.prevout.hash);
             if (fSanityCheck) assert(coins);
-            if (!coins || (coins->IsCoinBase() && nMemPoolHeight - coins->nHeight < COINBASE_MATURITY)) {
+            if (!coins || (coins->IsCoinBase() && nMemPoolHeight - coins->nHeight < Params().CoinbaseMaturity())) {
                 transactionsToRemove.push_back(tx);
                 break;
             }

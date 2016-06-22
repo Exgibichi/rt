@@ -5,6 +5,7 @@
 
 #include "pow.h"
 
+#include "bignum.h"
 #include "chain.h"
 #include "chainparams.h"
 #include "primitives/block.h"
@@ -24,23 +25,21 @@ const CBlockIndex* GetLastBlockIndex(const CBlockIndex* pindex, bool fProofOfSta
 unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake)
 {
     using namespace std;
-    unsigned int nProofOfWorkLimit = Params().ProofOfWorkLimit().GetCompact();
-
     if (pindexLast == NULL)
-        return nProofOfWorkLimit; // genesis block
+        return Params().ProofOfWorkLimit().GetCompact(); // genesis block
 
     const CBlockIndex* pindexPrev = GetLastBlockIndex(pindexLast, fProofOfStake);
     if (pindexPrev->pprev == NULL)
-        return nProofOfWorkLimit; // first block
+        return Params().InitialHashTarget().GetCompact(); // first block
     const CBlockIndex* pindexPrevPrev = GetLastBlockIndex(pindexPrev->pprev, fProofOfStake);
     if (pindexPrevPrev->pprev == NULL)
-        return nProofOfWorkLimit; // second block
+        return Params().InitialHashTarget().GetCompact(); // second block
 
     int64_t nActualSpacing = pindexPrev->GetBlockTime() - pindexPrevPrev->GetBlockTime();
 
     // ppcoin: target change every block
     // ppcoin: retarget with exponential moving toward target spacing
-    uint256 bnNew;
+    CBigNum bnNew;
     bnNew.SetCompact(pindexPrev->nBits);
 
     // emercoin: first 10 000 blocks are faster to mine.
@@ -54,8 +53,8 @@ unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfS
     bnNew *= ((nInterval - n) * nTargetSpacing + (n + 1) * nActualSpacing);
     bnNew /= ((nInterval + 1) * nTargetSpacing);
 
-    if (bnNew > Params().ProofOfWorkLimit())
-        bnNew = Params().ProofOfWorkLimit();
+    if (bnNew > CBigNum(Params().ProofOfWorkLimit()))
+        bnNew = CBigNum(Params().ProofOfWorkLimit());
 
     return bnNew.GetCompact();
 }

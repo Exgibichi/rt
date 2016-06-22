@@ -57,30 +57,30 @@ static Checkpoints::MapCheckpoints mapCheckpoints =
         ( 25000, uint256("0x20cc6639e9593e4e9344e1d40a234c552da81cb90b991aed6200ff0f72a69719"))
         ( 50000, uint256("0x4c3d02a982bcb47ed9e076f754870606a6892d258720dc13863e10badbfd0e78"))
         (100000, uint256("0x0000000000000071c614fefb88072459cced7b9d9a9cffd04064d3c3d539ecaf"))
-        (137250, uint256("0x6c9e7cebac95ac26e9137765c6ac6361fe3f9cbcbbc49eac73b59504ef3dc7b4"))
+        (150000, uint256("0x5d317133f36b13ba3cd335c142e51d7e7007c0e72fd8a0fef48d0f4f63f7827a"))
         ;
 static const Checkpoints::CCheckpointData data = {
         &mapCheckpoints,
-        1431530286, // * UNIX timestamp of last checkpoint block
-        36544669,   // * total number of transactions between genesis and last checkpoint
+        1455207714, // * UNIX timestamp of last checkpoint block
+        365081,     // * total number of transactions between genesis and last checkpoint
                     //   (the tx=... number in the SetBestChain debug.log lines)
-        60000.0     // * estimated number of transactions per day after checkpoint
+        500.0       // * estimated number of transactions per day after checkpoint
     };
 
 static Checkpoints::MapCheckpoints mapCheckpointsTestnet =
         boost::assign::map_list_of
-        ( 546, uint256("000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70"))
+        ( 0, uint256("0xd8eee032f95716d0cf14231dc7a238b96bbf827e349e75344c9a88e849262ee0"))
         ;
 static const Checkpoints::CCheckpointData dataTestnet = {
         &mapCheckpointsTestnet,
-        1337966069,
-        1488,
-        300
+        0,
+        0,
+        0
     };
 
 static Checkpoints::MapCheckpoints mapCheckpointsRegtest =
         boost::assign::map_list_of
-        ( 0, uint256("0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"))
+        ( 0, uint256("0xd8eee032f95716d0cf14231dc7a238b96bbf827e349e75344c9a88e849262ee0"))
         ;
 static const Checkpoints::CCheckpointData dataRegtest = {
         &mapCheckpointsRegtest,
@@ -106,17 +106,22 @@ public:
         vAlertPubKey = ParseHex("04e14603d29d0a051df1392c6256bb271ff4a7357260f8e2b82350ad29e1a5063d4a8118fa4cc8a0175cb45776e720cf4ef02cc2b160f5ef0144c3bb37ba3eea58");
         nDefaultPort = 6661;
         bnProofOfWorkLimit = ~uint256(0) >> 32;
-        nSubsidyHalvingInterval = 210000;
+        bnInitialHashTarget = ~uint256(0) >> 32;
         nEnforceBlockUpgradeMajority = 750;
         nRejectBlockOutdatedMajority = 950;
         nToCheckBlockUpgradeMajority = 1000;
         nMinerThreads = 0;
-        nTargetTimespan = 7 * 24 * 60 * 60; // one weeks
+        nTargetTimespan = 7 * 24 * 60 * 60; // one week
+        nTargetSpacing = 10 * 60;           // 10 minutes. affects network code only
 
         // ppcoin: PoS spacing = nStakeTargetSpacing
         //         PoW spacing = depends on how much PoS block are between last two PoW blocks, with maximum value = nTargetSpacingMax
+        nCoinbaseMaturity = 12;                       // coinbase transaction outputs can only be spent after this number of new blocks (12+20 = 32)
         nStakeTargetSpacing = 10 * 60;                // 10 minutes
         nTargetSpacingMax = 12 * nStakeTargetSpacing; // 2 hours
+        nStakeMinAge = 60 * 60 * 24 * 30;             // minimum age for coin age
+        nStakeMaxAge = 60 * 60 * 24 * 90;             // stake age of full weight
+        nStakeModifierInterval = 6 * 60 * 60;         // time to elapse before new modifier is computed
 
         /**
          * Build the genesis block. Note that the output of the genesis coinbase cannot
@@ -190,25 +195,24 @@ public:
         pchMessageStart[3] = 0xef;
         vAlertPubKey = ParseHex("04e14603d29d0a051df1392c6256bb271ff4a7357260f8e2b82350ad29e1a5063d4a8118fa4cc8a0175cb45776e720cf4ef02cc2b160f5ef0144c3bb37ba3eea58");
         nDefaultPort = 6663;
+        bnProofOfWorkLimit = ~uint256(0) >> 28;
+        bnInitialHashTarget = ~uint256(0) >> 29;
         nEnforceBlockUpgradeMajority = 51;
         nRejectBlockOutdatedMajority = 75;
         nToCheckBlockUpgradeMajority = 100;
         nMinerThreads = 0;
-        nTargetTimespan = 14 * 24 * 60 * 60; //! two weeks
-        nStakeTargetSpacing = 10 * 60;
+        nCoinbaseMaturity = 1;
+        nStakeMinAge = 60 * 60 * 24;        // test net min age is 1 day
+        nStakeModifierInterval = 60 * 20;   // test net modifier interval is 20 minutes
 
         //! Modify the testnet genesis block so the timestamp is valid for a later start.
-        //genesis.nTime = 1296688602;
-        //genesis.nNonce = 414098458;
+        genesis.nBits = bnProofOfWorkLimit.GetCompact();
+        genesis.nNonce = 18330017;
         hashGenesisBlock = genesis.GetHash();
-        assert(hashGenesisBlock == uint256("0x00000000bcccd459d036a588d1008fce8da3754b205736f32ddfd35350e84c2d"));
+        assert(hashGenesisBlock == uint256("0x0000000810da236a5c9239aa1c49ab971de289dbd41d08c4120fc9c8920d2212"));
 
         vFixedSeeds.clear();
         vSeeds.clear();
-        vSeeds.push_back(CDNSSeedData("alexykot.me", "testnet-seed.alexykot.me"));
-        vSeeds.push_back(CDNSSeedData("bitcoin.petertodd.org", "testnet-seed.bitcoin.petertodd.org"));
-        vSeeds.push_back(CDNSSeedData("bluematt.me", "testnet-seed.bluematt.me"));
-        vSeeds.push_back(CDNSSeedData("bitcoin.schildbach.de", "testnet-seed.bitcoin.schildbach.de"));
 
         base58Prefixes[PUBKEY_ADDRESS] = list_of(111);
         base58Prefixes[SCRIPT_ADDRESS] = list_of(196);
@@ -219,7 +223,7 @@ public:
         convertSeed6(vFixedSeeds, pnSeed6_test, ARRAYLEN(pnSeed6_test));
 
         fRequireRPCPassword = true;
-        fMiningRequiresPeers = true;
+        fMiningRequiresPeers = false;
         fAllowMinDifficultyBlocks = true;
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
@@ -245,20 +249,17 @@ public:
         pchMessageStart[1] = 0xf2;
         pchMessageStart[2] = 0xc0;
         pchMessageStart[3] = 0xef;
-        nSubsidyHalvingInterval = 150;
         nEnforceBlockUpgradeMajority = 750;
         nRejectBlockOutdatedMajority = 950;
         nToCheckBlockUpgradeMajority = 1000;
         nMinerThreads = 1;
-        nTargetTimespan = 14 * 24 * 60 * 60; //! two weeks
-        nStakeTargetSpacing = 10 * 60;
         bnProofOfWorkLimit = ~uint256(0) >> 1;
         //genesis.nTime = 1296688602;
         //genesis.nBits = 0x207fffff;
         //genesis.nNonce = 2;
         hashGenesisBlock = genesis.GetHash();
         nDefaultPort = 6664;
-        assert(hashGenesisBlock == uint256("0x00000000bcccd459d036a588d1008fce8da3754b205736f32ddfd35350e84c2d"));
+        assert(hashGenesisBlock == uint256("0x0000000810da236a5c9239aa1c49ab971de289dbd41d08c4120fc9c8920d2212"));
 
         vFixedSeeds.clear(); //! Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();  //! Regtest mode doesn't have any DNS seeds.
@@ -304,7 +305,6 @@ public:
     }
 
     //! Published setters to allow changing values in unit test cases
-    virtual void setSubsidyHalvingInterval(int anSubsidyHalvingInterval)  { nSubsidyHalvingInterval=anSubsidyHalvingInterval; }
     virtual void setEnforceBlockUpgradeMajority(int anEnforceBlockUpgradeMajority)  { nEnforceBlockUpgradeMajority=anEnforceBlockUpgradeMajority; }
     virtual void setRejectBlockOutdatedMajority(int anRejectBlockOutdatedMajority)  { nRejectBlockOutdatedMajority=anRejectBlockOutdatedMajority; }
     virtual void setToCheckBlockUpgradeMajority(int anToCheckBlockUpgradeMajority)  { nToCheckBlockUpgradeMajority=anToCheckBlockUpgradeMajority; }

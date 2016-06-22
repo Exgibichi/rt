@@ -7,6 +7,7 @@
 
 #include "addrman.h"
 #include "alert.h"
+#include "bignum.h"
 #include "chainparams.h"
 #include "checkpoints.h"
 #include "checkqueue.h"
@@ -34,7 +35,7 @@ using namespace boost;
 using namespace std;
 
 #if defined(NDEBUG)
-# error "Bitcoin cannot be compiled without assertions."
+# error "Emercoin cannot be compiled without assertions."
 #endif
 
 /**
@@ -58,7 +59,6 @@ bool fCheckBlockIndex = false;
 unsigned int nCoinCacheSize = 5000;
 
 // ppcoin values
-unsigned int nStakeMinAge = STAKE_MIN_AGE;
 string strMintWarning;
 
 
@@ -961,7 +961,7 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransa
                          REJECT_INVALID, "coinstake");
 
     // Rather not work on nonstandard transactions (unless -testnet/-regtest)
-    bool isNameTx = hooks->IsNameTx(tx.nVersion);
+    bool isNameTx = tx.nVersion == NAMECOIN_TX_VERSION;
     string reason;
     if (Params().RequireStandard() && !IsStandardTx(tx, reason) && !isNameTx)
         return state.DoS(0,
@@ -1275,6 +1275,11 @@ double GetDifficulty(unsigned int nBits)
 
 bool GuessPoS(const CBlockHeader& header)
 {
+    // case for testnet
+    if (Params().NetworkIDString() != "main")
+        return header.GetHash() > Params().ProofOfWorkLimit(); // small chance for error 1 / 2^28 = 1 / 100 million
+
+
     // emercoin: return false if time is below block 10 000 - we have no PoS blocks below 10 000 in our official blockchain.
     // this is important, because on early blocks difficulty was very low (starting from 1) and we can confuse PoS with PoW.
     if (header.nTime < 1387258928)
@@ -1288,43 +1293,40 @@ bool GuessPoS(const CBlockHeader& header)
 
 CAmount GetProofOfWorkReward(unsigned int nBits)
 {
-    uint256 bnSubsidyLimit(MAX_MINT_PROOF_OF_WORK);
-    uint256 bnTarget;
+    CBigNum bnSubsidyLimit = MAX_MINT_PROOF_OF_WORK;
+    CBigNum bnTarget;
     bnTarget.SetCompact(nBits);
-    uint256 bnTargetLimit = Params().ProofOfWorkLimit();
+    CBigNum bnTargetLimit(Params().ProofOfWorkLimit());
     bnTargetLimit.SetCompact(bnTargetLimit.GetCompact());
 
     // ppcoin: subsidy is cut in half every 16x multiply of difficulty
     // A reasonably continuous curve is used to avoid shock to market
     // (nSubsidyLimit / nSubsidy) ** 4 == bnProofOfWorkLimit / bnTarget
-    uint256 bnLowerBound(CENT);
-    uint256 bnUpperBound = bnSubsidyLimit;
-    uint256 bnMidPart, bnRewardPart;
+    CBigNum bnLowerBound = CENT;
+    CBigNum bnUpperBound = bnSubsidyLimit;
+    CBigNum bnMidPart, bnRewardPart;
 
     bool bLowDiff = GetDifficulty(nBits) < 512;
-
     bnRewardPart = bLowDiff ? bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit :
                               bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit;
     while (bnLowerBound + CENT <= bnUpperBound)
     {
-        uint256 bnMidValue = (bnLowerBound + bnUpperBound) / 2;
+        CBigNum bnMidValue = (bnLowerBound + bnUpperBound) / 2;
         bnMidPart = bLowDiff ? bnMidValue * bnMidValue * bnMidValue * bnMidValue * bnMidValue * bnMidValue :
                                bnMidValue * bnMidValue * bnMidValue * bnMidValue;
         if (fDebug && GetBoolArg("-printcreation", false))
-            LogPrintf("GetProofOfWorkReward() : lower=%lld upper=%lld mid=%lld\n", bnLowerBound.GetLow64(), bnUpperBound.GetLow64(), bnMidValue.GetLow64());
+            LogPrintf("GetProofOfWorkReward() : lower=%lld upper=%lld mid=%lld\n", bnLowerBound.getuint64(), bnUpperBound.getuint64(), bnMidValue.getuint64());
 
-        // r is used to reduce value to avoid overflow. bnMidPart is choosen because it is alway the lowest number.
-        uint256 r = bnMidPart / bnSubsidyLimit;
-        if ((bnMidPart / r) * (bnTargetLimit / r) > (bnRewardPart / r) * (bnTarget / r))
-            bnUpperBound = bnMidValue; //emer
+        if (bnMidPart * bnTargetLimit > bnRewardPart * bnTarget)
+            bnUpperBound = bnMidValue;
         else
-            bnLowerBound = bnMidValue; //dev
+            bnLowerBound = bnMidValue;
     }
 
-    CAmount nSubsidy = bnUpperBound.GetLow64();
+    CAmount nSubsidy = bnUpperBound.getuint64();
     nSubsidy = (nSubsidy / CENT) * CENT;
     if (fDebug && GetBoolArg("-printcreation", false))
-        LogPrintf("GetProofOfWorkReward() : create=%s nBits=0x%08x nSubsidy=%lld\n", FormatMoney(nSubsidy).c_str(), nBits, nSubsidy);
+        LogPrintf("GetProofOfWorkReward() : create=%s nBits=0x%08x nSubsidy=%lld\n", FormatMoney(nSubsidy), nBits, nSubsidy);
 
     return min(nSubsidy, MAX_MINT_PROOF_OF_WORK);
 }
@@ -1335,7 +1337,7 @@ CAmount GetProofOfStakeReward(int64_t nCoinAge)
     static int64_t nRewardCoinYear = 6 * CENT;  // creation amount per coin-year
     int64_t nSubsidy = nCoinAge * 33 / (365 * 33 + 8) * nRewardCoinYear;
     if (fDebug && GetBoolArg("-printcreation", false))
-        LogPrintf("GetProofOfStakeReward(): create=%s nCoinAge=%lld\n", FormatMoney(nSubsidy).c_str(), nCoinAge);
+        LogPrintf("GetProofOfStakeReward(): create=%s nCoinAge=%lld\n", FormatMoney(nSubsidy), nCoinAge);
     return nSubsidy;
 }
 
@@ -1504,7 +1506,7 @@ void UpdateCoins(const CTransaction& tx, CValidationState &state, CCoinsViewCach
 
 bool CScriptCheck::operator()() {
     const CScript &scriptSig = ptxTo->vin[nIn].scriptSig;
-    if (!VerifyScript(scriptSig, scriptPubKey, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, cacheStore), &error)) {
+    if (!VerifyScript(scriptSig, scriptPubKey, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, cacheStore), &error, ptxTo->nVersion == NAMECOIN_TX_VERSION)) {
         return ::error("CScriptCheck(): %s:%d VerifySignature failed: %s", ptxTo->GetHash().ToString(), nIn, ScriptErrorString(error));
     }
     return true;
@@ -1536,7 +1538,7 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
 
             // If prev is coinbase, check that it's matured
             if (coins->IsCoinBase() || coins->IsCoinStake()) {
-                if (nSpendHeight - coins->nHeight < COINBASE_MATURITY)
+                if (nSpendHeight - coins->nHeight < Params().CoinbaseMaturity())
                     return state.Invalid(
                         error("CheckInputs() : tried to spend coinbase/coinstake at depth %d", nSpendHeight - coins->nHeight),
                         REJECT_INVALID, "bad-txns-premature-spend-of-coinbase/coinstake");
@@ -1762,7 +1764,7 @@ bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, unsigne
 static CCheckQueue<CScriptCheck> scriptcheckqueue(128);
 
 void ThreadScriptCheck() {
-    RenameThread("bitcoin-scriptch");
+    RenameThread("emercoin-scriptch");
     scriptcheckqueue.Thread();
 }
 
@@ -2539,7 +2541,7 @@ bool GetCoinAge(const CTransaction& tx, CValidationState &state, const CCoinsVie
             if (txPrev.GetHash() != prevout.hash)
                 return error("%s() : txid mismatch in GetCoinAge()", __PRETTY_FUNCTION__);
 
-            if (header.GetBlockTime() + nStakeMinAge > tx.nTime)
+            if (header.GetBlockTime() + Params().StakeMinAge() > tx.nTime)
                 continue; // only count coins meeting min age requirement
 
             int64_t nValueIn = txPrev.vout[txin.prevout.n].nValue;
@@ -2820,11 +2822,11 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
                 REJECT_INVALID, "bad-cs-time");
 
     // Check coinbase reward
-    CAmount blockVal = block.IsProofOfWork() ? GetProofOfWorkReward(block.nBits) : 0;
-    if (block.vtx[0].GetValueOut() > blockVal - block.vtx[0].GetMinFee() + MIN_TX_FEE)
+    CAmount powLimit = block.IsProofOfWork() ? GetProofOfWorkReward(block.nBits) - block.vtx[0].GetMinFee() + MIN_TX_FEE : 0;
+    if (block.vtx[0].GetValueOut() > powLimit)
         return state.DoS(100,
                          error("ConnectBlock() : coinbase pays too much (actual=%d vs limit=%d)",
-                               block.vtx[0].GetValueOut(), blockVal),
+                               block.vtx[0].GetValueOut(), powLimit),
                                REJECT_INVALID, "bad-cb-amount");
 
     // Check transactions
@@ -2937,59 +2939,6 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, CBlockIn
         if (block.vtx[0].vin[0].scriptSig.size() < expect.size() ||
             !std::equal(expect.begin(), expect.end(), block.vtx[0].vin[0].scriptSig.begin())) {
             return state.DoS(100, error("%s : block height mismatch in coinbase", __func__), REJECT_INVALID, "bad-cb-height");
-        }
-    }
-
-    return true;
-}
-
-// emercoin: checks that depends on PoS/PoW from CheckBlockHeader and ContextualCheckBlockHeader.
-// EvgenijM86: I have isolated them in this function because they are the only checks that can be skiped when downloading headers from old clients.
-bool CheckHeaderWork(bool fProofOfStake, const CBlockHeader& block, CValidationState& state)
-{
-// from CheckBlockHeader
-    // Check proof of work matches claimed amount
-    if (!fProofOfStake && !CheckProofOfWork(block.GetHash(), block.nBits))
-        return state.DoS(50, error("%s : proof of work failed", __func__),
-                         REJECT_INVALID, "high-hash");
-
-// from AcceptBlockHeader
-    uint256 hash = block.GetHash();
-
-    // Get prev block index
-    CBlockIndex* pindexPrev = NULL;
-    if (hash != Params().HashGenesisBlock()) {
-        BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
-        if (mi == mapBlockIndex.end())
-            return state.DoS(10, error("%s : prev block not found", __func__), 0, "bad-prevblk");
-        pindexPrev = (*mi).second;
-        if (pindexPrev->nStatus & BLOCK_FAILED_MASK)
-            return state.DoS(100, error("%s : prev block invalid", __func__), REJECT_INVALID, "bad-prevblk");
-    }
-
-// from ContextualCheckBlockHeader
-    int nHeight = pindexPrev->nHeight+1;
-
-    if (nHeight == 13548)
-        LogPrintf("stop");
-
-    if (!Params().SkipProofOfWorkCheck())
-    {
-        // Check proof-of-work or proof-of-stake
-        if (nHeight > 10000)
-        {
-            if (block.nBits != GetNextTargetRequired(pindexPrev, fProofOfStake))
-                return state.DoS(100, error("%s : incorrect proof of work", __func__),
-                              REJECT_INVALID, "bad-diffbits");
-        }
-        else
-        {
-            // this is needed only for emercoin official blockchain, because of mistake we made at the beginning
-            unsigned int check = GetNextTargetRequired(pindexPrev, fProofOfStake);
-            unsigned int max_error = check / 100000;
-            if (!(block.nBits >= check - max_error && block.nBits <= check + max_error)) // +- 0.001% interval
-                return state.DoS(100, error("%s : incorrect proof of work", __func__),
-                              REJECT_INVALID, "bad-diffbits");
         }
     }
 
@@ -4335,7 +4284,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                     // not a direct successor.
                     pfrom->PushMessage("getheaders", chainActive.GetLocator(pindexBestHeader), inv.hash);
                     CNodeState *nodestate = State(pfrom->GetId());
-                    if (chainActive.Tip()->GetBlockTime() > GetAdjustedTime() - Params().StakeTargetSpacing() * 20 &&
+                    if (chainActive.Tip()->GetBlockTime() > GetAdjustedTime() - Params().TargetSpacing() * 20 &&
                         nodestate->nBlocksInFlight < MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
                         vToFetch.push_back(inv);
                         // Mark block as in flight already, even though the actual "getdata" message only goes out
@@ -4404,7 +4353,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 LogPrint("net", "  getblocks stopping at %d %s\n", pindex->nHeight, pindex->GetBlockHash().ToString());
                 // ppcoin: tell downloading node about the latest block if it's
                 // without risk being rejected due to stake connection check
-                if (hashStop != chainActive.Tip()->GetBlockHash() && pindex->GetBlockTime() + nStakeMinAge > chainActive.Tip()->GetBlockTime())
+                if (hashStop != chainActive.Tip()->GetBlockHash() && pindex->GetBlockTime() + Params().StakeMinAge() > chainActive.Tip()->GetBlockTime())
                     pfrom->PushInventory(CInv(MSG_BLOCK, chainActive.Tip()->GetBlockHash()));
                 break;
             }
@@ -5193,7 +5142,7 @@ bool SendMessages(CNode* pto, bool fSendTrickle)
         // timeout. We compensate for in-flight blocks to prevent killing off peers due to our own downstream link
         // being saturated. We only count validated in-flight blocks so peers can't advertize nonexisting block hashes
         // to unreasonably increase our timeout.
-        if (!pto->fDisconnect && state.vBlocksInFlight.size() > 0 && state.vBlocksInFlight.front().nTime < nNow - 500000 * Params().StakeTargetSpacing() * (4 + state.vBlocksInFlight.front().nValidatedQueuedBefore)) {
+        if (!pto->fDisconnect && state.vBlocksInFlight.size() > 0 && state.vBlocksInFlight.front().nTime < nNow - 500000 * Params().TargetSpacing() * (4 + state.vBlocksInFlight.front().nValidatedQueuedBefore)) {
             LogPrintf("Timeout downloading block %s from peer=%d, disconnecting\n", state.vBlocksInFlight.front().hash.ToString(), pto->id);
             pto->fDisconnect = true;
         }

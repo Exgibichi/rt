@@ -169,6 +169,10 @@ void SendCoinsDialog::setModel(WalletModel *model)
         updateMinFeeLabel();
         updateSmartFeeLabel();
         updateGlobalFeeVariables();
+
+        // emercoin: disable fee section
+        ui->frameFee->setHidden(true);
+        ui->frameFee->setDisabled(true);
     }
 }
 
@@ -742,7 +746,7 @@ void SendCoinsDialog::coinControlChangeEdited(const QString& text)
         }
         else if (!addr.IsValid()) // Invalid address
         {
-            ui->labelCoinControlChangeLabel->setText(tr("Warning: Invalid Bitcoin address"));
+            ui->labelCoinControlChangeLabel->setText(tr("Warning: Invalid Emercoin address"));
         }
         else // Valid address
         {

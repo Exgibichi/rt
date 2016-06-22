@@ -32,9 +32,12 @@ SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle *networkStyle) 
     float fontFactor            = 1.0;
 
     // define text to place
-    QString titleText       = tr("Bitcoin Core");
+    QString titleText       = tr("Emercoin Core");
     QString versionText     = QString("Version %1").arg(QString::fromStdString(FormatFullVersion()));
-    QString copyrightText   = QChar(0xA9)+QString(" 2009-%1 ").arg(COPYRIGHT_YEAR) + QString(tr("The Bitcoin Core developers"));
+    QString copyrightText   = QChar(0xA9)+QString(" 2013-%1 ").arg(COPYRIGHT_YEAR) + QString(tr("The Emercoin Core developers")) + "\n" +
+                              QChar(0xA9)+" 2009-2015 Bitcoin Developers" + "\n" +
+                              QChar(0xA9)+" 2011-2012 PPCoin Developers" + "\n" +
+                              QChar(0xA9)+" 2009-2013 Namecoin Developers";
     QString titleAddText    = networkStyle->getTitleAddText();
 
     QString font            = QApplication::font().toString();
@@ -72,7 +75,8 @@ SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle *networkStyle) 
 
     // draw copyright stuff
     pixPaint.setFont(QFont(font, 10*fontFactor));
-    pixPaint.drawText(pixmap.width()-titleTextWidth-paddingRight,paddingTop+titleCopyrightVSpace,copyrightText);
+    QRectF qRect(pixmap.width()-titleTextWidth-paddingRight, paddingTop+titleCopyrightVSpace, titleTextWidth, titleCopyrightVSpace);
+    pixPaint.drawText(qRect, copyrightText);
 
     // draw additional text if special network
     if(!titleAddText.isEmpty()) {

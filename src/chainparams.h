@@ -46,7 +46,7 @@ public:
     const std::vector<unsigned char>& AlertKey() const { return vAlertPubKey; }
     int GetDefaultPort() const { return nDefaultPort; }
     const uint256& ProofOfWorkLimit() const { return bnProofOfWorkLimit; }
-    int SubsidyHalvingInterval() const { return nSubsidyHalvingInterval; }
+    const uint256& InitialHashTarget() const { return bnInitialHashTarget; }
     /** Used to check majorities for block version upgrade */
     int EnforceBlockUpgradeMajority() const { return nEnforceBlockUpgradeMajority; }
     int RejectBlockOutdatedMajority() const { return nRejectBlockOutdatedMajority; }
@@ -67,9 +67,13 @@ public:
     /** Make standard checks */
     bool RequireStandard() const { return fRequireStandard; }
     int64_t TargetTimespan() const { return nTargetTimespan; }
+    int64_t TargetSpacing() const { return nTargetSpacing; }
+    int64_t CoinbaseMaturity() const { return nCoinbaseMaturity; }
     int64_t StakeTargetSpacing() const { return nStakeTargetSpacing; }
     int64_t TargetSpacingMax() const { return nTargetSpacingMax; }
-    int64_t Interval() const { return nTargetTimespan / nStakeTargetSpacing; }
+    int64_t StakeMinAge() const { return nStakeMinAge; }
+    int64_t StakeMaxAge() const { return nStakeMaxAge; }
+    int64_t StakeModifierInterval() const { return nStakeModifierInterval; }
     /** Make miner stop after a block is found. In RPC, don't return until nGenProcLimit blocks are generated */
     bool MineBlocksOnDemand() const { return fMineBlocksOnDemand; }
     /** In the future use NetworkIDString() for RPC fields */
@@ -89,13 +93,18 @@ protected:
     std::vector<unsigned char> vAlertPubKey;
     int nDefaultPort;
     uint256 bnProofOfWorkLimit;
-    int nSubsidyHalvingInterval;
+    uint256 bnInitialHashTarget;
     int nEnforceBlockUpgradeMajority;
     int nRejectBlockOutdatedMajority;
     int nToCheckBlockUpgradeMajority;
     int64_t nTargetTimespan;
+    int64_t nTargetSpacing;
+    int64_t nCoinbaseMaturity;
     int64_t nStakeTargetSpacing;
     int64_t nTargetSpacingMax;
+    int64_t nStakeMinAge;
+    int64_t nStakeMaxAge;
+    int64_t nStakeModifierInterval;
     int nMinerThreads;
     std::vector<CDNSSeedData> vSeeds;
     std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
@@ -122,7 +131,6 @@ protected:
 class CModifiableParams {
 public:
     //! Published setters to allow changing values in unit test cases
-    virtual void setSubsidyHalvingInterval(int anSubsidyHalvingInterval) =0;
     virtual void setEnforceBlockUpgradeMajority(int anEnforceBlockUpgradeMajority)=0;
     virtual void setRejectBlockOutdatedMajority(int anRejectBlockOutdatedMajority)=0;
     virtual void setToCheckBlockUpgradeMajority(int anToCheckBlockUpgradeMajority)=0;

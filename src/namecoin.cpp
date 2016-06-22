@@ -1,43 +1,37 @@
-#include <vector>
-using namespace std;
-
-#include "script/script.h"
-#include "wallet.h"
-extern CWallet* pwalletMain;
-extern std::map<uint256, CTransaction> mapTransactions;
-
 #include "namecoin.h"
+#include "script/script.h"
 #include "script/sign.h"
+#include "wallet.h"
 #include "rpcserver.h"
 
-#include <boost/xpressive/xpressive_dynamic.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/xpressive/xpressive_dynamic.hpp>
 #include <fstream>
 
+using namespace std;
 using namespace json_spirit;
 
-map<vector<unsigned char>, uint256> mapMyNames;
-map<vector<unsigned char>, set<uint256> > mapNamePending; // for pending tx
+map<CNameVal, set<uint256> > mapNamePending; // for pending tx
 
 // forward decls
-extern std::string _(const char* psz);
+extern string _(const char* psz);
+extern map<uint256, CTransaction> mapTransactions;
+extern CWallet* pwalletMain;
 
 class CNamecoinHooks : public CHooks
 {
 public:
-    virtual bool IsNameFeeEnough(const CTransaction &tx, const CAmount &txFee);
-    virtual bool CheckInputs(const CTransaction& tx, const CBlockIndex* pindexBlock, vector<nameTempProxy> &vName, const CDiskTxPos &pos, const CAmount &txFee);
+    virtual bool IsNameFeeEnough(const CTransaction& tx, const CAmount& txFee);
+    virtual bool CheckInputs(const CTransaction& tx, const CBlockIndex* pindexBlock, vector<nameTempProxy> &vName, const CDiskTxPos& pos, const CAmount& txFee);
     virtual bool DisconnectInputs(const CTransaction& tx);
-    virtual bool ConnectBlock(CBlockIndex* pindex, const vector<nameTempProxy> &vName);
+    virtual bool ConnectBlock(CBlockIndex* pindex, const vector<nameTempProxy>& vName);
     virtual bool ExtractAddress(const CScript& script, string& address);
     virtual void AddToPendingNames(const CTransaction& tx);
-    virtual bool IsMine(const CTxOut& txout);
-    virtual bool IsNameTx(int nVersion);
+    virtual bool RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut);
     virtual bool IsNameScript(CScript scr);
-    virtual bool deletePendingName(const CTransaction& tx);
-    virtual bool getNameValue(const string& name, string& value);
+    virtual bool getNameValue(const string& sName, string& sValue);
     virtual bool DumpToTextFile();
 };
 
@@ -52,27 +46,27 @@ bool CTransaction::ReadFromDisk(const CDiskTxPos& postx)
         file >> header;
         fseek(file.Get(), postx.nTxOffset, SEEK_CUR);
         file >> *this;
-    } catch (std::exception &e) {
+    } catch (std::exception& e) {
         return error("%s() : deserialize or I/O error\n%s", __PRETTY_FUNCTION__, e.what());
     }
     return true;
 }
 
-vector<unsigned char> vchFromValue(const Value& value) {
+CNameVal nameValFromValue(const Value& value) {
     string strName = value.get_str();
     unsigned char *strbeg = (unsigned char*)strName.c_str();
-    return vector<unsigned char>(strbeg, strbeg + strName.size());
+    return CNameVal(strbeg, strbeg + strName.size());
 }
 
-vector<unsigned char> vchFromString(const string &str) {
+CNameVal nameValFromString(const string& str) {
     unsigned char *strbeg = (unsigned char*)str.c_str();
-    return vector<unsigned char>(strbeg, strbeg + str.size());
+    return CNameVal(strbeg, strbeg + str.size());
 }
 
-string stringFromVch(const vector<unsigned char> &vch) {
+string stringFromNameVal(const CNameVal& nameVal) {
     string res;
-    vector<unsigned char>::const_iterator vi = vch.begin();
-    while (vi != vch.end()) {
+    CNameVal::const_iterator vi = nameVal.begin();
+    while (vi != nameVal.end()) {
         res += (char)(*vi);
         vi++;
     }
@@ -108,8 +102,8 @@ bool CalculateExpiresAt(CNameRecord& nameRec)
             return error("CalculateExpiresAt() : could not read tx from disk");
 
         NameTxInfo nti;
-        if (!DecodeNameTx(tx, nti, false))
-            return error("CalculateExpiresAt() : %s is not namecoin tx, this should never happen", tx.GetHash().GetHex().c_str());
+        if (!DecodeNameTx(tx, nti))
+            return error("CalculateExpiresAt() : %s is not namecoin tx, this should never happen", tx.GetHash().GetHex());
 
         sum += nti.nRentalDays * 175; //days to blocks. 175 is average number of blocks per day
     }
@@ -122,10 +116,10 @@ bool CalculateExpiresAt(CNameRecord& nameRec)
 }
 
 // Tests if name is active. You can optionaly specify at which height it is/was active.
-bool NameActive(CNameDB& dbName, const vector<unsigned char> &vchName, int currentBlockHeight = -1)
+bool NameActive(CNameDB& dbName, const CNameVal& name, int currentBlockHeight = -1)
 {
     CNameRecord nameRec;
-    if (!dbName.ReadName(vchName, nameRec))
+    if (!dbName.ReadName(name, nameRec))
         return false;
 
     if (currentBlockHeight < 0)
@@ -137,16 +131,16 @@ bool NameActive(CNameDB& dbName, const vector<unsigned char> &vchName, int curre
     return currentBlockHeight <= nameRec.nExpiresAt;
 }
 
-bool NameActive(const vector<unsigned char> &vchName, int currentBlockHeight = -1)
+bool NameActive(const CNameVal& name, int currentBlockHeight = -1)
 {
     CNameDB dbName("r");
-    return NameActive(dbName, vchName, currentBlockHeight);
+    return NameActive(dbName, name, currentBlockHeight);
 }
 
 // Returns minimum name operation fee rounded down to cents. Should be used during|before transaction creation.
 // If you wish to calculate if fee is enough - use IsNameFeeEnough() function.
 // Generaly:  GetNameOpFee() > IsNameFeeEnough().
-CAmount GetNameOpFee(const CBlockIndex* pindexBlock, const int nRentalDays, int op, const vector<unsigned char> &vchName, const vector<unsigned char> &vchValue)
+CAmount GetNameOpFee(const CBlockIndex* pindexBlock, const int nRentalDays, int op, const CNameVal& name, const CNameVal& value)
 {
     if (op == OP_NAME_DELETE)
         return MIN_TX_FEE;
@@ -159,7 +153,7 @@ CAmount GetNameOpFee(const CBlockIndex* pindexBlock, const int nRentalDays, int 
         txMinFee += lastPoW->nMint / 100; // +1% PoW per operation itself
 
     txMinFee = sqrt(txMinFee / CENT) * CENT; // square root is taken of the number of cents.
-    txMinFee += (int)((vchName.size() + vchValue.size()) / 128) * CENT; // 1 cent per 128 bytes
+    txMinFee += (int)((name.size() + value.size()) / 128) * CENT; // 1 cent per 128 bytes
 
     // Round up to CENT
     txMinFee += CENT - 1;
@@ -171,28 +165,14 @@ CAmount GetNameOpFee(const CBlockIndex* pindexBlock, const int nRentalDays, int 
     return txMinFee;
 }
 
-bool RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut)
-{
-    NameTxInfo nti;
-    CScript::const_iterator pc = scriptIn.begin();
-
-    if (!DecodeNameScript(scriptIn, nti, pc))
-        return false;
-
-    scriptOut = CScript(pc, scriptIn.end());
-    return true;
-}
-
 // scans nameindex.dat and return names with their last CNameIndex
-bool CNameDB::ScanNames(
-        const vector<unsigned char>& vchName,
-        unsigned int nMax,
+bool CNameDB::ScanNames(const CNameVal& name, unsigned int nMax,
         vector<
             pair<
-                vector<unsigned char>,
+                CNameVal,
                 pair<CNameIndex, int>
             >
-        >& nameScan)
+        > &nameScan)
 {
     Dbc* pcursor = GetCursor();
     if (!pcursor)
@@ -204,7 +184,7 @@ bool CNameDB::ScanNames(
         // Read next record
         CDataStream ssKey(SER_DISK, CLIENT_VERSION);
         if (fFlags == DB_SET_RANGE)
-            ssKey << make_pair(string("namei"), vchName);
+            ssKey << make_pair(string("namei"), name);
         CDataStream ssValue(SER_DISK, CLIENT_VERSION);
         int ret = ReadAtCursor(pcursor, ssKey, ssValue, fFlags);
         fFlags = DB_NEXT;
@@ -218,13 +198,13 @@ bool CNameDB::ScanNames(
         ssKey >> strType;
         if (strType == "namei")
         {
-            vector<unsigned char> vchName;
-            ssKey >> vchName;
+            CNameVal name2;
+            ssKey >> name2;
             CNameRecord val;
             ssValue >> val;
             if (val.deleted() || val.vtxPos.empty())
                 continue;
-            nameScan.push_back(make_pair(vchName, make_pair(val.vtxPos.back(), val.nExpiresAt)));
+            nameScan.push_back(make_pair(name2, make_pair(val.vtxPos.back(), val.nExpiresAt)));
         }
 
         if (nameScan.size() >= nMax)
@@ -234,7 +214,7 @@ bool CNameDB::ScanNames(
     return true;
 }
 
-bool CNameDB::ReadName(const std::vector<unsigned char>& name, CNameRecord &rec)
+bool CNameDB::ReadName(const CNameVal& name, CNameRecord& rec)
 {
     bool ret = Read(make_pair(std::string("namei"), name), rec);
     int s = rec.vtxPos.size();
@@ -256,16 +236,16 @@ CHooks* InitHook()
     return new CNamecoinHooks();
 }
 
-bool IsNameFeeEnough(const CTransaction& tx, const NameTxInfo& nti, const CBlockIndex* pindexBlock, const CAmount &txFee)
+bool IsNameFeeEnough(const CTransaction& tx, const NameTxInfo& nti, const CBlockIndex* pindexBlock, const CAmount& txFee)
 {
     // scan last 10 PoW block for tx fee that matches the one specified in tx
     const CBlockIndex* lastPoW = GetLastBlockIndex(pindexBlock, false);
     //LogPrintf("IsNameFeeEnough(): pindexBlock->nHeight = %d, op = %s, nameSize = %lu, valueSize = %lu, nRentalDays = %d, txFee = %"PRI64d"\n",
-    //       lastPoW->nHeight, nameFromOp(nti.op).c_str(), nti.vchName.size(), nti.vchValue.size(), nti.nRentalDays, txFee);
+    //       lastPoW->nHeight, nameFromOp(nti.op), nti.name.size(), nti.value.size(), nti.nRentalDays, txFee);
     bool txFeePass = false;
     for (int i = 1; i <= 10; i++)
     {
-        CAmount netFee = GetNameOpFee(lastPoW, nti.nRentalDays, nti.op, nti.vchName, nti.vchValue);
+        CAmount netFee = GetNameOpFee(lastPoW, nti.nRentalDays, nti.op, nti.name, nti.value);
         //LogPrintf("                 : netFee = %"PRI64d", lastPoW->nHeight = %d\n", netFee, lastPoW->nHeight);
         if (txFee >= netFee)
         {
@@ -277,7 +257,7 @@ bool IsNameFeeEnough(const CTransaction& tx, const NameTxInfo& nti, const CBlock
     return txFeePass;
 }
 
-bool CNamecoinHooks::IsNameFeeEnough(const CTransaction &tx, const CAmount &txFee)
+bool CNamecoinHooks::IsNameFeeEnough(const CTransaction& tx, const CAmount& txFee)
 {
     if (tx.nVersion != NAMECOIN_TX_VERSION)
         return false;
@@ -289,164 +269,11 @@ bool CNamecoinHooks::IsNameFeeEnough(const CTransaction &tx, const CAmount &txFe
     return ::IsNameFeeEnough(tx, nti, chainActive.Tip(), txFee);
 }
 
-bool checkNameValues(NameTxInfo& ret)
-{
-    ret.err_msg = "";
-    if (ret.vchName.size() > MAX_NAME_LENGTH)
-        ret.err_msg.append("name is too long.\n");
-
-    if (ret.vchValue.size() > MAX_VALUE_LENGTH)
-        ret.err_msg.append("value is too long.\n");
-
-    if (ret.op == OP_NAME_NEW && ret.nRentalDays < 1)
-        ret.err_msg.append("rental days must be greater than 0.\n");
-
-    if (ret.op == OP_NAME_UPDATE && ret.nRentalDays < 0)
-        ret.err_msg.append("rental days must be greater or equal 0.\n");
-
-    if (ret.nRentalDays > MAX_RENTAL_DAYS)
-        ret.err_msg.append("rental days value is too large.\n");
-
-    if (ret.err_msg != "")
-        return false;
-    return true;
-}
-
-// read name script and extract: name, value and rentalDays
-// optionaly it can extract destination address and check if tx is mine (note: it does not check if address is valid)
-bool DecodeNameScript(const CScript& script, NameTxInfo &ret, bool checkValuesCorrectness  /* = true */, bool checkAddressAndIfIsMine  /* = false */)
-{
-    CScript::const_iterator pc = script.begin();
-    return DecodeNameScript(script, ret, pc, checkValuesCorrectness, checkAddressAndIfIsMine);
-}
-
-bool DecodeNameScript(const CScript& script, NameTxInfo& ret, CScript::const_iterator& pc, bool checkValuesCorrectness, bool checkAddressAndIfIsMine)
-{
-    // script structure:
-    // (name_new | name_update) << OP_DROP << name << days << OP_2DROP << val1 << val2 << .. << valn << OP_DROP2 << OP_DROP2 << ..<< (OP_DROP2 | OP_DROP) << paytoscripthash
-    // or
-    // name_delete << OP_DROP << name << OP_DROP << paytoscripthash
-
-    // NOTE: script structure is strict - it must not contain anything else in the midle of it to be a valid name script. It can, however, contain anything else after the correct structure have been read.
-
-    // read op
-    ret.err_msg = "failed to read op";
-    opcodetype opcode;
-    if (!script.GetOp(pc, opcode))
-        return false;
-    if (opcode < OP_1 || opcode > OP_16)
-        return false;
-    ret.op = opcode - OP_1 + 1;
-
-    if (ret.op != OP_NAME_NEW && ret.op != OP_NAME_UPDATE && ret.op != OP_NAME_DELETE)
-        return false;
-
-    ret.err_msg = "failed to read OP_DROP after op_type";
-    if (!script.GetOp(pc, opcode))
-        return false;
-    if (opcode != OP_DROP)
-        return false;
-
-    vector<unsigned char> vch;
-
-    // read name
-    ret.err_msg = "failed to read name";
-    if (!script.GetOp(pc, opcode, vch))
-        return false;
-    if ((opcode == OP_DROP || opcode == OP_2DROP) || !(opcode >= 0 && opcode <= OP_PUSHDATA4))
-        return false;
-    ret.vchName = vch;
-
-    // if name_delete - read OP_DROP after name and exit.
-    if (ret.op == OP_NAME_DELETE)
-    {
-        ret.err_msg = "failed to read OP2_DROP in name_delete";
-        if (!script.GetOp(pc, opcode))
-            return false;
-        if (opcode != OP_DROP)
-            return false;
-        ret.err_msg = "";
-        ret.fIsMine = true; // name_delete should be always our transaction.
-        return true;
-    }
-
-    // read rental days
-    ret.err_msg = "failed to read rental days";
-    if (!script.GetOp(pc, opcode, vch))
-        return false;
-    if ((opcode == OP_DROP || opcode == OP_2DROP) || !(opcode >= 0 && opcode <= OP_PUSHDATA4))
-        return false;
-    ret.nRentalDays = CScriptNum(vch, false).getint();
-
-    // read OP_2DROP after name and rentalDays
-    ret.err_msg = "failed to read delimeter d in: name << rental << d << value";
-    if (!script.GetOp(pc, opcode))
-        return false;
-    if (opcode != OP_2DROP)
-        return false;
-
-    // read value
-    ret.err_msg = "failed to read value";
-    int valueSize = 0;
-    for (;;)
-    {
-        if (!script.GetOp(pc, opcode, vch))
-            return false;
-        if (opcode == OP_DROP || opcode == OP_2DROP)
-            break;
-        if (!(opcode >= 0 && opcode <= OP_PUSHDATA4))
-            return false;
-        ret.vchValue.insert(ret.vchValue.end(), vch.begin(), vch.end());
-        valueSize++;
-    }
-    pc--;
-
-    // read next delimiter and move the pc after it
-    ret.err_msg = "failed to read correct number of DROP operations after value"; //sucess! we have read name script structure
-    int delimiterSize = 0;
-    while (opcode == OP_DROP || opcode == OP_2DROP)
-    {
-        if (!script.GetOp(pc, opcode))
-            break;
-        if (opcode == OP_2DROP)
-            delimiterSize += 2;
-        if (opcode == OP_DROP)
-            delimiterSize += 1;
-    }
-    pc--;
-
-    if (valueSize != delimiterSize)
-        return false;
-
-
-    ret.err_msg = "";     //sucess! we have read name script structure without errors!
-    if (checkValuesCorrectness)
-    {
-        if (!checkNameValues(ret))
-            return false;
-    }
-
-    if (checkAddressAndIfIsMine)
-    {
-        //read address
-        CTxDestination address;
-        CScript scriptPubKey(pc, script.end());
-        if (!ExtractDestination(scriptPubKey, address))
-            ret.strAddress = "";
-        ret.strAddress = CBitcoinAddress(address).ToString();
-
-        // check if this is mine destination
-        ret.fIsMine = IsMine(*pwalletMain, address) == ISMINE_SPENDABLE;
-    }
-
-    return true;
-}
-
 //returns first name operation. I.e. name_new from chain like name_new->name_update->name_update->...->name_update
-bool GetFirstTxOfName(CNameDB& dbName, const vector<unsigned char> &vchName, CTransaction& tx)
+bool GetFirstTxOfName(CNameDB& dbName, const CNameVal& name, CTransaction& tx)
 {
     CNameRecord nameRec;
-    if (!dbName.ReadName(vchName, nameRec) || nameRec.vtxPos.empty())
+    if (!dbName.ReadName(name, nameRec) || nameRec.vtxPos.empty())
         return false;
     CNameIndex& txPos = nameRec.vtxPos[nameRec.nLastActiveChainIndex];
 
@@ -455,9 +282,9 @@ bool GetFirstTxOfName(CNameDB& dbName, const vector<unsigned char> &vchName, CTr
     return true;
 }
 
-bool GetLastTxOfName(CNameDB& dbName, const vector<unsigned char> &vchName, CTransaction& tx, CNameRecord &nameRec)
+bool GetLastTxOfName(CNameDB& dbName, const CNameVal& name, CTransaction& tx, CNameRecord& nameRec)
 {
-    if (!dbName.ReadName(vchName, nameRec))
+    if (!dbName.ReadName(name, nameRec))
         return false;
     if (nameRec.deleted() || nameRec.vtxPos.empty())
         return false;
@@ -469,10 +296,10 @@ bool GetLastTxOfName(CNameDB& dbName, const vector<unsigned char> &vchName, CTra
     return true;
 }
 
-bool GetLastTxOfName(CNameDB& dbName, const vector<unsigned char> &vchName, CTransaction& tx)
+bool GetLastTxOfName(CNameDB& dbName, const CNameVal& name, CTransaction& tx)
 {
     CNameRecord nameRec;
-    return GetLastTxOfName(dbName, vchName, tx, nameRec);
+    return GetLastTxOfName(dbName, name, tx, nameRec);
 }
 
 
@@ -487,7 +314,7 @@ Value sendtoname(const Array& params, bool fHelp)
     if (IsInitialBlockDownload())
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
 
-    vector<unsigned char> vchName = vchFromValue(params[0]);
+    CNameVal name = nameValFromValue(params[0]);
     CAmount nAmount = AmountFromValue(params[1]);
 
     // Wallet comments
@@ -499,7 +326,7 @@ Value sendtoname(const Array& params, bool fHelp)
 
     string error;
     CBitcoinAddress address;
-    if (!GetNameCurrentAddress(vchName, address, error))
+    if (!GetNameCurrentAddress(name, address, error))
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, error);
 
     SendMoney(address.Get(), nAmount, wtx);
@@ -510,10 +337,10 @@ Value sendtoname(const Array& params, bool fHelp)
     return res;
 }
 
-bool GetNameCurrentAddress(const vector<unsigned char> &vchName, CBitcoinAddress &address, string &error)
+bool GetNameCurrentAddress(const CNameVal& name, CBitcoinAddress& address, string& error)
 {
     CNameDB dbName("r");
-    if (!dbName.ExistsName(vchName))
+    if (!dbName.ExistsName(name))
     {
         error = "Name not found";
         return false;
@@ -521,7 +348,7 @@ bool GetNameCurrentAddress(const vector<unsigned char> &vchName, CBitcoinAddress
 
     CTransaction tx;
     NameTxInfo nti;
-    if (!(GetLastTxOfName(dbName, vchName, tx) && DecodeNameTx(tx, nti, false, true)))
+    if (!(GetLastTxOfName(dbName, name, tx) && DecodeNameTx(tx, nti, true)))
     {
         error = "Failed to read/decode last name transaction";
         return false;
@@ -534,7 +361,7 @@ bool GetNameCurrentAddress(const vector<unsigned char> &vchName, CBitcoinAddress
         return false;
     }
 
-    if (!NameActive(dbName, vchName))
+    if (!NameActive(dbName, name))
     {
         stringstream ss;
         ss << "This name have expired. If you still wish to send money to it's last owner you can use this command:\n"
@@ -546,13 +373,9 @@ bool GetNameCurrentAddress(const vector<unsigned char> &vchName, CBitcoinAddress
     return true;
 }
 
-bool CNamecoinHooks::IsMine(const CTxOut& txout)
+bool CNamecoinHooks::RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut)
 {
-    CScript scriptPubKey;
-    if (!RemoveNameScriptPrefix(txout.scriptPubKey, scriptPubKey))
-        return false;
-
-    return ::IsMine(*pwalletMain, scriptPubKey);
+    return ::RemoveNameScriptPrefix(scriptIn, scriptOut);
 }
 
 Value name_list(const Array& params, bool fHelp)
@@ -566,19 +389,19 @@ Value name_list(const Array& params, bool fHelp)
     if (IsInitialBlockDownload())
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
 
-    vector<unsigned char> vchNameUniq;
+    CNameVal nameUniq;
     if (params.size() == 1)
-        vchNameUniq = vchFromValue(params[0]);
+        nameUniq = nameValFromValue(params[0]);
 
-    map<vector<unsigned char>, NameTxInfo> mapNames, mapPending;
-    GetNameList(vchNameUniq, mapNames, mapPending);
+    map<CNameVal, NameTxInfo> mapNames, mapPending;
+    GetNameList(nameUniq, mapNames, mapPending);
 
     Array oRes;
-    BOOST_FOREACH(const PAIRTYPE(vector<unsigned char>, NameTxInfo)& item, mapNames)
+    BOOST_FOREACH(const PAIRTYPE(CNameVal, NameTxInfo)& item, mapNames)
     {
         Object oName;
-        oName.push_back(Pair("name", stringFromVch(item.second.vchName)));
-        oName.push_back(Pair("value", stringFromVch(item.second.vchValue)));
+        oName.push_back(Pair("name", stringFromNameVal(item.second.name)));
+        oName.push_back(Pair("value", stringFromNameVal(item.second.value)));
         if (item.second.fIsMine == false)
             oName.push_back(Pair("transferred", true));
         oName.push_back(Pair("address", item.second.strAddress));
@@ -592,42 +415,42 @@ Value name_list(const Array& params, bool fHelp)
 }
 
 // read wallet name txs and extract: name, value, rentalDays, nOut and nExpiresAt
-void GetNameList(const vector<unsigned char> &vchNameUniq, map<vector<unsigned char>, NameTxInfo> &mapNames, map<vector<unsigned char>, NameTxInfo> &mapPending)
+void GetNameList(const CNameVal& nameUniq, std::map<CNameVal, NameTxInfo> &mapNames, std::map<CNameVal, NameTxInfo> &mapPending)
 {
     CNameDB dbName("r");
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
     // add all names from wallet tx that are in blockchain
-    BOOST_FOREACH(PAIRTYPE(const uint256, CWalletTx)& item, pwalletMain->mapWallet)
+    BOOST_FOREACH(const PAIRTYPE(uint256, CWalletTx) &item, pwalletMain->mapWallet)
     {
         NameTxInfo ntiWalllet;
-        if (!DecodeNameTx(item.second, ntiWalllet, false, false))
+        if (!DecodeNameTx(item.second, ntiWalllet))
             continue;
 
-        if (mapNames.count(ntiWalllet.vchName)) // already added info about this name
+        if (mapNames.count(ntiWalllet.name)) // already added info about this name
             continue;
 
         CTransaction tx;
         CNameRecord nameRec;
-        if (!GetLastTxOfName(dbName, ntiWalllet.vchName, tx, nameRec))
+        if (!GetLastTxOfName(dbName, ntiWalllet.name, tx, nameRec))
             continue;
 
         NameTxInfo nti;
-        if (!DecodeNameTx(tx, nti, false, true))
+        if (!DecodeNameTx(tx, nti, true))
             continue;
 
-        if (vchNameUniq.size() > 0 && vchNameUniq != nti.vchName)
+        if (nameUniq.size() > 0 && nameUniq != nti.name)
             continue;
 
-        if (!dbName.ExistsName(nti.vchName))
+        if (!dbName.ExistsName(nti.name))
             continue;
 
         nti.nExpiresAt = nameRec.nExpiresAt;
-        mapNames[nti.vchName] = nti;
+        mapNames[nti.name] = nti;
     }
 
     // add all pending names
-    BOOST_FOREACH(PAIRTYPE(const vector<unsigned char>, set<uint256>)& item, mapNamePending)
+    BOOST_FOREACH(const PAIRTYPE(CNameVal, set<uint256>) &item, mapNamePending)
     {
         if (!item.second.size())
             continue;
@@ -636,7 +459,7 @@ void GetNameList(const vector<unsigned char> &vchNameUniq, map<vector<unsigned c
         CTransaction tx;
         uint32_t nTime = 0;
         bool found = false;
-        BOOST_FOREACH(uint256 hash, item.second)
+        BOOST_FOREACH(const uint256& hash, item.second)
         {
             if (!mempool.exists(hash))
                 continue;
@@ -652,13 +475,13 @@ void GetNameList(const vector<unsigned char> &vchNameUniq, map<vector<unsigned c
             continue;
 
         NameTxInfo nti;
-        if (!DecodeNameTx(tx, nti, false, true))
+        if (!DecodeNameTx(tx, nti, true))
             continue;
 
-        if (vchNameUniq.size() > 0 && vchNameUniq != nti.vchName)
+        if (nameUniq.size() > 0 && nameUniq != nti.name)
             continue;
 
-        mapPending[nti.vchName] = nti;
+        mapPending[nti.name] = nti;
     }
 }
 
@@ -670,29 +493,26 @@ Value name_debug(const Array& params, bool fHelp)
             "Dump pending transactions id in the debug file.\n");
 
     LogPrintf("Pending:\n----------------------------\n");
-    pair<vector<unsigned char>, set<uint256> > pairPending;
 
     {
         LOCK(cs_main);
-        BOOST_FOREACH(pairPending, mapNamePending)
+        BOOST_FOREACH(const PAIRTYPE(CNameVal, set<uint256>) &pairPending, mapNamePending)
         {
-            string name = stringFromVch(pairPending.first);
-            LogPrintf("%s :\n", name.c_str());
+            string name = stringFromNameVal(pairPending.first);
+            LogPrintf("%s :\n", name);
             uint256 hash;
             BOOST_FOREACH(hash, pairPending.second)
             {
                 LogPrintf("    ");
                 if (!pwalletMain->mapWallet.count(hash))
                     LogPrintf("foreign ");
-                LogPrintf("    %s\n", hash.GetHex().c_str());
+                LogPrintf("    %s\n", hash.GetHex());
             }
         }
     }
     LogPrintf("----------------------------\n");
     return true;
 }
-
-//TODO: name_history, sendtoname
 
 Value name_show(const Array& params, bool fHelp)
 {
@@ -707,14 +527,14 @@ Value name_show(const Array& params, bool fHelp)
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
 
     Object oName;
-    vector<unsigned char> vchName = vchFromValue(params[0]);
-    string name = stringFromVch(vchName);
+    CNameVal name = nameValFromValue(params[0]);
+    string sName = stringFromNameVal(name);
     NameTxInfo nti;
     {
         LOCK(cs_main);
         CNameRecord nameRec;
         CNameDB dbName("r");
-        if (!dbName.ReadName(vchName, nameRec))
+        if (!dbName.ReadName(name, nameRec))
             throw JSONRPCError(RPC_WALLET_ERROR, "failed to read from name DB");
 
         if (nameRec.vtxPos.size() < 1)
@@ -724,11 +544,11 @@ Value name_show(const Array& params, bool fHelp)
         if (!tx.ReadFromDisk(nameRec.vtxPos.back().txPos))
             throw JSONRPCError(RPC_WALLET_ERROR, "failed to read from from disk");
 
-        if (!DecodeNameTx(tx, nti, false, true))
+        if (!DecodeNameTx(tx, nti, true))
             throw JSONRPCError(RPC_WALLET_ERROR, "failed to decode name");
 
-        oName.push_back(Pair("name", name));
-        string value = stringFromVch(nti.vchValue);
+        oName.push_back(Pair("name", sName));
+        string value = stringFromNameVal(nti.value);
         oName.push_back(Pair("value", value));
         oName.push_back(Pair("txid", tx.GetHash().GetHex()));
         oName.push_back(Pair("address", nti.strAddress));
@@ -750,15 +570,151 @@ Value name_show(const Array& params, bool fHelp)
         if (!file.is_open())
             throw JSONRPCError(RPC_PARSE_ERROR, "Failed to open file. Check if you have permission to open it.");
 
-        file.write((const char*)&nti.vchValue[0], nti.vchValue.size());
+        file.write((const char*)&nti.value[0], nti.value.size());
         file.close();
     }
 
     return oName;
 }
 
+Value name_history (const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() < 1 || params.size() > 2)
+        throw std::runtime_error (
+            "name_history \"name\" ( fullhistory )\n"
+            "\nLook up the current and all past data for the given name.\n"
+            "\nArguments:\n"
+            "1. \"name\"           (string, required) the name to query for\n"
+            "2. \"fullhistory\"    (boolean, optional) shows full history, even if name is not active\n"
+            "\nResult:\n"
+            "[\n"
+            "  {\n"
+            "    \"txid\": \"xxxx\",            (string) transaction id"
+            "    \"time\": xxxxx,               (numeric) transaction time"
+            "    \"height\": xxxxx,             (numeric) height of block with this transaction"
+            "    \"address\": \"xxxx\",         (string) address to which transaction was sent"
+            "    \"address_is_mine\": \"xxxx\", (string) shows \"true\" if this is your address, otherwise not visible"
+            "    \"operation\": \"xxxx\",       (string) name operation that was performed in this transaction"
+            "    \"days_added\": xxxx,          (numeric) days added (1 day = 175 blocks) to name expiration time, not visible if 0"
+            "    \"value\": xxxx,               (numeric) name value in this transaction; not visible when name_delete was used"
+            "  }\n"
+            "]\n"
+            "\nExamples:\n"
+            + HelpExampleCli ("name_history", "\"myname\"")
+            + HelpExampleRpc ("name_history", "\"myname\"")
+        );
+
+    if (IsInitialBlockDownload())
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
+
+    CNameVal name = nameValFromValue(params[0]);
+    bool fFullHistory = false;
+    if (params.size() > 1)
+        fFullHistory = params[1].get_bool();
+
+    CNameRecord nameRec;
+    {
+        LOCK(cs_main);
+        CNameDB dbName("r");
+        if (!dbName.ReadName(name, nameRec))
+            throw JSONRPCError(RPC_DATABASE_ERROR, "failed to read from name DB");
+    }
+
+    if (nameRec.vtxPos.empty())
+        throw JSONRPCError(RPC_DATABASE_ERROR, "record for this name exists, but transaction list is empty");
+
+    if (!fFullHistory && !NameActive(name))
+        throw JSONRPCError(RPC_MISC_ERROR, "record for this name exists, but this name is not active");
+
+    Array res;
+    for (unsigned int i = fFullHistory ? 0 : nameRec.nLastActiveChainIndex; i < nameRec.vtxPos.size(); i++)
+    {
+        CTransaction tx;
+        if (!tx.ReadFromDisk(nameRec.vtxPos[i].txPos))
+            throw JSONRPCError(RPC_DATABASE_ERROR, "could not read transaction from disk");
+
+        NameTxInfo nti;
+        if (!DecodeNameTx(tx, nti, true))
+            throw JSONRPCError(RPC_DATABASE_ERROR, "failed to decode namecoin transaction");
+
+        Object obj;
+        obj.push_back(Pair("txid",             tx.GetHash().ToString()));
+        obj.push_back(Pair("time",             (boost::int64_t)tx.nTime));
+        obj.push_back(Pair("height",           nameRec.vtxPos[i].nHeight));
+        obj.push_back(Pair("address",          nti.strAddress));
+      if (nti.fIsMine)
+        obj.push_back(Pair("address_is_mine",  "true"));
+        obj.push_back(Pair("operation",        stringFromOp(nti.op)));
+      if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
+        obj.push_back(Pair("days_added",       nti.nRentalDays));
+      if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
+        obj.push_back(Pair("value",            stringFromNameVal(nti.value)));
+
+        res.push_back(obj);
+    }
+
+    return res;
+}
+
+Value name_mempool (const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() > 0)
+        throw std::runtime_error (
+            "name_mempool\n"
+            "\nList pending name transactions in mempool.\n"
+            "\nResult:\n"
+            "[\n"
+            "  {\n"
+            "    \"name\": \"xxxx\",            (string) name"
+            "    \"txid\": \"xxxx\",            (string) transaction id"
+            "    \"time\": xxxxx,               (numeric) transaction time"
+            "    \"address\": \"xxxx\",         (string) address to which transaction was sent"
+            "    \"address_is_mine\": \"xxxx\", (string) shows \"true\" if this is your address, otherwise not visible"
+            "    \"operation\": \"xxxx\",       (string) name operation that was performed in this transaction"
+            "    \"days_added\": xxxx,          (numeric) days added (1 day = 175 blocks) to name expiration time, not visible if 0"
+            "    \"value\": xxxx,               (numeric) name value in this transaction; not visible when name_delete was used"
+            "  }\n"
+            "]\n"
+            "\nExamples:\n"
+            + HelpExampleCli ("name_mempool", "" )
+            + HelpExampleRpc ("name_mempool", "" )
+        );
+
+    Array res;
+    BOOST_FOREACH(const PAIRTYPE(CNameVal, set<uint256>) &pairPending, mapNamePending)
+    {
+        string sName = stringFromNameVal(pairPending.first);
+        BOOST_FOREACH(const uint256& hash, pairPending.second)
+        {
+            if (!mempool.exists(hash))
+                continue;
+
+            CTransaction tx = mempool.mapTx[hash].GetTx();
+            NameTxInfo nti;
+            if (!DecodeNameTx(tx, nti, true))
+                throw JSONRPCError(RPC_DATABASE_ERROR, "failed to decode namecoin transaction");
+
+            Object obj;
+            obj.push_back(Pair("name",             sName));
+            obj.push_back(Pair("txid",             hash.ToString()));
+            obj.push_back(Pair("time",             (boost::int64_t)tx.nTime));
+            obj.push_back(Pair("address",          nti.strAddress));
+          if (nti.fIsMine)
+            obj.push_back(Pair("address_is_mine",  "true"));
+            obj.push_back(Pair("operation",        stringFromOp(nti.op)));
+          if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
+            obj.push_back(Pair("days_added",       nti.nRentalDays));
+          if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
+            obj.push_back(Pair("value",            stringFromNameVal(nti.value)));
+
+            res.push_back(obj);
+        }
+    }
+    return res;
+}
+
 // used for sorting in name_filter by nHeight
-bool mycompare2 (const Object &lhs, const Object &rhs)
+bool mycompare2 (const Object& lhs, const Object& rhs)
 {
     int pos = 2; //this should exactly match field name position in name_filter
 
@@ -811,9 +767,9 @@ Value name_filter(const Array& params, bool fHelp)
     CNameDB dbName("r");
     vector<Object> oRes;
 
-    vector<unsigned char> vchName;
-    vector<pair<vector<unsigned char>, pair<CNameIndex,int> > > nameScan;
-    if (!dbName.ScanNames(vchName, 100000000, nameScan))
+    CNameVal name;
+    vector<pair<CNameVal, pair<CNameIndex,int> > > nameScan;
+    if (!dbName.ScanNames(name, 100000000, nameScan))
         throw JSONRPCError(RPC_WALLET_ERROR, "scan failed");
 
     // compile regex once
@@ -821,10 +777,10 @@ Value name_filter(const Array& params, bool fHelp)
     smatch nameparts;
     sregex cregex = sregex::compile(strRegexp);
 
-    pair<vector<unsigned char>, pair<CNameIndex,int> > pairScan;
+    pair<CNameVal, pair<CNameIndex,int> > pairScan;
     BOOST_FOREACH(pairScan, nameScan)
     {
-        string name = stringFromVch(pairScan.first);
+        string name = stringFromNameVal(pairScan.first);
 
         // regexp
         if(strRegexp != "" && !regex_search(name, nameparts, cregex))
@@ -850,7 +806,7 @@ Value name_filter(const Array& params, bool fHelp)
         if (!fStat) {
             oName.push_back(Pair("name", name));
 
-            string value = stringFromVch(txName.vchValue);
+            string value = stringFromNameVal(txName.value);
             oName.push_back(Pair("value", limitString(value, 300, "\n...(value too large - use name_show to see full value)")));
 
             oName.push_back(Pair("registered_at", nHeight)); // pos = 2 in comparison function (above name_filter)
@@ -899,11 +855,11 @@ Value name_scan(const Array& params, bool fHelp)
     if (IsInitialBlockDownload())
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
 
-    vector<unsigned char> vchName;
+    CNameVal name;
     int nMax = 500;
     int mMaxShownValue = 0;
     if (params.size() > 0)
-        vchName = vchFromValue(params[0]);
+        name = nameValFromValue(params[0]);
 
     if (params.size() > 1)
         nMax = params[1].get_int();
@@ -914,23 +870,23 @@ Value name_scan(const Array& params, bool fHelp)
     CNameDB dbName("r");
     Array oRes;
 
-    vector<pair<vector<unsigned char>, pair<CNameIndex,int> > > nameScan;
-    if (!dbName.ScanNames(vchName, nMax, nameScan))
+    vector<pair<CNameVal, pair<CNameIndex,int> > > nameScan;
+    if (!dbName.ScanNames(name, nMax, nameScan))
         throw JSONRPCError(RPC_WALLET_ERROR, "scan failed");
 
-    pair<vector<unsigned char>, pair<CNameIndex,int> > pairScan;
+    pair<CNameVal, pair<CNameIndex,int> > pairScan;
     BOOST_FOREACH(pairScan, nameScan)
     {
         Object oName;
-        string name = stringFromVch(pairScan.first);
+        string name = stringFromNameVal(pairScan.first);
         oName.push_back(Pair("name", name));
 
         CNameIndex txName = pairScan.second.first;
         int nExpiresAt    = pairScan.second.second;
-        vector<unsigned char> vchValue = txName.vchValue;
+        CNameVal value = txName.value;
+        string sValue = stringFromNameVal(value);
 
-        string value = stringFromVch(vchValue);
-        oName.push_back(Pair("value", limitString(value, mMaxShownValue, "\n...(value too large - use name_show to see full value)")));
+        oName.push_back(Pair("value", limitString(sValue, mMaxShownValue, "\n...(value too large - use name_show to see full value)")));
         oName.push_back(Pair("expires_in", nExpiresAt - chainActive.Height()));
         if (nExpiresAt - chainActive.Height() <= 0)
             oName.push_back(Pair("expired", true));
@@ -941,37 +897,34 @@ Value name_scan(const Array& params, bool fHelp)
     return oRes;
 }
 
-bool createNameScript(CScript& nameScript, const vector<unsigned char> &vchName, const vector<unsigned char> &vchValue, int nRentalDays, int op, string& err_msg)
+bool createNameScript(CScript& nameScript, const CNameVal& name, const CNameVal& value, int nRentalDays, int op, string& err_msg)
 {
     if (op == OP_NAME_DELETE)
     {
-        nameScript << op << OP_DROP << vchName << OP_DROP;
+        nameScript << op << OP_DROP << name << OP_DROP;
         return true;
     }
 
-
+    NameTxInfo nti(name, value, nRentalDays, op, -1, err_msg);
+    if (!checkNameValues(nti))
     {
-        NameTxInfo nti(vchName, vchValue, nRentalDays, op, -1, err_msg);
-        if (!checkNameValues(nti))
-        {
-            err_msg = nti.err_msg;
-            return false;
-        }
+        err_msg = nti.err_msg;
+        return false;
     }
 
     vector<unsigned char> vchRentalDays = CScriptNum(nRentalDays).getvch();
 
     //add name and rental days
-    nameScript << op << OP_DROP << vchName << vchRentalDays << OP_2DROP;
+    nameScript << op << OP_DROP << name << vchRentalDays << OP_2DROP;
 
     // split value in 520 bytes chunks and add it to script
     {
-        unsigned int nChunks = ceil(vchValue.size() / 520.0);
+        unsigned int nChunks = ceil(value.size() / 520.0);
 
         for (unsigned int i = 0; i < nChunks; i++)
         {   // insert data
-            vector<unsigned char>::const_iterator sliceBegin = vchValue.begin() + i*520;
-            vector<unsigned char>::const_iterator sliceEnd = min(vchValue.begin() + (i+1)*520, vchValue.end());
+            vector<unsigned char>::const_iterator sliceBegin = value.begin() + i*520;
+            vector<unsigned char>::const_iterator sliceEnd = min(value.begin() + (i+1)*520, value.end());
             vector<unsigned char> vchSubValue(sliceBegin, sliceEnd);
             nameScript << vchSubValue;
         }
@@ -1011,81 +964,14 @@ Value name_new(const Array& params, bool fHelp)
                 "Cost is square root of (1% of last PoW + 1% per year of last PoW)."
                 + HelpRequiringPassphrase());
 
-    if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
-
-    vector<unsigned char> vchName = vchFromValue(params[0]);
-    vector<unsigned char> vchValue = vchFromValue(params[1]);
+    CNameVal name = nameValFromValue(params[0]);
+    CNameVal value = nameValFromValue(params[1]);
     int nRentalDays = params[2].get_int();
 
-    NameTxReturn ret = name_new(vchName, vchValue, nRentalDays);
+    NameTxReturn ret = name_operation(OP_NAME_NEW, name, value, nRentalDays, "");
     if (!ret.ok)
         throw JSONRPCError(ret.err_code, ret.err_msg);
     return ret.hex.GetHex();
-}
-
-NameTxReturn name_new(const vector<unsigned char> &vchName,
-              const vector<unsigned char> &vchValue,
-              const int nRentalDays)
-{
-    NameTxReturn ret;
-    ret.err_code = RPC_INTERNAL_ERROR; //default value
-    ret.ok = false;
-
-    if (IsWalletLocked(ret))
-        return ret;
-
-    CMutableTransaction tmpTx;
-    tmpTx.nVersion = NAMECOIN_TX_VERSION;
-    CWalletTx wtx(pwalletMain, tmpTx);
-    stringstream ss;
-    CScript scriptPubKey;
-
-    {
-        LOCK(cs_main);
-
-        if (mapNamePending.count(vchName) && mapNamePending[vchName].size())
-        {
-            ss << "there are " << mapNamePending[vchName].size() <<
-                  " pending operations on that name, including " <<
-                  mapNamePending[vchName].begin()->GetHex().c_str();
-            ret.err_msg = ss.str();
-            return ret;
-        }
-
-        if (NameActive(vchName))
-        {
-            ret.err_msg = "name_new on an unexpired name";
-            return ret;
-        }
-
-        CPubKey vchPubKey;
-        if (!pwalletMain->GetKeyFromPool(vchPubKey))
-        {
-            ret.err_msg = "failed to get key from pool";
-            return ret;
-        }
-
-        CScript nameScript;
-        if (!createNameScript(nameScript, vchName, vchValue, nRentalDays, OP_NAME_NEW, ret.err_msg))
-            return ret;
-
-        scriptPubKey = GetScriptForDestination(vchPubKey.GetID());
-        nameScript += scriptPubKey;
-
-        CAmount nameFee = GetNameOpFee(chainActive.Tip(), nRentalDays, OP_NAME_NEW, vchName, vchValue);
-        SendName(nameScript, MIN_TXOUT_AMOUNT, wtx, CWalletTx(), nameFee);
-    }
-
-    //success! collect info and return
-    CTxDestination address;
-    if (ExtractDestination(scriptPubKey, address))
-    {
-        ret.address = CBitcoinAddress(address).ToString();
-    }
-    ret.hex = wtx.GetHash();
-    ret.ok = true;
-    return ret;
 }
 
 Value name_update(const Array& params, bool fHelp)
@@ -1095,30 +981,55 @@ Value name_update(const Array& params, bool fHelp)
                 "name_update <name> <value> <days> [<toaddress>]\nUpdate name value, add days to expiration time and possibly transfer a name to diffrent address."
                 + HelpRequiringPassphrase());
 
-    if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
-
-    vector<unsigned char> vchName = vchFromValue(params[0]);
-    vector<unsigned char> vchValue = vchFromValue(params[1]);
+    CNameVal name = nameValFromValue(params[0]);
+    CNameVal value = nameValFromValue(params[1]);
     int nRentalDays = params[2].get_int();
     string strAddress = "";
     if (params.size() == 4)
         strAddress = params[3].get_str();
 
-    NameTxReturn ret = name_update(vchName, vchValue, nRentalDays, strAddress);
+    NameTxReturn ret = name_operation(OP_NAME_UPDATE, name, value, nRentalDays, strAddress);
     if (!ret.ok)
         throw JSONRPCError(ret.err_code, ret.err_msg);
     return ret.hex.GetHex();
 }
 
-NameTxReturn name_update(const vector<unsigned char> &vchName,
-              const vector<unsigned char> &vchValue,
-              const int nRentalDays,
-              string strAddress)
+Value name_delete(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+                "name_delete <name>\nDelete a name if you own it. Others may do name_new after this command."
+                + HelpRequiringPassphrase());
+
+    CNameVal name = nameValFromValue(params[0]);
+
+    NameTxReturn ret = name_operation(OP_NAME_DELETE, name, CNameVal(), 0, "");
+    if (!ret.ok)
+        throw JSONRPCError(ret.err_code, ret.err_msg);
+    return ret.hex.GetHex();
+
+}
+
+NameTxReturn name_operation(const int op, const CNameVal& name, const CNameVal& value, const int nRentalDays, const string strAddress)
 {
     NameTxReturn ret;
-    ret.err_code = RPC_INTERNAL_ERROR; //default value
+    ret.err_code = RPC_INTERNAL_ERROR; // default value in case of abnormal exit
+    ret.err_msg = "unkown error";
     ret.ok = false;
+
+    // currently supports only new, update and delete operations.
+    if (op != OP_NAME_NEW && op != OP_NAME_UPDATE && op != OP_NAME_DELETE)
+    {
+        ret.err_msg = "illegal name op";
+        return ret;
+    }
+
+    if (IsInitialBlockDownload())
+    {
+        ret.err_code = RPC_CLIENT_IN_INITIAL_DOWNLOAD;
+        ret.err_msg = "Emercoin is downloading blocks...";
+        return ret;
+    }
 
     if (IsWalletLocked(ret))
         return ret;
@@ -1130,63 +1041,74 @@ NameTxReturn name_update(const vector<unsigned char> &vchName,
     CScript scriptPubKey;
 
     {
-    //4 checks - pending operations, name exist?, name is yours?, name expired?
         LOCK2(cs_main, pwalletMain->cs_wallet);
 
-        if (mapNamePending.count(vchName) && mapNamePending[vchName].size())
+    // wait until other name operation on this name are completed
+        if (mapNamePending.count(name) && mapNamePending[name].size())
         {
-            ss << "there are " << mapNamePending[vchName].size() <<
-                  " pending operations on that name, including " <<
-                  mapNamePending[vchName].begin()->GetHex().c_str();
+            ss << "there are " << mapNamePending[name].size() <<
+                  " pending operations on that name, including " << mapNamePending[name].begin()->GetHex();
             ret.err_msg = ss.str();
             return ret;
         }
 
-        CNameDB dbName("r");
-        CTransaction tx; //we need to select last input
-        if (!GetLastTxOfName(dbName, vchName, tx))
+    // check if op can be aplied to name remaining time
+        if (NameActive(name))
         {
-            ret.err_msg = "could not find a coin with this name";
-            return ret;
-        }
-
-        uint256 wtxInHash = tx.GetHash();
-        if (!pwalletMain->mapWallet.count(wtxInHash))
-        {
-            ss << "this coin is not in your wallet: " << wtxInHash.GetHex().c_str();
-            ret.err_msg = ss.str();
-            return ret;
+            if (op == OP_NAME_NEW)
+            {
+                ret.err_msg = "name_new on an unexpired name";
+                return ret;
+            }
         }
         else
         {
-            CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
-            int nTxOut = IndexOfNameOutput(wtxIn);
-
-            if (!hooks->IsMine(wtxIn.vout[nTxOut]))
+            if (op == OP_NAME_UPDATE || op == OP_NAME_DELETE)
             {
-                ss << "this name is not yours: " << wtxInHash.GetHex().c_str();
-                ret.err_msg = ss.str();
-                return ret;
-            }
-
-            // check if prev output is spent
-            if (pwalletMain->IsSpent(wtxInHash, nTxOut))
-            {
-                ss << "Last tx of this name was spent by non-namecoin tx. This means that this name cannot be updated anymore - you will have to wait until it expires:\n"
-                   << wtxInHash.GetHex().c_str();
-                ret.err_msg = ss.str();
-                return ret;
-            }
-
-            if (!NameActive(dbName, vchName))
-            {
-                ret.err_msg = "name_update on an expired name";
+                ret.err_msg = stringFromOp(op) + " on an unexpired name";
                 return ret;
             }
         }
 
-    //form script and send
-        if (strAddress != "")
+    // grab last tx in name chain and check if it can be spent by us
+        CWalletTx wtxIn = CWalletTx();
+        if (op == OP_NAME_UPDATE || op == OP_NAME_DELETE)
+        {
+            CNameDB dbName("r");
+            CTransaction prevTx;
+            if (!GetLastTxOfName(dbName, name, prevTx))
+            {
+                ret.err_msg = "could not find tx with this name";
+                return ret;
+            }
+
+            uint256 wtxInHash = prevTx.GetHash();
+            if (!pwalletMain->mapWallet.count(wtxInHash))
+            {
+                ret.err_msg = "this name tx is not in your wallet: " + wtxInHash.GetHex();
+                return ret;
+            }
+
+            wtxIn = pwalletMain->mapWallet[wtxInHash];
+            int nTxOut = IndexOfNameOutput(wtxIn);
+
+            if (::IsMine(*pwalletMain, wtxIn.vout[nTxOut].scriptPubKey) != ISMINE_SPENDABLE)
+            {
+                ret.err_msg = "this name tx is not yours or is not spendable: " + wtxInHash.GetHex();
+                return ret;
+            }
+        }
+
+    // create namescript
+        CScript nameScript;
+        if (!createNameScript(nameScript, name, value, nRentalDays, op, ret.err_msg))
+        {
+            ret.err_msg = "failed to create name script";
+            return ret;
+        }
+
+    // add destination to namescript
+        if (op == OP_NAME_UPDATE && strAddress != "")
         {
             CBitcoinAddress address(strAddress);
             if (!address.IsValid())
@@ -1207,147 +1129,23 @@ NameTxReturn name_update(const vector<unsigned char> &vchName,
             }
             scriptPubKey = GetScriptForDestination(vchPubKey.GetID());
         }
-
-        CScript nameScript;
-        if (!createNameScript(nameScript, vchName, vchValue, nRentalDays, OP_NAME_UPDATE, ret.err_msg))
-            return ret;
-
         nameScript += scriptPubKey;
 
-        CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
-        CAmount nameFee = GetNameOpFee(chainActive.Tip(), nRentalDays, OP_NAME_UPDATE, vchName, vchValue);
+    // verify namescript
+        NameTxInfo nti;
+        if (!DecodeNameScript(nameScript, nti))
+        {
+            ret.err_msg = "failed to verify name script";
+            return ret;
+        }
+
+    // set fee and send!
+        CAmount nameFee = GetNameOpFee(chainActive.Tip(), nRentalDays, op, name, value);
         SendName(nameScript, MIN_TXOUT_AMOUNT, wtx, wtxIn, nameFee);
     }
 
     //success! collect info and return
     CTxDestination address;
-    ret.address = "";
-    if (ExtractDestination(scriptPubKey, address))
-    {
-        ret.address = CBitcoinAddress(address).ToString();
-    }
-    ret.hex = wtx.GetHash();
-    ret.ok = true;
-    return ret;
-}
-
-Value name_delete(const Array& params, bool fHelp)
-{
-    if (fHelp || params.size() != 1)
-        throw runtime_error(
-                "name_delete <name>\nDelete a name if you own it. Others may do name_new after this command."
-                + HelpRequiringPassphrase());
-
-    if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
-
-    vector<unsigned char> vchName = vchFromValue(params[0]);
-
-    NameTxReturn ret = name_delete(vchName);
-    if (!ret.ok)
-        throw JSONRPCError(ret.err_code, ret.err_msg);
-    return ret.hex.GetHex();
-
-}
-
-//TODO: finish name_delete
-NameTxReturn name_delete(const vector<unsigned char> &vchName)
-{
-    NameTxReturn ret;
-    ret.err_code = RPC_INTERNAL_ERROR; //default value
-    ret.ok = false;
-
-    if (IsWalletLocked(ret))
-        return ret;
-
-    CMutableTransaction tmpTx;
-    tmpTx.nVersion = NAMECOIN_TX_VERSION;
-    CWalletTx wtx(pwalletMain, tmpTx);
-    stringstream ss;
-    CScript scriptPubKey;
-
-    {
-    //4 checks - pending operations, name exist?, name is yours?, name expired?
-        LOCK2(cs_main, pwalletMain->cs_wallet);
-
-        if (mapNamePending.count(vchName) && mapNamePending[vchName].size())
-        {
-            ss << "there are " << mapNamePending[vchName].size() <<
-                  " pending operations on that name, including " <<
-                  mapNamePending[vchName].begin()->GetHex().c_str();
-            ret.err_msg = ss.str();
-            return ret;
-        }
-
-        CNameDB dbName("r");
-        CTransaction tx; //we need to select last input
-        if (!GetLastTxOfName(dbName, vchName, tx))
-        {
-            ret.err_msg = "could not find a coin with this name";
-            return ret;
-        }
-
-        uint256 wtxInHash = tx.GetHash();
-        if (!pwalletMain->mapWallet.count(wtxInHash))
-        {
-            ss << "this coin is not in your wallet: " << wtxInHash.GetHex().c_str();
-            ret.err_msg = ss.str();
-            return ret;
-        }
-        else
-        {
-            CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
-            int nTxOut = IndexOfNameOutput(wtxIn);
-
-            if (!hooks->IsMine(wtxIn.vout[nTxOut]))
-            {
-                ss << "this name is not yours: " << wtxInHash.GetHex().c_str();
-                ret.err_msg = ss.str();
-                return ret;
-            }
-
-            // check if prev output is spent
-            if (pwalletMain->IsSpent(wtxInHash, nTxOut))
-            {
-                ss << "Last tx of this name was spent by non-namecoin tx. This means that this name cannot be updated anymore - you will have to wait until it expires:\n"
-                   << wtxInHash.GetHex().c_str();
-                ret.err_msg = ss.str();
-                return ret;
-            }
-
-            if (!NameActive(dbName, vchName))
-            {
-                ret.err_msg = "name_delete on an expired name";
-                return ret;
-            }
-        }
-
-    //form script and send
-        CPubKey vchPubKey;
-        if(!pwalletMain->GetKeyFromPool(vchPubKey))
-        {
-            ret.err_msg = "failed to get key from pool";
-            return ret;
-        }
-
-        CScript nameScript;
-        {
-            vector<unsigned char> vchValue;
-            int nDays = 0;
-            createNameScript(nameScript, vchName, vchValue, nDays, OP_NAME_DELETE, ret.err_msg); //this should never fail for name_delete
-        }
-
-        scriptPubKey = GetScriptForDestination(vchPubKey.GetID());
-        nameScript += scriptPubKey;
-
-        CWalletTx& wtxIn = pwalletMain->mapWallet[wtxInHash];
-        CAmount nameFee = GetNameOpFee(chainActive.Tip(), 0, OP_NAME_DELETE, vchName, vector<unsigned char>());
-        SendName(nameScript, MIN_TXOUT_AMOUNT, wtx, wtxIn, nameFee);
-    }
-
-    //success! collect info and return
-    CTxDestination address;
-    ret.address = "";
     if (ExtractDestination(scriptPubKey, address))
     {
         ret.address = CBitcoinAddress(address).ToString();
@@ -1378,7 +1176,7 @@ bool createNameIndexFile()
         CDiskTxPos pos(pindex->GetBlockPos(), GetSizeOfCompactSize(block.vtx.size())); // start position
         for (unsigned int i=0; i<block.vtx.size(); i++)
         {
-            const CTransaction &tx = block.vtx[i];
+            const CTransaction& tx = block.vtx[i];
             if (tx.IsCoinStake() || tx.IsCoinBase())
             {
                 pos.nTxOffset += ::GetSerializeSize(tx, SER_DISK, CLIENT_VERSION);  // set next tx position
@@ -1410,17 +1208,19 @@ bool createNameIndexFile()
 
 // read name tx and extract: name, value and rentalDays
 // optionaly it can extract destination address and check if tx is mine (note: it does not check if address is valid)
-bool DecodeNameTx(const CTransaction& tx, NameTxInfo& nti, bool checkValuesCorrectness /* = true */, bool checkAddressAndIfIsMine /* = false */)
+bool DecodeNameTx(const CTransaction& tx, NameTxInfo& nti, bool checkAddressAndIfIsMine /* = false */)
 {
     if (tx.nVersion != NAMECOIN_TX_VERSION)
         return false;
 
     bool found = false;
+    CScript::const_iterator pc;
     for (unsigned int i = 0; i < tx.vout.size(); i++)
     {
         const CTxOut& out = tx.vout[i];
         NameTxInfo ntiTmp;
-        if (DecodeNameScript(out.scriptPubKey, ntiTmp, checkValuesCorrectness, checkAddressAndIfIsMine))
+        pc = out.scriptPubKey.begin();
+        if (DecodeNameScript(out.scriptPubKey, ntiTmp, pc))
         {
             // If more than one name op, fail
             if (found)
@@ -1428,6 +1228,20 @@ bool DecodeNameTx(const CTransaction& tx, NameTxInfo& nti, bool checkValuesCorre
 
             nti = ntiTmp;
             nti.nOut = i;
+
+            if (checkAddressAndIfIsMine)
+            {
+                //read address
+                CTxDestination address;
+                CScript scriptPubKey(pc, out.scriptPubKey.end());
+                if (!ExtractDestination(scriptPubKey, address))
+                    nti.strAddress = "";
+                nti.strAddress = CBitcoinAddress(address).ToString();
+
+                // check if this is mine destination
+                nti.fIsMine = IsMine(*pwalletMain, address) == ISMINE_SPENDABLE;
+            }
+
             found = true;
         }
     }
@@ -1455,25 +1269,25 @@ void CNamecoinHooks::AddToPendingNames(const CTransaction& tx)
 
     if (tx.vout.size() < 1)
     {
-        error("AddToPendingNames() : no output in tx %s\n", tx.ToString().c_str());
+        error("AddToPendingNames() : no output in tx %s\n", tx.ToString());
         return;
     }
 
     NameTxInfo nti;
     if (!DecodeNameTx(tx, nti))
     {
-        error("AddToPendingNames() : could not decode name script in tx %s", tx.ToString().c_str());
+        error("AddToPendingNames() : could not decode name script in tx %s", tx.ToString());
         return;
     }
 
-    mapNamePending[nti.vchName].insert(tx.GetHash());
-    LogPrintf("AddToPendingNames(): added %s %s from tx %s", nameFromOp(nti.op).c_str(), stringFromVch(nti.vchName).c_str(), tx.ToString().c_str());
+    mapNamePending[nti.name].insert(tx.GetHash());
+    LogPrintf("AddToPendingNames(): added %s %s from tx %s", stringFromOp(nti.op), stringFromNameVal(nti.name), tx.ToString());
 }
 
 // Checks name tx and save name data to vName if valid
 // returns true if: (tx is valid name tx) OR (tx is not a name tx)
 // returns false if tx is invalid name tx
-bool CNamecoinHooks::CheckInputs(const CTransaction& tx, const CBlockIndex* pindexBlock, vector<nameTempProxy> &vName, const CDiskTxPos& pos, const CAmount &txFee)
+bool CNamecoinHooks::CheckInputs(const CTransaction& tx, const CBlockIndex* pindexBlock, vector<nameTempProxy> &vName, const CDiskTxPos& pos, const CAmount& txFee)
 {
     if (tx.nVersion != NAMECOIN_TX_VERSION)
         return true;
@@ -1483,20 +1297,20 @@ bool CNamecoinHooks::CheckInputs(const CTransaction& tx, const CBlockIndex* pind
     if (!DecodeNameTx(tx, nti))
     {
         if (pindexBlock->nHeight > RELEASE_HEIGHT)
-            return error("CheckInputsHook() : could not decode namecoin tx %s in block %d", tx.GetHash().GetHex().c_str(), pindexBlock->nHeight);
+            return error("CheckInputsHook() : could not decode namecoin tx %s in block %d", tx.GetHash().GetHex(), pindexBlock->nHeight);
         return false;
     }
 
-    vector<unsigned char> vchName = nti.vchName;
-    string sName = stringFromVch(vchName);
+    CNameVal name = nti.name;
+    string sName = stringFromNameVal(name);
     string info = str( boost::format("name %s, tx=%s, block=%d, value=%s") %
-        sName.c_str() % tx.GetHash().GetHex().c_str() % pindexBlock->nHeight % stringFromVch(nti.vchValue).c_str());
+        sName % tx.GetHash().GetHex() % pindexBlock->nHeight % stringFromNameVal(nti.value));
 
 //check if last known tx on this name matches any of inputs of this tx
     CNameDB dbName("r");
     CNameRecord nameRec;
-    if (dbName.ExistsName(vchName) && !dbName.ReadName(vchName, nameRec))
-        return error("CheckInputsHook() : failed to read from name DB for %s", info.c_str());
+    if (dbName.ExistsName(name) && !dbName.ReadName(name, nameRec))
+        return error("CheckInputsHook() : failed to read from name DB for %s", info);
 
     bool found = false;
     NameTxInfo prev_nti;
@@ -1504,10 +1318,10 @@ bool CNamecoinHooks::CheckInputs(const CTransaction& tx, const CBlockIndex* pind
     {
         CTransaction lastKnownNameTx;
         if (!lastKnownNameTx.ReadFromDisk(nameRec.vtxPos.back().txPos))
-            return error("CheckInputsHook() : failed to read from name DB for %s", info.c_str());
+            return error("CheckInputsHook() : failed to read from name DB for %s", info);
         uint256 lasthash = lastKnownNameTx.GetHash();
         if (!DecodeNameTx(lastKnownNameTx, prev_nti))
-            return error("CheckInputsHook() : Failed to decode existing previous name tx for %s. Your blockchain or nameindex.dat may be corrupt.", info.c_str());
+            return error("CheckInputsHook() : Failed to decode existing previous name tx for %s. Your blockchain or nameindex.dat may be corrupt.", info);
 
         for (unsigned int i = 0; i < tx.vin.size(); i++) //this scans all scripts of tx.vin
         {
@@ -1526,14 +1340,14 @@ bool CNamecoinHooks::CheckInputs(const CTransaction& tx, const CBlockIndex* pind
             if (!::IsNameFeeEnough(tx, nti, pindexBlock, txFee))
             {
                 if (pindexBlock->nHeight > RELEASE_HEIGHT)
-                    return error("CheckInputsHook() : rejected name_new because not enough fee for %s", info.c_str());
+                    return error("CheckInputsHook() : rejected name_new because not enough fee for %s", info);
                 return false;
             }
 
-            if (NameActive(dbName, vchName, pindexBlock->nHeight))
+            if (NameActive(dbName, name, pindexBlock->nHeight))
             {
                 if (pindexBlock->nHeight > RELEASE_HEIGHT)
-                    return error("CheckInputsHook() : name_new on an unexpired name for %s", info.c_str());
+                    return error("CheckInputsHook() : name_new on an unexpired name for %s", info);
                 return false;
             }
             break;
@@ -1544,45 +1358,45 @@ bool CNamecoinHooks::CheckInputs(const CTransaction& tx, const CBlockIndex* pind
             if (!::IsNameFeeEnough(tx, nti, pindexBlock, txFee))
             {
                 if (pindexBlock->nHeight > RELEASE_HEIGHT)
-                    return error("CheckInputsHook() : rejected name_update because not enough fee for %s", info.c_str());
+                    return error("CheckInputsHook() : rejected name_update because not enough fee for %s", info);
                 return false;
             }
 
             if (!found || (prev_nti.op != OP_NAME_NEW && prev_nti.op != OP_NAME_UPDATE))
-                return error("name_update without previous new or update tx for %s", info.c_str());
+                return error("name_update without previous new or update tx for %s", info);
 
-            if (prev_nti.vchName != vchName)
-                return error("CheckInputsHook() : name_update name mismatch for %s", info.c_str());
+            if (prev_nti.name != name)
+                return error("CheckInputsHook() : name_update name mismatch for %s", info);
 
-            if (!NameActive(dbName, vchName, pindexBlock->nHeight))
-                return error("CheckInputsHook() : name_update on an unexpired name for %s", info.c_str());
+            if (!NameActive(dbName, name, pindexBlock->nHeight))
+                return error("CheckInputsHook() : name_update on an unexpired name for %s", info);
             break;
         }
         case OP_NAME_DELETE:
         {
             if (!found || (prev_nti.op != OP_NAME_NEW && prev_nti.op != OP_NAME_UPDATE))
-                return error("name_delete without previous new or update tx, for %s", info.c_str());
+                return error("name_delete without previous new or update tx, for %s", info);
 
-            if (prev_nti.vchName != vchName)
-                return error("CheckInputsHook() : name_delete name mismatch for %s", info.c_str());
+            if (prev_nti.name != name)
+                return error("CheckInputsHook() : name_delete name mismatch for %s", info);
 
-            if (!NameActive(dbName, vchName, pindexBlock->nHeight))
-                return error("CheckInputsHook() : name_delete on expired name for %s", info.c_str());
+            if (!NameActive(dbName, name, pindexBlock->nHeight))
+                return error("CheckInputsHook() : name_delete on expired name for %s", info);
             break;
         }
         default:
-            return error("CheckInputsHook() : unknown name operation for %s", info.c_str());
+            return error("CheckInputsHook() : unknown name operation for %s", info);
     }
 
     // all checks passed - record tx information to vName. It will be sorted by nTime and writen to nameindex.dat at the end of ConnectBlock
     CNameIndex txPos2;
     txPos2.nHeight = pindexBlock->nHeight;
-    txPos2.vchValue = nti.vchValue;
+    txPos2.value = nti.value;
     txPos2.txPos = pos;
 
     nameTempProxy tmp;
     tmp.nTime = tx.nTime;
-    tmp.vchName = vchName;
+    tmp.name = name;
     tmp.op = nti.op;
     tmp.hash = tx.GetHash();
     tmp.ind = txPos2;
@@ -1605,7 +1419,7 @@ bool CNamecoinHooks::DisconnectInputs(const CTransaction& tx)
         dbName.TxnBegin();
 
         CNameRecord nameRec;
-        if (!dbName.ReadName(nti.vchName, nameRec))
+        if (!dbName.ReadName(nti.name, nameRec))
             return error("DisconnectInputsHook() : failed to read from name DB");
 
         // vtxPos might be empty if we pruned expired transactions.  However, it should normally still not
@@ -1621,7 +1435,7 @@ bool CNamecoinHooks::DisconnectInputs(const CTransaction& tx)
             nameRec.vtxPos.pop_back();
 
             if (nameRec.vtxPos.size() == 0) // delete empty record
-                return dbName.EraseName(nti.vchName);
+                return dbName.EraseName(nti.name);
 
             // if we have deleted name_new - recalculate Last Active Chain Index
             if (nti.op == OP_NAME_NEW)
@@ -1633,11 +1447,11 @@ bool CNamecoinHooks::DisconnectInputs(const CTransaction& tx)
                     }
         }
         else
-            return dbName.EraseName(nti.vchName); // delete empty record
+            return dbName.EraseName(nti.name); // delete empty record
 
         if (!CalculateExpiresAt(nameRec))
             return error("DisconnectInputsHook() : failed to calculate expiration time before writing to name DB");
-        if (!dbName.WriteName(nti.vchName, nameRec))
+        if (!dbName.WriteName(nti.name, nameRec))
             return error("DisconnectInputsHook() : failed to write to name DB");
 
         dbName.TxnCommit();
@@ -1646,7 +1460,7 @@ bool CNamecoinHooks::DisconnectInputs(const CTransaction& tx)
     return true;
 }
 
-string nameFromOp(int op)
+string stringFromOp(int op)
 {
     switch (op)
     {
@@ -1667,8 +1481,8 @@ bool CNamecoinHooks::ExtractAddress(const CScript& script, string& address)
     if (!DecodeNameScript(script, nti))
         return false;
 
-    string strOp = nameFromOp(nti.op);
-    address = strOp + ": " + stringFromVch(nti.vchName);
+    string strOp = stringFromOp(nti.op);
+    address = strOp + ": " + stringFromNameVal(nti.name);
     return true;
 }
 
@@ -1681,18 +1495,18 @@ bool CNamecoinHooks::ConnectBlock(CBlockIndex* pindex, const vector<nameTempProx
 
     // All of these name ops should succed. If there is an error - nameindex.dat is probably corrupt.
     CNameDB dbName("r+");
-    set< vector<unsigned char> > sNameNew;
+    set<CNameVal> sNameNew;
 
-    BOOST_FOREACH(const nameTempProxy &i, vName)
+    BOOST_FOREACH(const nameTempProxy& i, vName)
     {
         CNameRecord nameRec;
-        if (dbName.ExistsName(i.vchName) && !dbName.ReadName(i.vchName, nameRec))
+        if (dbName.ExistsName(i.name) && !dbName.ReadName(i.name, nameRec))
             return error("ConnectBlockHook() : failed to read from name DB");
 
         dbName.TxnBegin();
 
         // only first name_new for same name in same block will get written
-        if  (i.op == OP_NAME_NEW && sNameNew.count(i.vchName))
+        if  (i.op == OP_NAME_NEW && sNameNew.count(i.name))
             continue;
 
         nameRec.vtxPos.push_back(i.ind); // add
@@ -1701,11 +1515,13 @@ bool CNamecoinHooks::ConnectBlock(CBlockIndex* pindex, const vector<nameTempProx
         if (i.op == OP_NAME_NEW)
             nameRec.nLastActiveChainIndex = nameRec.vtxPos.size()-1;
 
-        // limit to 100 tx per name or a full single chain - whichever is larger
-        if (nameRec.vtxPos.size() > NAMEINDEX_CHAIN_SIZE &&
-            nameRec.vtxPos.size() - nameRec.nLastActiveChainIndex + 1 <= NAMEINDEX_CHAIN_SIZE)
+        // limit to 1000 tx per name or a full single chain - whichever is larger
+        static unsigned int maxSize = GetArg("-nameindexchainsize", NAMEINDEX_CHAIN_SIZE);
+
+        if (nameRec.vtxPos.size() > maxSize &&
+            nameRec.vtxPos.size() - nameRec.nLastActiveChainIndex + 1 <= maxSize)
         {
-            int d = nameRec.vtxPos.size() - NAMEINDEX_CHAIN_SIZE; // number of elements to delete
+            int d = nameRec.vtxPos.size() - maxSize; // number of elements to delete
             nameRec.vtxPos.erase(nameRec.vtxPos.begin(), nameRec.vtxPos.begin() + d);
             nameRec.nLastActiveChainIndex -= d; // move last index backwards by d elements
             assert(nameRec.nLastActiveChainIndex >= 0);
@@ -1715,135 +1531,71 @@ bool CNamecoinHooks::ConnectBlock(CBlockIndex* pindex, const vector<nameTempProx
         nameRec.vtxPos.back().op = i.op;
 
         if (!CalculateExpiresAt(nameRec))
-            return error("ConnectBlockHook() : failed to calculate expiration time before writing to name DB for %s", i.hash.GetHex().c_str());
-        if (!dbName.WriteName(i.vchName, nameRec))
+            return error("ConnectBlockHook() : failed to calculate expiration time before writing to name DB for %s", i.hash.GetHex());
+        if (!dbName.WriteName(i.name, nameRec))
             return error("ConnectBlockHook() : failed to write to name DB");
         if  (i.op == OP_NAME_NEW)
-            sNameNew.insert(i.vchName);
-        LogPrintf("ConnectBlockHook(): writing %s %s in block %d to nameindexV2.dat\n", nameFromOp(i.op), stringFromVch(i.vchName), pindex->nHeight);
+            sNameNew.insert(i.name);
+        LogPrintf("ConnectBlockHook(): writing %s %s in block %d to nameindexV2.dat\n", stringFromOp(i.op), stringFromNameVal(i.name), pindex->nHeight);
 
         {
             // remove from pending names list
             LOCK(cs_main);
-            map<vector<unsigned char>, set<uint256> >::iterator mi = mapNamePending.find(i.vchName);
+            map<CNameVal, set<uint256> >::iterator mi = mapNamePending.find(i.name);
             if (mi != mapNamePending.end())
             {
                 mi->second.erase(i.hash);
                 if (mi->second.empty())
-                    mapNamePending.erase(i.vchName);
+                    mapNamePending.erase(i.name);
             }
         }
         if (!dbName.TxnCommit())
-            return error("ConnectBlockHook(): failed to write %s to name DB", stringFromVch(i.vchName).c_str());
+            return error("ConnectBlockHook(): failed to write %s to name DB", stringFromNameVal(i.name));
     }
 
     return true;
-}
-
-bool CNamecoinHooks::IsNameTx(int nVersion)
-{
-    return nVersion == NAMECOIN_TX_VERSION;
 }
 
 bool CNamecoinHooks::IsNameScript(CScript scr)
 {
     NameTxInfo nti;
-    return DecodeNameScript(scr, nti, false);
+    return DecodeNameScript(scr, nti);
 }
 
-bool CNamecoinHooks::deletePendingName(const CTransaction& tx)
+bool CNamecoinHooks::getNameValue(const string& sName, string& sValue)
 {
-    NameTxInfo nti;
-    if (DecodeNameTx(tx, nti, false) && mapNamePending.count(nti.vchName))
-    {
-        mapNamePending[nti.vchName].erase(tx.GetHash());
-        if (mapNamePending[nti.vchName].empty())
-            mapNamePending.erase(nti.vchName);
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-bool CNamecoinHooks::getNameValue(const string& name, string& value)
-{
-    vector<unsigned char> vchName = vchFromString(name);
+    CNameVal name = nameValFromString(sName);
     CNameDB dbName("r");
-    if (!dbName.ExistsName(vchName))
+    if (!dbName.ExistsName(name))
         return false;
 
     CTransaction tx;
     NameTxInfo nti;
-    if (!(GetLastTxOfName(dbName, vchName, tx) && DecodeNameTx(tx, nti, false, true)))
+    if (!(GetLastTxOfName(dbName, name, tx) && DecodeNameTx(tx, nti, true)))
         return false;
 
-    if (!NameActive(dbName, vchName))
+    if (!NameActive(dbName, name))
         return false;
 
-    value = stringFromVch(nti.vchValue);
+    sValue = stringFromNameVal(nti.value);
 
     return true;
 }
 
-bool GetPendingNameValue(const vector<unsigned char> &vchName, vector<unsigned char> &vchValue)
+bool GetNameValue(const CNameVal& name, CNameVal& value)
 {
-    if (!mapNamePending.count(vchName))
+    CNameDB dbName("r");
+    CNameRecord nameRec;
+
+    if (!NameActive(name))
         return false;
-    if (mapNamePending[vchName].empty())
+    if (!dbName.ReadName(name, nameRec))
+        return false;
+    if (nameRec.vtxPos.empty())
         return false;
 
-    // if there is a set of pending op on a single name - select last one, by nTime
-    CTransaction tx;
-    uint32_t nTime = 0;
-    bool found = false;
-    BOOST_FOREACH(uint256 hash, mapNamePending[vchName])
-    {
-        if (!mempool.exists(hash))
-            continue;
-        if (mempool.mapTx[hash].GetTx().nTime > nTime)
-        {
-            tx = mempool.mapTx[hash].GetTx();
-            nTime = tx.nTime;
-            found = true;
-        }
-    }
-    if (!found)
-        return false;
-
-    NameTxInfo nti;
-    if (!DecodeNameTx(tx, nti, false, true))
-        return false;
-
-    vchValue = nti.vchValue;
+    value = nameRec.vtxPos.back().value;
     return true;
-}
-
-// if pending is true it will grab value from pending names. If there are no pending names it will grab value from nameindex.dat
-bool GetNameValue(const vector<unsigned char> &vchName, vector<unsigned char> &vchValue, bool checkPending)
-{
-    bool found = false;
-    if (checkPending)
-        found = GetPendingNameValue(vchName, vchValue);
-
-    if (found)
-        return true;
-    else
-    {
-        CNameDB dbName("r");
-        CNameRecord nameRec;
-
-        if (!NameActive(vchName))
-            return false;
-        if (!dbName.ReadName(vchName, nameRec))
-            return false;
-        if (nameRec.vtxPos.empty())
-            return false;
-
-        vchValue = nameRec.vtxPos.back().vchValue;
-        return true;
-    }
 }
 
 bool CNamecoinHooks::DumpToTextFile()
@@ -1863,14 +1615,14 @@ bool CNameDB::DumpToTextFile()
     if (!pcursor)
         return false;
 
-    vector<unsigned char> vchName;
+    CNameVal name;
     unsigned int fFlags = DB_SET_RANGE;
     while (true)
     {
         // Read next record
         CDataStream ssKey(SER_DISK, CLIENT_VERSION);
         if (fFlags == DB_SET_RANGE)
-            ssKey << make_pair(string("namei"), vchName);
+            ssKey << make_pair(string("namei"), name);
         CDataStream ssValue(SER_DISK, CLIENT_VERSION);
         int ret = ReadAtCursor(pcursor, ssKey, ssValue, fFlags);
         fFlags = DB_NEXT;
@@ -1884,14 +1636,14 @@ bool CNameDB::DumpToTextFile()
         ssKey >> strType;
         if (strType == "namei")
         {
-            vector<unsigned char> vchName;
-            ssKey >> vchName;
+            CNameVal name2;
+            ssKey >> name2;
             CNameRecord val;
             ssValue >> val;
             if (val.vtxPos.empty())
                 continue;
 
-            myfile << "name =  " << stringFromVch(vchName) << "\n";
+            myfile << "name =  " << stringFromNameVal(name2) << "\n";
             myfile << "nExpiresAt " << val.nExpiresAt << "\n";
             myfile << "nLastActiveChainIndex " << val.nLastActiveChainIndex << "\n";
             myfile << "vtxPos:\n";
@@ -1899,7 +1651,7 @@ bool CNameDB::DumpToTextFile()
             {
                 myfile << "    nHeight = " << val.vtxPos[i].nHeight << "\n";
                 myfile << "    op = " << val.vtxPos[i].op << "\n";
-                myfile << "    value = " << stringFromVch(val.vtxPos[i].vchValue) << "\n";
+                myfile << "    value = " << stringFromNameVal(val.vtxPos[i].value) << "\n";
             }
             myfile << "\n\n";
         }
@@ -1909,7 +1661,7 @@ bool CNameDB::DumpToTextFile()
     return true;
 }
 
-bool SignNameSignature(const CKeyStore &keystore, const CTransaction& txFrom, CMutableTransaction& txTo, unsigned int nIn, int nHashType)
+bool SignNameSignature(const CKeyStore& keystore, const CTransaction& txFrom, CMutableTransaction& txTo, unsigned int nIn, int nHashType)
 {
     assert(nIn < txTo.vin.size());
     CTxIn& txin = txTo.vin[nIn];
@@ -1930,5 +1682,5 @@ bool SignNameSignature(const CKeyStore &keystore, const CTransaction& txFrom, CM
         return false;
 
     // Test solution
-    return VerifyScript(txin.scriptSig, txout.scriptPubKey, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker(&txTo, nIn));
+    return VerifyScript(txin.scriptSig, txout.scriptPubKey, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker(&txTo, nIn), NULL, txTo.nVersion == NAMECOIN_TX_VERSION);
 }

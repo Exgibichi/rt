@@ -19,17 +19,15 @@ using namespace std;
 class CHooks
 {
 public:
-    virtual bool IsNameFeeEnough(const CTransaction &tx, const CAmount &txFee) = 0;
-    virtual bool CheckInputs(const CTransaction& tx, const CBlockIndex* pindexBlock, std::vector<nameTempProxy>& vName, const CDiskTxPos &pos, const CAmount &txFee) = 0;
+    virtual bool IsNameFeeEnough(const CTransaction& tx, const CAmount& txFee) = 0;
+    virtual bool CheckInputs(const CTransaction& tx, const CBlockIndex* pindexBlock, std::vector<nameTempProxy> &vName, const CDiskTxPos& pos, const CAmount& txFee) = 0;
     virtual bool DisconnectInputs(const CTransaction& tx) = 0;
     virtual bool ConnectBlock(CBlockIndex* pindex, const std::vector<nameTempProxy> &vName) = 0;
     virtual bool ExtractAddress(const CScript& script, std::string& address) = 0;
     virtual void AddToPendingNames(const CTransaction& tx) = 0;
-    virtual bool IsMine(const CTxOut& txout) = 0;
-    virtual bool IsNameTx(int nVersion) = 0;
+    virtual bool RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut) = 0;
     virtual bool IsNameScript(CScript scr) = 0;
-    virtual bool deletePendingName(const CTransaction& tx) = 0;
-    virtual bool getNameValue(const string& name, string& value) = 0;
+    virtual bool getNameValue(const string& sName, string& sValue) = 0;
     virtual bool DumpToTextFile() = 0;
 };
 

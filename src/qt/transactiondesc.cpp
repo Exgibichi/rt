@@ -262,7 +262,7 @@ QString TransactionDesc::toHTML(CWallet *wallet, CWalletTx &wtx, TransactionReco
         }
     }
 
-    quint32 numBlocksToMaturity = COINBASE_MATURITY +  1;
+    quint32 numBlocksToMaturity = Params().CoinbaseMaturity() +  1;
     if (wtx.IsCoinBase())
         strHTML += "<br>" + tr("Generated coins must mature %1 blocks before they can be spent. When you generated this block, it was broadcast to the network to be added to the block chain. If it fails to get into the chain, its state will change to \"not accepted\" and it won't be spendable. This may occasionally happen if another node generates a block within a few seconds of yours.").arg(QString::number(numBlocksToMaturity)) + "<br>";
     if (wtx.IsCoinStake())
@@ -272,7 +272,7 @@ QString TransactionDesc::toHTML(CWallet *wallet, CWalletTx &wtx, TransactionReco
     //
     // Debug view
     //
-    if (fDebug)
+    if (true)      // emercoin: enable debug view print even when not debuging
     {
         strHTML += "<hr><br>" + tr("Debug information") + "<br><br>";
         BOOST_FOREACH(const CTxIn& txin, wtx.vin)
@@ -292,24 +292,23 @@ QString TransactionDesc::toHTML(CWallet *wallet, CWalletTx &wtx, TransactionReco
         {
             COutPoint prevout = txin.prevout;
 
-            CCoins prev;
-            if(pcoinsTip->GetCoins(prevout.hash, prev))
+            CTransaction txPrev;
+            uint256 hashBlock = 0;
+            if (GetTransaction(prevout.hash, txPrev, hashBlock))
             {
-                if (prevout.n < prev.vout.size())
+                strHTML += "<li>";
+                const CTxOut &vout = txPrev.vout[prevout.n];
+                CTxDestination address;
+                if (ExtractDestination(vout.scriptPubKey, address))
                 {
-                    strHTML += "<li>";
-                    const CTxOut &vout = prev.vout[prevout.n];
-                    CTxDestination address;
-                    if (ExtractDestination(vout.scriptPubKey, address))
-                    {
-                        if (wallet->mapAddressBook.count(address) && !wallet->mapAddressBook[address].name.empty())
-                            strHTML += GUIUtil::HtmlEscape(wallet->mapAddressBook[address].name) + " ";
-                        strHTML += QString::fromStdString(CBitcoinAddress(address).ToString());
-                    }
-                    strHTML = strHTML + " " + tr("Amount") + "=" + BitcoinUnits::formatHtmlWithUnit(unit, vout.nValue);
-                    strHTML = strHTML + " IsMine=" + (wallet->IsMine(vout) & ISMINE_SPENDABLE ? tr("true") : tr("false")) + "</li>";
-                    strHTML = strHTML + " IsWatchOnly=" + (wallet->IsMine(vout) & ISMINE_WATCH_ONLY ? tr("true") : tr("false")) + "</li>";
+                    if (wallet->mapAddressBook.count(address) && !wallet->mapAddressBook[address].name.empty())
+                        strHTML += GUIUtil::HtmlEscape(wallet->mapAddressBook[address].name) + " ";
+                    strHTML += QString::fromStdString(CBitcoinAddress(address).ToString());
                 }
+                strHTML = strHTML + " " + tr("Amount") + "=" + BitcoinUnits::formatHtmlWithUnit(unit, vout.nValue);
+                strHTML = strHTML + " IsMine=" + (wallet->IsMine(vout) & ISMINE_SPENDABLE ? tr("true") : tr("false"));
+                strHTML = strHTML + " IsWatchOnly=" + (wallet->IsMine(vout) & ISMINE_WATCH_ONLY ? tr("true") : tr("false"));
+                strHTML += "</li>";
             }
         }
 

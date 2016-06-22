@@ -170,6 +170,10 @@ enum opcodetype
     OP_INVALIDOPCODE = 0xff,
 };
 
+static const int OP_NAME_NEW = 0x01;
+static const int OP_NAME_UPDATE = 0x02;
+static const int OP_NAME_DELETE = 0x03;
+
 const char* GetOpName(opcodetype opcode);
 
 class scriptnum_error : public std::runtime_error

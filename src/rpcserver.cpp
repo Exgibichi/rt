@@ -276,6 +276,8 @@ static const CRPCCommand vRPCCommands[] =
     { "blockchain",         "name_scan",              &name_scan,              false,     false,      false },
     { "blockchain",         "name_filter",            &name_filter,            false,     false,      false },
     { "blockchain",         "name_show",              &name_show,              false,     false,      false },
+    { "blockchain",         "name_history",           &name_history,           false,     false,      false },
+    { "blockchain",         "name_mempool",           &name_mempool,           false,     false,      false },
 //emercoin    { "blockchain",         "gettxlistfor",           &gettxlistfor,              false,     false,      false },
 
 
@@ -595,13 +597,13 @@ void StartRPCThreads()
             _("To use emercoind, or the -server option to emercoin-qt, you must set an rpcpassword in the configuration file:\n"
               "%s\n"
               "It is recommended you use the following random password:\n"
-              "rpcuser=bitcoinrpc\n"
+              "rpcuser=emercoinrpc\n"
               "rpcpassword=%s\n"
               "(you do not need to remember this password)\n"
               "The username and password MUST NOT be the same.\n"
               "If the file does not exist, create it with owner-readable-only file permissions.\n"
               "It is also recommended to set alertnotify so you are notified of problems;\n"
-              "for example: alertnotify=echo %%s | mail -s \"Bitcoin Alert\" admin@foo.com\n"),
+              "for example: alertnotify=echo %%s | mail -s \"Emercoin Alert\" admin@foo.com\n"),
                 GetConfigFile().string(),
                 EncodeBase58(&rand_pwd[0],&rand_pwd[0]+32)),
                 "", CClientUIInterface::MSG_ERROR | CClientUIInterface::SECURE);

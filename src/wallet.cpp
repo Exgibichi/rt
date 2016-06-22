@@ -784,8 +784,12 @@ bool CWallet::IsChange(const CTxOut& txout) const
     // a better way of identifying which outputs are 'the send' and which are
     // 'the change' will need to be implemented (maybe extend CWalletTx to remember
     // which output, if any, was change).
-    if (::IsMine(*this, txout.scriptPubKey))
+    bool fName;
+    if (::IsMine(*this, txout.scriptPubKey, fName))
     {
+        if (fName)
+            return false;   // names are technicaly change, but they are much more than that, so we do not want to group them with change.
+
         CTxDestination address;
         if (!ExtractDestination(txout.scriptPubKey, address))
             return true;
@@ -840,6 +844,40 @@ int CWalletTx::GetRequestCount() const
         }
     }
     return nRequests;
+}
+
+CAmount CWalletTx::GetAvailableCredit(bool fUseCache) const
+{
+    if (pwallet == 0)
+        return 0;
+
+    // Must wait until coinbase is safely deep enough in the chain before valuing it
+    if ((IsCoinBase() || IsCoinStake()) && GetBlocksToMaturity() > 0)
+        return 0;
+
+    if (fUseCache && fAvailableCreditCached)
+        return nAvailableCreditCached;
+
+    CAmount nCredit = 0;
+    uint256 hashTx = GetHash();
+    for (unsigned int i = 0; i < vout.size(); i++)
+    {
+        // ignore namecoin TxOut
+        if (nVersion == NAMECOIN_TX_VERSION && hooks->IsNameScript(vout[i].scriptPubKey))
+            continue;
+
+        if (!pwallet->IsSpent(hashTx, i))
+        {
+            const CTxOut &txout = vout[i];
+            nCredit += pwallet->GetCredit(txout, ISMINE_SPENDABLE);
+            if (!MoneyRange(nCredit))
+                throw std::runtime_error("CWalletTx::GetAvailableCredit() : value out of range");
+        }
+    }
+
+    nAvailableCreditCached = nCredit;
+    fAvailableCreditCached = true;
+    return nCredit;
 }
 
 void CWalletTx::GetAmounts(list<COutputEntry>& listReceived,
@@ -1107,7 +1145,6 @@ void CWallet::ResendWalletTransactions()
  * @{
  */
 
-
 CAmount CWallet::GetBalance() const
 {
     CAmount nTotal = 0;
@@ -1213,7 +1250,7 @@ CAmount CWallet::GetImmatureWatchOnlyBalance() const
 }
 
 /**
- * populate vCoins with vector of available COutputs.
+ * populate vCoins with vector of available COutputs. Outputs with names are ignored.
  */
 void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const CCoinControl *coinControl, unsigned int nSpendTime) const
 {
@@ -1242,7 +1279,12 @@ void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const
             if (nDepth < 0)
                 continue;
 
-            for (unsigned int i = 0; i < pcoin->vout.size(); i++) {
+            for (unsigned int i = 0; i < pcoin->vout.size(); i++)
+            {
+                // ignore namecoin TxOut
+                if (pcoin->nVersion == NAMECOIN_TX_VERSION && hooks->IsNameScript(pcoin->vout[i].scriptPubKey))
+                    continue;
+
                 isminetype mine = IsMine(pcoin->vout[i]);
                 if (!(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
                     !IsLockedCoin((*it).first, i) && pcoin->vout[i].nValue > 0 &&
@@ -1341,7 +1383,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
         CAmount n = pcoin->vout[i].nValue;
 
         // ignore namecoin TxOut
-        if (hooks->IsNameTx(pcoin->nVersion) && hooks->IsNameScript(pcoin->vout[i].scriptPubKey))
+        if (pcoin->nVersion == NAMECOIN_TX_VERSION && hooks->IsNameScript(pcoin->vout[i].scriptPubKey))
             continue;
 
         pair<CAmount,pair<const CWalletTx*,unsigned int> > coin = make_pair(n,make_pair(pcoin, i));
@@ -1387,9 +1429,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
   // Adeed by maxihatop
 
   // Maximap DP array size
-  static uint32_t nMaxDP = 0;
-  if(nMaxDP == 0) 
-    nMaxDP = GetArg("-maxdp", 8 * 1024 * 1024);
+  static uint32_t nMaxDP = GetArg("-maxdp", 8 * 1024 * 1024);
 
   uint16_t *dp;	// dynamic programming array
   uint32_t dp_tgt = nTargetValue / MIN_TXOUT_AMOUNT;
@@ -1427,7 +1467,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
     while(min_over_sum) {
       uint16_t utxo_no = min_over_utxo - 1;
       if (fDebug && GetBoolArg("-printselectcoin", false)) 
-        printf("SelectCoins() DP Added #%u: Val=%s\n", utxo_no, FormatMoney(vValue[utxo_no].first).c_str());
+        LogPrintf("SelectCoins() DP Added #%u: Val=%s\n", utxo_no, FormatMoney(vValue[utxo_no].first));
       setCoinsRet.insert(vValue[utxo_no].second);
       nValueRet += vValue[utxo_no].first;
       min_over_sum -= vValue[utxo_no].first / MIN_TXOUT_AMOUNT;
@@ -1439,10 +1479,10 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
     if(nValueRet >= nTargetValue) {
       //// debug print
       if (fDebug && GetBoolArg("-printselectcoin", false)) 
-        printf("SelectCoins() DP subset: Target=%s Found=%s Payback=%s Qty=%u\n", 
- 	        FormatMoney(nTargetValue).c_str(), 
- 	        FormatMoney(nValueRet).c_str(), 
-	        FormatMoney(nValueRet - nTargetValue).c_str(), 
+        LogPrintf("SelectCoins() DP subset: Target=%s Found=%s Payback=%s Qty=%u\n",
+            FormatMoney(nTargetValue),
+            FormatMoney(nValueRet),
+            FormatMoney(nValueRet - nTargetValue),
 	        (unsigned)setCoinsRet.size()
 	        );
       return true; // sum found by DP
@@ -1557,7 +1597,6 @@ bool CWallet::CreateTransactionInner(const vector<pair<CScript, CAmount> >& vecS
                 wtxNew.fFromMe = true;
 
                 CAmount nTotalValue = nValue + nFeeRet;
-                double dPriority = 0;
                 // vouts to the payees
                 BOOST_FOREACH (const PAIRTYPE(CScript, CAmount)& s, vecSend)
                 {
@@ -1593,25 +1632,11 @@ bool CWallet::CreateTransactionInner(const vector<pair<CScript, CAmount> >& vecS
                     return false;
                 }
 
-                BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
-                {
-                    CAmount nCredit = pcoin.first->vout[pcoin.second].nValue;
-                    //The coin age after the next block (depth+1) is used instead of the current,
-                    //reflecting an assumption the user would accept a bit more delay for
-                    //a chance at a free transaction.
-                    //But mempool inputs might still be in the mempool, so their age stays 0
-                    int age = pcoin.first->GetDepthInMainChain();
-                    if (age != 0)
-                        age += 1;
-                    dPriority += (double)nCredit * age;
-                }
-
-                // emercoin: name tx always at first position
+		// emercoin: name tx always at first position
                 if (!wtxNameIn.IsNull())
                 {
                     setCoins.insert(setCoins.begin(), make_pair(&wtxNameIn, nNameTxOut));
                     nValueIn += nNameTxInCredit;
-                    dPriority += (double)nNameTxInCredit * wtxNameIn.GetDepthInMainChain();
                 }
 
                 CAmount nChange = nValueIn - nValue - nFeeRet;
@@ -1716,10 +1741,13 @@ bool CWallet::CreateTransactionInner(const vector<pair<CScript, CAmount> >& vecS
                     strFailReason = _("Transaction too large");
                     return false;
                 }
-                dPriority = wtxNew.ComputePriority(dPriority, nBytes);
 
-                // Check that enough fee is included (at least MIN_TX_FEE per 1000 bytes)
+                // Check that enough fee is included (at least SUBCENT per 10000 bytes)
                 CAmount nMinFee = max(nFeeInput, wtxNew.GetMinFee());
+
+                // we are using MIN_TXOUT_AMOUNT to match it with dp optimizer
+                nMinFee = (nMinFee + MIN_TXOUT_AMOUNT - 1) / MIN_TXOUT_AMOUNT * MIN_TXOUT_AMOUNT;  // round up to MIN_TXOUT_AMOUNT
+
                 if (nFeeRet < nMinFee)
                 {
                     nFeeRet = nMinFee;
@@ -1843,7 +1871,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 
 
         static int nMaxStakeSearchInterval = 60;
-        if (header.GetBlockTime() + nStakeMinAge > txNew.nTime - nMaxStakeSearchInterval)
+        if (header.GetBlockTime() + Params().StakeMinAge() > txNew.nTime - nMaxStakeSearchInterval)
             continue; // only count coins meeting min age requirement
 
         bool fKernelFound = false;
@@ -1929,7 +1957,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
             if (pcoin.first->vout[pcoin.second].nValue > nCombineThreshold)
                 continue;
             // Do not add input that is still too young
-            if (pcoin.first->nTime + STAKE_MAX_AGE > txNew.nTime)
+            if (pcoin.first->nTime + Params().StakeMaxAge() > txNew.nTime)
                 continue;
             txNew.vin.push_back(CTxIn(pcoin.first->GetHash(), pcoin.second));
             nCredit += pcoin.first->vout[pcoin.second].nValue;
@@ -2195,7 +2223,7 @@ bool CWallet::NewKeyPool()
         if (IsLocked())
             return false;
 
-        int64_t nKeys = max(GetArg("-keypool", 100), (int64_t)0);
+        int64_t nKeys = max(GetArg("-keypool", 500), (int64_t)0);
         for (int i = 0; i < nKeys; i++)
         {
             int64_t nIndex = i+1;
@@ -2222,7 +2250,7 @@ bool CWallet::TopUpKeyPool(unsigned int kpSize)
         if (kpSize > 0)
             nTargetSize = kpSize;
         else
-            nTargetSize = max(GetArg("-keypool", 100), (int64_t) 0);
+            nTargetSize = max(GetArg("-keypool", 500), (int64_t) 0);
 
         while (setKeyPool.size() < (nTargetSize + 1))
         {
@@ -2782,7 +2810,7 @@ int CMerkleTx::GetBlocksToMaturity() const
 {
     if (!(IsCoinBase() || IsCoinStake()))
         return 0;
-    return max(0, (COINBASE_MATURITY+20) - GetDepthInMainChain());
+    return max(0, ((int)Params().CoinbaseMaturity()+20) - GetDepthInMainChain());
 }
 
 

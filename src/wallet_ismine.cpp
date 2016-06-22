@@ -9,6 +9,7 @@
 #include "keystore.h"
 #include "script/script.h"
 #include "script/standard.h"
+#include "hooks.h"
 
 #include <boost/foreach.hpp>
 
@@ -26,16 +27,9 @@ unsigned int HaveKeys(const vector<valtype>& pubkeys, const CKeyStore& keystore)
     return nResult;
 }
 
-isminetype IsMine(const CKeyStore &keystore, const CTxDestination& dest)
-{
-    CScript script = GetScriptForDestination(dest);
-    return IsMine(keystore, script);
-}
-
-isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey)
+isminetype IsMineInner(const CKeyStore &keystore, const CScript& scriptPubKey, txnouttype& whichType)
 {
     vector<valtype> vSolutions;
-    txnouttype whichType;
     if (!Solver(scriptPubKey, whichType, vSolutions)) {
         if (keystore.HaveWatchOnly(scriptPubKey))
             return ISMINE_WATCH_ONLY;
@@ -54,6 +48,7 @@ isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey)
             return ISMINE_SPENDABLE;
         break;
     case TX_PUBKEYHASH:
+    case TX_NAME:
         keyID = CKeyID(uint160(vSolutions[0]));
         if (keystore.HaveKey(keyID))
             return ISMINE_SPENDABLE;
@@ -86,4 +81,28 @@ isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey)
     if (keystore.HaveWatchOnly(scriptPubKey))
         return ISMINE_WATCH_ONLY;
     return ISMINE_NO;
+}
+
+isminetype IsMine(const CKeyStore &keystore, const CTxDestination& dest)
+{
+    CScript script = GetScriptForDestination(dest);
+    txnouttype whichType;
+    return IsMineInner(keystore, script, whichType);
+}
+
+isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey)
+{
+    txnouttype whichType;
+    return IsMineInner(keystore, scriptPubKey, whichType);
+}
+
+// normal check + name check
+isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey, bool &fName)
+{
+    fName = false;
+    txnouttype whichType;
+    isminetype ret = IsMineInner(keystore, scriptPubKey, whichType);
+    fName = whichType == TX_NAME;
+
+    return ret;
 }

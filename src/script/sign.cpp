@@ -64,6 +64,7 @@ bool Solver(const CKeyStore& keystore, const CScript& scriptPubKey, uint256 hash
     {
     case TX_NONSTANDARD:
     case TX_NULL_DATA:
+    case TX_NAME:
         return false;
     case TX_PUBKEY:
         keyID = CPubKey(vSolutions[0]).GetID();
@@ -205,6 +206,7 @@ static CScript CombineSignatures(const CScript& scriptPubKey, const CTransaction
     {
     case TX_NONSTANDARD:
     case TX_NULL_DATA:
+    case TX_NAME:
         // Don't know anything about this, assume bigger one is correct:
         if (sigs1.size() >= sigs2.size())
             return PushAll(sigs1);
