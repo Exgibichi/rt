@@ -106,6 +106,12 @@ public:
     std::string help(std::string name) const;
 
     /**
+    * Returns a list of registered commands
+    * @returns List of registered commands.
+    */
+    std::vector<std::string> listCommands() const;
+
+    /**
      * Execute a method.
      * @param method   Method to execute
      * @param params   Array of arguments (JSON objects)
