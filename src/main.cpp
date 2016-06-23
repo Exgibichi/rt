@@ -1912,6 +1912,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     vPos.reserve(block.vtx.size());
     std::vector<CAmount> vFees (block.vtx.size(), 0);
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
+
+    static int trustdepth = GetArg("-trustdepth", 0);
+
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = block.vtx[i];
@@ -1952,8 +1955,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             }
 
             std::vector<CScriptCheck> vChecks;
-            if (!CheckInputs(tx, state, view, fScriptChecks, flags, false, nScriptCheckThreads ? &vChecks : NULL))
+            if (pindex->nHeight > trustdepth && !CheckInputs(tx, state, view, fScriptChecks, flags, false, nScriptCheckThreads ? &vChecks : NULL))
                 return false;
+
             control.Add(vChecks);
         }
 

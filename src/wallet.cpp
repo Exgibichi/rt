@@ -1355,9 +1355,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
     coinLowestLarger.second.first = NULL;
     vector<pair<CAmount, pair<const CWalletTx*,unsigned int> > > vValue;
     CAmount nTotalLower = 0;
-    static int sortir = -1;
-    if(sortir < 0) 
-	sortir = GetArg("-sortir", 0);
+    static int sortir = GetArg("-sortir", 0);
 
     switch(sortir) {
 	case 1:
