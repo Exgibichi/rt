@@ -756,7 +756,7 @@ bool AppInit2(boost::thread_group& threadGroup)
                                        mapArgs["-maxtxfee"], ::minRelayTxFee.ToString()));
         }
     }
-    if (mapArgs.count("-paytxfee"))
+    if (mapArgs.count("-reservebalance"))
     {
         CAmount nReserveBalance = 0;
         if (!ParseMoney(mapArgs["-reservebalance"], nReserveBalance))

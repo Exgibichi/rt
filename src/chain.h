@@ -143,7 +143,6 @@ public:
     uint32_t nSequenceId;
 
 // ppcoin
-    uint256 bnChainTrust; // ppcoin: trust score of block chain
     int64_t nMint;
     int64_t nMoneySupply;
 
@@ -219,7 +218,6 @@ public:
         nBits          = 0;
         nNonce         = 0;
 
-        bnChainTrust = 0;
         nMint = 0;
         nMoneySupply = 0;
         nFlags = 0;
