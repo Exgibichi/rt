@@ -256,6 +256,7 @@ static const CRPCCommand vRPCCommands[] =
     { "network",            "getnettotals",           &getnettotals,           true,      true,       false },
     { "network",            "getpeerinfo",            &getpeerinfo,            true,      false,      false },
     { "network",            "ping",                   &ping,                   true,      false,      false },
+    { "network",            "getcheckpoint",          &getcheckpoint,          false,     false,      false },
 
     /* Block chain and UTXO */
     { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      true,      false,      false },
@@ -366,7 +367,6 @@ static const CRPCCommand vRPCCommands[] =
     { "wallet",             "sendtoname",             &sendtoname,             false,     false,      false },
     { "wallet",             "name_list",              &name_list,              false,     false,      false },
 
-//emercoin    { "wallet",             "deletetransaction",      &deletetransaction,      false,     false,      false },
 #endif // ENABLE_WALLET
   //  --------------------- ------------------------  -----------------------  ---------- ---------- ---------
   //  category              name                      actor (function)         okSafeMode threadSafe reqWallet

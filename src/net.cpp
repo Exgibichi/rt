@@ -2002,6 +2002,7 @@ CNode::CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn, bool fIn
     hashContinue = 0;
     nStartingHeight = -1;
     fGetAddr = false;
+    hashCheckpointKnown = 0;
     fRelayTxes = false;
     setInventoryKnown.max_size(SendBufferSize() / 1000);
     pfilter = new CBloomFilter();

@@ -382,6 +382,27 @@ Value setmocktime(const Array& params, bool fHelp)
     return Value::null;
 }
 
+// ppcoin: get information of sync-checkpoint
+Value getcheckpoint(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getcheckpoint\n"
+            "Show info of synchronized checkpoint.\n");
+
+    Object result;
+    CBlockIndex* pindexCheckpoint;
+
+    result.push_back(Pair("synccheckpoint", CheckpointsSync::hashSyncCheckpoint.ToString()));
+    pindexCheckpoint = mapBlockIndex[CheckpointsSync::hashSyncCheckpoint];
+    result.push_back(Pair("height", pindexCheckpoint->nHeight));
+    result.push_back(Pair("timestamp", DateTimeStrFormat(pindexCheckpoint->GetBlockTime())));
+    if (mapArgs.count("-checkpointkey"))
+        result.push_back(Pair("checkpointmaster", true));
+
+    return result;
+}
+
 // ppcoin: reserve balance from being staked for network protection
 Value reservebalance(const Array& params, bool fHelp)
 {
@@ -404,7 +425,7 @@ Value reservebalance(const Array& params, bool fHelp)
             nAmount = (nAmount / CENT) * CENT;  // round to cent
             if (nAmount < 0)
                 throw runtime_error("amount cannot be negative.\n");
-            mapArgs["-reservebalance"] = FormatMoney(nAmount).c_str();
+            mapArgs["-reservebalance"] = FormatMoney(nAmount);
         }
         else
         {
