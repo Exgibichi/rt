@@ -116,6 +116,7 @@ void ClientModel::updateTimer()
         cachedReindexing = fReindex;
         cachedImporting = fImporting;
 
+        emit alertsChanged(getStatusBarWarnings());  // emercoin: redraw alerts in case of old sync checkpoint
         emit numBlocksChanged(newNumBlocks);
     }
 
