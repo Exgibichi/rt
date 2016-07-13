@@ -1101,9 +1101,11 @@ NameTxReturn name_operation(const int op, const CNameVal& name, const CNameVal& 
 
     // create namescript
         CScript nameScript;
+        string prevMsg = ret.err_msg;
         if (!createNameScript(nameScript, name, value, nRentalDays, op, ret.err_msg))
         {
-            ret.err_msg = "failed to create name script";
+            if (prevMsg == ret.err_msg)  // in case error message not changed, but error still occurred
+                ret.err_msg = "failed to create name script";
             return ret;
         }
 
