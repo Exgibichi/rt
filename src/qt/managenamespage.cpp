@@ -253,7 +253,15 @@ void ManageNamesPage::on_submitNameButton_clicked()
         displayValue = QString::fromStdString(stringFromNameVal(value));
     }
 
-    int days = ui->registerDays->text().toInt();
+    QString txTimeType = ui->txTimeTypeSelector->currentText();
+    int days = 0;
+    if      (txTimeType == "days")
+        days = ui->registerTimeUnits->text().toInt();
+    else if (txTimeType == "months")
+        days = ui->registerTimeUnits->text().toInt() * 30;
+    else if (txTimeType == "years")
+        days = ui->registerTimeUnits->text().toInt() * 365;
+
     QString txType = ui->txTypeSelector->currentText();
     QString newAddress = ui->registerAddress->text();
     if (txType == "NAME_UPDATE")
@@ -496,19 +504,22 @@ void ManageNamesPage::on_txTypeSelector_currentIndexChanged(const QString &txTyp
 {
     if (txType == "NAME_NEW")
     {
-        ui->registerDays->setEnabled(true);
+        ui->txTimeTypeSelector->setEnabled(true);
+        ui->registerTimeUnits->setEnabled(true);
         ui->registerAddress->setDisabled(true);
         ui->registerValue->setEnabled(true);
     }
     else if (txType == "NAME_UPDATE")
     {
-        ui->registerDays->setEnabled(true);
+        ui->txTimeTypeSelector->setEnabled(true);
+        ui->registerTimeUnits->setEnabled(true);
         ui->registerAddress->setEnabled(true);
         ui->registerValue->setEnabled(true);
     }
     else if (txType == "NAME_DELETE")
     {
-        ui->registerDays->setDisabled(true);
+        ui->txTimeTypeSelector->setDisabled(true);
+        ui->registerTimeUnits->setDisabled(true);
         ui->registerAddress->setDisabled(true);
         ui->registerValue->setDisabled(true);
     }

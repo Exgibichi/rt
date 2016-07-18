@@ -115,7 +115,7 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, unsigne
 // namecoin stuff
 static const unsigned int MAX_NAME_LENGTH = 512;
 static const unsigned int MAX_VALUE_LENGTH = 20*1024;
-static const int MAX_RENTAL_DAYS = 366 000 000;  // in days
+static const int MAX_RENTAL_DAYS = 366000000;  // in days
 
 bool checkNameValues(NameTxInfo& ret);
 bool DecodeNameScript(const CScript& script, NameTxInfo& ret, CScript::const_iterator& pc);

@@ -49,17 +49,29 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_7">
-       <property name="text">
-        <string>days:</string>
+      <widget class="QComboBox" name="txTimeTypeSelector">
+       <property name="currentIndex">
+        <number>0</number>
        </property>
-       <property name="alignment">
-        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-       </property>
+       <item>
+        <property name="text">
+         <string>days</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>months</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>years</string>
+        </property>
+       </item>
       </widget>
      </item>
      <item>
-      <widget class="QSpinBox" name="registerDays">
+      <widget class="QSpinBox" name="registerTimeUnits">
        <property name="toolTip">
         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Set number of days that will be added to name expire time.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
