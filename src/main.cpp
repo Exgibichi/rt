@@ -3127,8 +3127,8 @@ bool ProcessNewBlock(CValidationState &state, CNode* pfrom, CBlock* pblock, CDis
         CBlockIndex *pindex = NULL;
 
         // ppcoin: ask for pending sync-checkpoint if any
-        if (!IsInitialBlockDownload())
-            CheckpointsSync::AskForPendingSyncCheckpoint(pfrom);
+//        if (!IsInitialBlockDownload())
+//            CheckpointsSync::AskForPendingSyncCheckpoint(pfrom);
 
         bool ret = AcceptBlock(*pblock, state, &pindex, dbp);
         if (pindex && pfrom) {
@@ -4223,8 +4223,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         AddTimeData(pfrom->addr, nTime);
 
         // ppcoin: ask for pending sync-checkpoint if any
-        if (!IsInitialBlockDownload())
-            CheckpointsSync::AskForPendingSyncCheckpoint(pfrom);
+//        if (!IsInitialBlockDownload())
+//            CheckpointsSync::AskForPendingSyncCheckpoint(pfrom);
     }
 
 
