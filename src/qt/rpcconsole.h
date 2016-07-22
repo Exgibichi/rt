@@ -12,6 +12,9 @@
 
 #include <QDialog>
 
+#include <QWidget>
+#include <QCompleter>
+
 class ClientModel;
 
 namespace Ui {
@@ -98,6 +101,8 @@ private:
     QStringList history;
     int historyPtr;
     NodeId cachedNodeid;
+
+    QCompleter *autoCompleter;
 };
 
 #endif // BITCOIN_QT_RPCCONSOLE_H
