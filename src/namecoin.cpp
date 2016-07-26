@@ -724,7 +724,7 @@ Value name_filter(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() > 5)
         throw runtime_error(
-                "name_filter [[[[[regexp] maxage=36000] from=0] nb=0] stat]\n"
+                "name_filter [[[[[regexp] maxage=0] from=0] nb=0] stat]\n"
                 "scan and filter names\n"
                 "[regexp] : apply [regexp] on names, empty means all names\n"
                 "[maxage] : look in last [maxage] blocks\n"
@@ -733,7 +733,7 @@ Value name_filter(const Array& params, bool fHelp)
                 "[stats] : show some stats instead of results\n"
                 "name_filter \"\" 5 # list names updated in last 5 blocks\n"
                 "name_filter \"^id/\" # list all names from the \"id\" namespace\n"
-                "name_filter \"^id/\" 36000 0 0 stat # display stats (number of names) on active names from the \"id\" namespace\n"
+                "name_filter \"^id/\" 0 0 0 stat # display stats (number of names) on active names from the \"id\" namespace\n"
                 );
 
     if (IsInitialBlockDownload())
@@ -742,7 +742,7 @@ Value name_filter(const Array& params, bool fHelp)
     string strRegexp;
     int nFrom = 0;
     int nNb = 0;
-    int nMaxAge = 36000;
+    int nMaxAge = 0;
     bool fStat = false;
     int nCountFrom = 0;
     int nCountNb = 0;
