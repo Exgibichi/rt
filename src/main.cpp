@@ -1275,11 +1275,6 @@ double GetDifficulty(unsigned int nBits)
 
 bool GuessPoS(const CBlockHeader& header)
 {
-    // case for testnet
-    if (Params().NetworkIDString() != "main")
-        return header.GetHash() > Params().ProofOfWorkLimit(); // small chance for error 1 / 2^28 = 1 / 100 million
-
-
     // emercoin: return false if time is below block 10 000 - we have no PoS blocks below 10 000 in our official blockchain.
     // this is important, because on early blocks difficulty was very low (starting from 1) and we can confuse PoS with PoW.
     if (header.nTime < 1387258928)
@@ -3566,14 +3561,14 @@ bool InitBlockIndex() {
     // ppcoin: if checkpoint master key changed must reset sync-checkpoint
     {
         string strPubKey = "";
-        if (!pblocktree->ReadCheckpointPubKey(strPubKey) || strPubKey != CSyncCheckpoint::strMasterPubKey)
+        if (!pblocktree->ReadCheckpointPubKey(strPubKey) || strPubKey != Params().SyncCheckpointPubKey())
         {
             // write checkpoint master key to db
-            if (!pblocktree->WriteCheckpointPubKey(CSyncCheckpoint::strMasterPubKey))
+            if (!pblocktree->WriteCheckpointPubKey(Params().SyncCheckpointPubKey()))
                 return error("LoadBlockIndex() : failed to write new checkpoint master key to db");
             if (!pblocktree->Sync())
                 return error("LoadBlockIndex() : failed to commit new checkpoint master key to db");
-            if ((Params().NetworkIDString() == "main") && !CheckpointsSync::ResetSyncCheckpoint())
+            if (!CheckpointsSync::ResetSyncCheckpoint())
                 return error("LoadBlockIndex() : failed to reset sync-checkpoint");
         }
     }

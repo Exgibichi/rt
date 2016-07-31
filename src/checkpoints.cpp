@@ -278,8 +278,7 @@ uint256 AutoSelectSyncCheckpoint()
 bool CheckSync(const uint256& hashBlock, const CBlockIndex* pindexPrev)
 {
     assert(pindexPrev != NULL);
-    static bool fMain = Params().NetworkIDString() == "main";
-    if (!fMain) return true; // Testnet has no checkpoints
+    if (Params().SyncCheckpointPubKey() == "") return true;  // no public key == no checkpoints
     int nHeight = pindexPrev->nHeight + 1;
 
     LOCK(cs_hashSyncCheckpoint);
@@ -369,7 +368,6 @@ bool SetCheckpointPrivKey(std::string strPrivKey)
 
     std::vector<unsigned char> vchPrivKey = ParseHex(strPrivKey);
     CKey key;
-    //ppcoin - should we use true or false for SetPrivKey? I set it to false for now to simply let it compile.
     if(!key.SetPrivKey(CPrivKey(vchPrivKey.begin(), vchPrivKey.end()), false))
         LogPrintf("SetCheckpointPrivKey(): failed at key.SetPrivKey\n"); // if key is not correct openssl may crash
     if (!key.Sign(Hash(checkpoint.vchMsg.begin(), checkpoint.vchMsg.end()), checkpoint.vchSig))
@@ -395,7 +393,6 @@ bool SendSyncCheckpoint(uint256 hashCheckpoint)
         return error("SendSyncCheckpoint: Checkpoint master key unavailable.");
     std::vector<unsigned char> vchPrivKey = ParseHex(CSyncCheckpoint::strMasterPrivKey);
     CKey key;
-    //ppcoin - should we use true or false for SetPrivKey? I set it to false for now to simply let it compile.
     key.SetPrivKey(CPrivKey(vchPrivKey.begin(), vchPrivKey.end()), false); // if key is not correct openssl may crash
     if (!key.Sign(Hash(checkpoint.vchMsg.begin(), checkpoint.vchMsg.end()), checkpoint.vchSig))
         return error("SendSyncCheckpoint: Unable to sign checkpoint, check private key?");
@@ -418,8 +415,7 @@ bool SendSyncCheckpoint(uint256 hashCheckpoint)
 // Is the sync-checkpoint too old?
 bool IsSyncCheckpointTooOld(unsigned int nSeconds)
 {
-    static bool fMain = Params().NetworkIDString() == "main";
-    if (!fMain) return false; // Testnet has no checkpoints
+    if (Params().SyncCheckpointPubKey() == "") return false;  // no public key == no checkpoints
 
     LOCK(cs_hashSyncCheckpoint);
     // sync-checkpoint should always be accepted block
@@ -436,14 +432,13 @@ bool IsSyncCheckpointTooOld(unsigned int nSeconds)
 
 
 // emercoin: sync-checkpoint master key
-const std::string CSyncCheckpoint::strMasterPubKey = "046fbfdd8aac1671681dfe257a65cb1a87056814955ae1faeefa20c158a66ad5514c77f858a417da79f56c69e97ece8c5363dbd41994db22435596f84a002736b0";
 std::string CSyncCheckpoint::strMasterPrivKey = "";
 
 // ppcoin: verify signature of sync-checkpoint message
 bool CSyncCheckpoint::CheckSignature()
 {
 
-    CPubKey key(ParseHex(CSyncCheckpoint::strMasterPubKey));
+    CPubKey key(ParseHex(Params().SyncCheckpointPubKey()));
     if (!key.Verify(Hash(vchMsg.begin(), vchMsg.end()), vchSig))
         return error("CSyncCheckpoint::CheckSignature() : verify signature failed");
 
@@ -453,7 +448,7 @@ bool CSyncCheckpoint::CheckSignature()
     return true;
 }
 
-// ppcoin: process synchronized checkpoint    //ppcoin TODO: redo commented lines
+// ppcoin: process synchronized checkpoint
 bool CSyncCheckpoint::ProcessSyncCheckpoint(CNode* pfrom)
 {
     if (!CheckSignature())
