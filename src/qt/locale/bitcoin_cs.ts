@@ -307,7 +307,7 @@
         <translation>Vytvářím nový index bloků na disku...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Pošli mince na Emercoinovou adresu</translation>
     </message>
     <message>
@@ -1339,7 +1339,7 @@ Adresa: %4
         <translation>Částka</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>Zadej Emercoinovou adresu (např. %1)</translation>
     </message>
     <message>

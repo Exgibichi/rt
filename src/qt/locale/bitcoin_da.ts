@@ -307,7 +307,7 @@
         <translation>Genindekserer blokke på disken …</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Send emercoins til en Emercoin-adresse</translation>
     </message>
     <message>
@@ -1335,7 +1335,7 @@ Adresse: %4
         <translation>Beløb</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>Indtast en Emercoin-adresse (fx %1)</translation>
     </message>
     <message>

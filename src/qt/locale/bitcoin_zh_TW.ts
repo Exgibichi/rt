@@ -307,7 +307,7 @@
         <translation>正在為磁碟裡的區塊重建索引...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>付錢給一個位元幣位址</translation>
     </message>
     <message>
@@ -1339,7 +1339,7 @@ Address: %4
         <translation>金額</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>輸入位元幣位址 (比如說 %1)</translation>
     </message>
     <message>

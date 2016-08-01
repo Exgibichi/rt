@@ -307,7 +307,7 @@
         <translation>A reindexar blocos no disco...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Enviar moedas para um endereço emercoin</translation>
     </message>
     <message>
@@ -1335,7 +1335,7 @@ Endereço: %4</translation>
         <translation>Quantia</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>Entre um endereço Emercoin (ex. %1)</translation>
     </message>
     <message>

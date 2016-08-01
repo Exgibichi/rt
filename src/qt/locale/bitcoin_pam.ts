@@ -251,7 +251,7 @@
         <translation>&amp;Alilan ing Passphrase...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Magpadalang barya king Emercoin address</translation>
     </message>
     <message>

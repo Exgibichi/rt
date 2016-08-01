@@ -287,7 +287,7 @@
         <translation>Mengindex ulang block di harddisk...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Kirim koin ke alamat Emercoin</translation>
     </message>
     <message>

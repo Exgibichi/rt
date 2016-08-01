@@ -308,7 +308,7 @@ Var vänlig och försök igen.</translation>
         <translation>Återindexerar block på disken...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Skicka emercoins till en Emercoin-adress</translation>
     </message>
     <message>
@@ -1336,7 +1336,7 @@ Adress: %4
         <translation>Mängd</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>Ange en Emercoin-adress (t.ex. %1)</translation>
     </message>
     <message>

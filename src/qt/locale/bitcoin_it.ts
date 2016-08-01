@@ -307,7 +307,7 @@
         <translation>Re-indicizzazione blocchi su disco...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Invia fondi ad un indirizzo Emercoin</translation>
     </message>
     <message>
@@ -1333,7 +1333,7 @@ Per specificare più URL separarli con una barra verticale "|".</translation>
         <translation>Importo</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>Inserisci un indirizzo Emercoin (ad es. %1)</translation>
     </message>
     <message>

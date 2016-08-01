@@ -307,7 +307,7 @@
         <translation>Se reindexează blocurile pe disc...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Trimite monede către o adresă Emercoin</translation>
     </message>
     <message>
@@ -1319,7 +1319,7 @@ Adresa: %4
         <translation>Cantitate</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>Introduceţi o adresă Emercoin (de exemplu %1)</translation>
     </message>
     <message>

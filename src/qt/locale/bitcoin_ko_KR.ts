@@ -295,7 +295,7 @@
         <translation>디스크에서 블록 다시 색인중...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>비트코인 주소로 코인 전송</translation>
     </message>
     <message>

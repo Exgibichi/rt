@@ -307,7 +307,7 @@
         <translation>Reindiziere Blöcke auf Datenträger...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Emercoins an eine Emercoin-Adresse überweisen</translation>
     </message>
     <message>
@@ -1338,7 +1338,7 @@ Adresse: %4</translation>
         <translation>Betrag</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>Emercoin-Adresse eingeben (z.B. %1)</translation>
     </message>
     <message>

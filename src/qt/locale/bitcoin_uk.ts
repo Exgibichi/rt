@@ -307,7 +307,7 @@
         <translation>Переіндексація блоків на диску ...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Відправити монети на вказану адресу</translation>
     </message>
     <message>
@@ -1335,7 +1335,7 @@ Address: %4
         <translation>Кількість</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>Введіть адресу Emercoin (наприклад %1)</translation>
     </message>
     <message>

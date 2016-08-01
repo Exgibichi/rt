@@ -295,7 +295,7 @@
         <translation>Emercoin Core клиент</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Изпращане към Емеркоин адрес</translation>
     </message>
     <message>
@@ -1187,7 +1187,7 @@ Address: %4
         <translation>Сума</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>Въведете Емеркойн адрес (например: %1)</translation>
     </message>
     <message>

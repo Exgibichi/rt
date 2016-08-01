@@ -303,7 +303,7 @@
         <translation>Re-indeksiranje blokova na disku...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Slanje novca na emercoin adresu</translation>
     </message>
     <message>

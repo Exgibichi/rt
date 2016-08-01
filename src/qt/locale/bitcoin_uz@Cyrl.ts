@@ -303,7 +303,7 @@
         <translation>Дискдаги блоклар қайта индексланмоқда...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Тангаларни Emercoin манзилига жўнатиш</translation>
     </message>
     <message>
