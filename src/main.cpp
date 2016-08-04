@@ -2379,7 +2379,7 @@ static bool ActivateBestChainStep(CValidationState &state, CBlockIndex *pindexMo
  * or an activated best chain. pblock is either NULL or a pointer to a block
  * that is already loaded (to avoid loading it again from disk).
  */
-bool ActivateBestChain(CValidationState &state, CBlock *pblock, CBlockIndex *pindexSwitchTo) {
+bool ActivateBestChain(CValidationState &state, CBlock *pblock) {
     CBlockIndex *pindexNewTip = NULL;
     CBlockIndex *pindexMostWork = NULL;
     do {
@@ -2388,7 +2388,7 @@ bool ActivateBestChain(CValidationState &state, CBlock *pblock, CBlockIndex *pin
         bool fInitialDownload;
         {
             LOCK(cs_main);
-            pindexMostWork = pindexSwitchTo ? pindexSwitchTo : FindMostWorkChain();
+            pindexMostWork = FindMostWorkChain();
 
             // Whether we have anything to do at all.
             if (pindexMostWork == NULL || pindexMostWork == chainActive.Tip())
@@ -3016,8 +3016,22 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
     }
 
     // ppcoin: check that the block satisfies synchronized checkpoint
-    if (!CheckpointsSync::CheckSync(pindex->GetBlockHash(), pindex->pprev))
+    bool failedPending = false;
+    if (!CheckpointsSync::CheckSync(pindex, failedPending))
+    {
+        pindex->nStatus |= BLOCK_FAILED_VALID;
+        setDirtyBlockIndex.insert(pindex);
+
+        // emercoin: we are in a fork - find last common ancestor and invalidate block after it.
+        if (failedPending)
+        {
+            CValidationState state;
+            const CBlockIndex* pindexLastCommon = LastCommonAncestor(mapBlockIndex[CheckpointsSync::hashPendingCheckpoint], chainActive.Tip());
+            InvalidateBlock(state, chainActive.Next(pindexLastCommon));
+        }
+
         return error("AcceptBlock() : rejected by synchronized checkpoint");
+    }
 
     int nHeight = pindex->nHeight;
 
@@ -3120,10 +3134,6 @@ bool ProcessNewBlock(CValidationState &state, CNode* pfrom, CBlock* pblock, CDis
 
         // Store to disk
         CBlockIndex *pindex = NULL;
-
-        // ppcoin: ask for pending sync-checkpoint if any
-//        if (!IsInitialBlockDownload())
-//            CheckpointsSync::AskForPendingSyncCheckpoint(pfrom);
 
         bool ret = AcceptBlock(*pblock, state, &pindex, dbp);
         if (pindex && pfrom) {
@@ -4216,10 +4226,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                   remoteAddr);
 
         AddTimeData(pfrom->addr, nTime);
-
-        // ppcoin: ask for pending sync-checkpoint if any
-//        if (!IsInitialBlockDownload())
-//            CheckpointsSync::AskForPendingSyncCheckpoint(pfrom);
     }
 
 
@@ -4819,7 +4825,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         CSyncCheckpoint checkpoint;
         vRecv >> checkpoint;
 
-        if (checkpoint.ProcessSyncCheckpoint(pfrom))
+        if (checkpoint.ProcessSyncCheckpoint())
         {
             // Relay
             pfrom->hashCheckpointKnown = checkpoint.hashCheckpoint;

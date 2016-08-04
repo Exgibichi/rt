@@ -397,6 +397,15 @@ Value getcheckpoint(const Array& params, bool fHelp)
     pindexCheckpoint = mapBlockIndex[CheckpointsSync::hashSyncCheckpoint];
     result.push_back(Pair("height", pindexCheckpoint->nHeight));
     result.push_back(Pair("timestamp", DateTimeStrFormat(pindexCheckpoint->GetBlockTime())));
+
+    if (mapBlockIndex.count(CheckpointsSync::hashPendingCheckpoint))
+    {
+        result.push_back(Pair("pendingsynccheckpoint", CheckpointsSync::hashPendingCheckpoint.ToString()));
+        CBlockIndex* pindexPendingCheckpoint = mapBlockIndex[CheckpointsSync::hashPendingCheckpoint];
+        result.push_back(Pair("pendingheight", pindexPendingCheckpoint->nHeight));
+        result.push_back(Pair("pendingtimestamp", DateTimeStrFormat(pindexPendingCheckpoint->GetBlockTime())));
+    }
+
     if (mapArgs.count("-checkpointkey"))
         result.push_back(Pair("checkpointmaster", true));
 

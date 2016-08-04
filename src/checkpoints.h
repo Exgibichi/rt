@@ -49,6 +49,7 @@ namespace CheckpointsSync
 {
 
     extern uint256 hashSyncCheckpoint;
+    extern uint256 hashPendingCheckpoint;
     extern CSyncCheckpoint checkpointMessage;
     extern uint256 hashInvalidCheckpoint;
     extern CCriticalSection cs_hashSyncCheckpoint;
@@ -56,9 +57,8 @@ namespace CheckpointsSync
     bool WriteSyncCheckpoint(const uint256& hashCheckpoint);
     bool AcceptPendingSyncCheckpoint();
     uint256 AutoSelectSyncCheckpoint();
-    bool CheckSync(const uint256& hashBlock, const CBlockIndex* pindexPrev);
+    bool CheckSync(const CBlockIndex* pindexNew, bool &failedPending);
     bool ResetSyncCheckpoint();
-    void AskForPendingSyncCheckpoint(CNode* pfrom);
     bool SetCheckpointPrivKey(std::string strPrivKey);
     bool SendSyncCheckpoint(uint256 hashCheckpoint);
     bool IsSyncCheckpointTooOld(unsigned int nSeconds);
@@ -130,7 +130,7 @@ public:
     bool RelayTo(CNode* pnode) const;
 
     bool CheckSignature();
-    bool ProcessSyncCheckpoint(CNode* pfrom);
+    bool ProcessSyncCheckpoint();
 };
 
 #endif // BITCOIN_CHECKPOINTS_H
