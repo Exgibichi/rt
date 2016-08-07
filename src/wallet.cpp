@@ -1355,7 +1355,9 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
     coinLowestLarger.second.first = NULL;
     vector<pair<CAmount, pair<const CWalletTx*,unsigned int> > > vValue;
     CAmount nTotalLower = 0;
-    static int sortir = GetArg("-sortir", 0);
+    static int sortir = -1; 
+    if(sortir < 0) 
+	GetArg("-sortir", 0);
 
     switch(sortir) {
 	case 1:
@@ -1427,7 +1429,9 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
   // Adeed by maxihatop
 
   // Maximap DP array size
-  static uint32_t nMaxDP = GetArg("-maxdp", 8 * 1024 * 1024);
+  static uint32_t nMaxDP = 0;
+  if(nMaxDP == 0) 
+      nMaxDP = GetArg("-maxdp", 8 * 1024 * 1024);
 
   uint16_t *dp;	// dynamic programming array
   uint32_t dp_tgt = nTargetValue / MIN_TXOUT_AMOUNT;
