@@ -231,7 +231,7 @@
         <translation>Recreans indicem frustorum in disco...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Mitte nummos ad inscriptionem Emercoin</translation>
     </message>
     <message>

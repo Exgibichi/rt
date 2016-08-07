@@ -195,7 +195,7 @@
         <translation>Промени &amp;лозинку...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Пошаљите новац на emercoin адресу</translation>
     </message>
     <message>

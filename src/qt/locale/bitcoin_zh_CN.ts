@@ -307,7 +307,7 @@
         <translation>正在为数据块建立索引...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>向一个比特币地址发送比特币</translation>
     </message>
     <message>
@@ -1340,7 +1340,7 @@ Address: %4
         <translation>金额</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>请输入一个比特币地址 (例如 %1)</translation>
     </message>
     <message>

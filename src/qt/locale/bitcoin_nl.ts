@@ -307,7 +307,7 @@
         <translation>Bezig met herindexeren van blokken op harde schijf...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Verstuur munten naar een Emercoinadres</translation>
     </message>
     <message>
@@ -1339,7 +1339,7 @@ Adres: %4
         <translation>Bedrag</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>Voer een Emercoin-adres in (bijv. %1)</translation>
     </message>
     <message>

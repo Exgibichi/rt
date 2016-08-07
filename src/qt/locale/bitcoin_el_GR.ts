@@ -304,7 +304,7 @@
         <translation>Φόρτωση ευρετηρίου μπλοκ στον σκληρο δισκο...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Στείλε νομίσματα σε μια διεύθυνση emercoin</translation>
     </message>
     <message>
@@ -1237,7 +1237,7 @@ Address: %4
         <translation>Ποσό</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>Εισάγετε μια διεύθυνση Emercoin (π.χ. %1)</translation>
     </message>
     <message>

@@ -295,7 +295,7 @@
         <translation>Reindeksado de blokoj sur disko...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Sendi monon al Emermon-adreso</translation>
     </message>
     <message>

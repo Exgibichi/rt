@@ -275,7 +275,7 @@
         <translation>Reindexando bloques no disco...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Enviar moedas a unha dirección Emercoin</translation>
     </message>
     <message>

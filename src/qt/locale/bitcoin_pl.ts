@@ -307,7 +307,7 @@
         <translation>Ponowne indeksowanie bloków na dysku...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Wyślij monety na adres Emercoin</translation>
     </message>
     <message>
@@ -1295,7 +1295,7 @@ Adres: %4
         <translation>Kwota</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>Wprowadź adres Emercoin (np. %1)</translation>
     </message>
     <message>

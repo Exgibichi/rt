@@ -307,7 +307,7 @@
         <translation>Diskteki bloklar yeniden endeksleniyor...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Bir Emercoin adresine Emercoin yolla</translation>
     </message>
     <message>
@@ -1335,7 +1335,7 @@ Adres: %4
         <translation>Meblağ</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>Bir Emercoin adresi giriniz (mesela %1)</translation>
     </message>
     <message>

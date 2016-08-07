@@ -393,8 +393,8 @@
     </message>
     <message>
         <location line="-406"/>
-        <source>Send coins to a Emercoin address</source>
-        <translation>Send coins to a Emercoin address</translation>
+        <source>Send coins to an Emercoin address</source>
+        <translation>Send coins to an Emercoin address</translation>
     </message>
     <message>
         <location line="+48"/>
@@ -1714,7 +1714,7 @@ Address: %4
     </message>
     <message>
         <location filename="../guiutil.cpp" line="+109"/>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

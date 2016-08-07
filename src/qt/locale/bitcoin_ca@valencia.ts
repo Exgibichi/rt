@@ -303,7 +303,7 @@
         <translation>S'estan reindexant els blocs al disc...</translation>
     </message>
     <message>
-        <source>Send coins to a Emercoin address</source>
+        <source>Send coins to an Emercoin address</source>
         <translation>Envia monedes a una adreça Emercoin</translation>
     </message>
     <message>
@@ -1259,7 +1259,7 @@ Address: %4
         <translation>Quantitat</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter an Emercoin address (e.g. %1)</source>
         <translation>Introduïu una adreça de Emercoin (p. ex. %1)</translation>
     </message>
     <message>
