@@ -3018,20 +3018,10 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
     }
 
     // ppcoin: check that the block satisfies synchronized checkpoint
-    bool failedPending = false;
-    if (!CheckpointsSync::CheckSync(pindex, failedPending))
+    if (!CheckpointsSync::CheckSync(pindex))
     {
         pindex->nStatus |= BLOCK_FAILED_VALID;
         setDirtyBlockIndex.insert(pindex);
-
-        // emercoin: we are in a fork - find last common ancestor and invalidate block after it.
-        if (failedPending)
-        {
-            CValidationState state;
-            const CBlockIndex* pindexLastCommon = LastCommonAncestor(mapBlockIndex[CheckpointsSync::hashPendingCheckpoint], chainActive.Tip());
-            InvalidateBlock(state, chainActive.Next(pindexLastCommon));
-        }
-
         return error("AcceptBlock() : rejected by synchronized checkpoint");
     }
 

@@ -249,9 +249,8 @@ uint256 AutoSelectSyncCheckpoint()
 }
 
 // Check against synchronized checkpoint
-bool CheckSync(const CBlockIndex* pindexNew, bool& failedPending)
+bool CheckSync(const CBlockIndex* pindexNew)
 {
-    failedPending = false;
     assert(pindexNew != NULL);
     if (Params().SyncCheckpointPubKey() == "") return true;  // no public key == no checkpoints
     const uint256& hashBlock = pindexNew->GetBlockHash();
@@ -277,58 +276,6 @@ bool CheckSync(const CBlockIndex* pindexNew, bool& failedPending)
         return false; // same height with sync-checkpoint
     if (nHeight < pindexSync->nHeight && !mapBlockIndex.count(hashBlock))
         return false; // lower height than sync-checkpoint
-
-    // emercoin: check against pending sync-checkpoint, if block is above active sync-checkpoint
-    if (hashPendingCheckpoint != 0 && mapBlockIndex.count(hashPendingCheckpoint) && nHeight > pindexSync->nHeight)
-    {
-        const CBlockIndex* pindexPendingSync = mapBlockIndex[hashPendingCheckpoint];
-        if (nHeight > pindexPendingSync->nHeight)
-        {
-            // trace back to same height as pending sync-checkpoint
-            const CBlockIndex* pindex = pindexNew;
-            while (pindex->nHeight > pindexPendingSync->nHeight)
-                if (!(pindex = pindex->pprev))
-                    return error("CheckSync: pprev null - block index structure failure");
-            if (pindex->GetBlockHash() != hashPendingCheckpoint)
-            {
-                failedPending = true;
-                return false; // only descendant of pending sync-checkpoint can pass check
-            }
-        }
-        if (nHeight == pindexPendingSync->nHeight && hashBlock != hashPendingCheckpoint)
-        {
-            failedPending = true;
-            return false; // same height with pending sync-checkpoint
-        }
-        if (nHeight < pindexPendingSync->nHeight)
-        {
-            // trace back from pending sync-checkpoint to active sync-checkpoint
-            static const CBlockIndex* pindexFast = NULL;
-
-            const CBlockIndex* pindex = (pindexFast && pindexFast->nHeight > nHeight) ? pindexFast : pindexPendingSync;
-            if (pindex->nHeight - nHeight > 250)
-            {
-                // there is a large gap in our walk - save index that is closer to our block for future searches
-                while (pindex->nHeight > nHeight)
-                {
-                    if (pindex->nHeight - nHeight == 250)
-                        pindexFast = pindex;
-                    if (!(pindex = pindex->pprev))
-                        return error("CheckSync: pprev null - block index structure failure");
-                }
-            }
-            else
-                while (pindex->nHeight > nHeight)
-                    if (!(pindex = pindex->pprev))
-                        return error("CheckSync: pprev null - block index structure failure");
-
-            if (pindex->GetBlockHash() != hashBlock)
-            {
-                failedPending = true;
-                return false; // only ancestors of pending sync-checkpoint can pass check
-            }
-        }
-    }
 
     return true;
 }
