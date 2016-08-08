@@ -189,6 +189,10 @@ bool AcceptPendingSyncCheckpoint()
     if (!chainActive.Contains(mapBlockIndex[hashPendingCheckpoint]))
         return false;
 
+    // emercoin: checkpoint needs to be a block with 32 confirmation
+    if (mapBlockIndex[hashPendingCheckpoint]->nHeight > chainActive.Height() - 32)
+        return false;
+
     if (!WriteSyncCheckpoint(hashPendingCheckpoint))
         return error("AcceptPendingSyncCheckpoint(): failed to write sync checkpoint %s", hashPendingCheckpoint.ToString());
     hashPendingCheckpoint = 0;
@@ -418,7 +422,9 @@ bool CSyncCheckpoint::ProcessSyncCheckpoint()
     if (!CheckpointsSync::ValidateSyncCheckpoint(hashCheckpoint))
         return false;
 
-    if (!chainActive.Contains(mapBlockIndex[hashCheckpoint]))
+    bool pass = chainActive.Contains(mapBlockIndex[hashCheckpoint]) &&
+                mapBlockIndex[hashCheckpoint]->nHeight > chainActive.Height() - 32;
+    if (!pass)
     {
         // We haven't received the checkpoint chain, keep the checkpoint as pending
         CheckpointsSync::hashPendingCheckpoint = hashCheckpoint;
