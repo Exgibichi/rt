@@ -279,7 +279,7 @@ static const CRPCCommand vRPCCommands[] =
     { "blockchain",         "name_show",              &name_show,              true,      false,      false },
     { "blockchain",         "name_history",           &name_history,           true,      false,      false },
     { "blockchain",         "name_mempool",           &name_mempool,           true,      false,      false },
-//emercoin    { "blockchain",         "gettxlistfor",           &gettxlistfor,              false,     false,      false },
+    { "blockchain",         "gettxlistfor",           &gettxlistfor,           true,      false,      false },
 
 
     /* Mining */

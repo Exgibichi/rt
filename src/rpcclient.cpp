@@ -107,10 +107,10 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "name_filter", 3 },
     { "name_history", 1 },
     { "sendtoname", 1 },
-//emercoin    { "gettxlistfor", 0 },
-//    { "gettxlistfor", 1 },
-//    { "gettxlistfor", 3 },
-//    { "gettxlistfor", 4 },
+    { "gettxlistfor", 0 },
+    { "gettxlistfor", 1 },
+    { "gettxlistfor", 3 },
+    { "gettxlistfor", 4 },
 };
 
 class CRPCConvertTable

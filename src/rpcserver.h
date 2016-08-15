@@ -232,6 +232,7 @@ extern json_spirit::Value verifychain(const json_spirit::Array& params, bool fHe
 extern json_spirit::Value getchaintips(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value invalidateblock(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value reconsiderblock(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value gettxlistfor(const json_spirit::Array& params, bool fHelp);
 
 extern json_spirit::Value name_new(const json_spirit::Array& params, bool fHelp); // in namecoin.cpp
 extern json_spirit::Value name_update(const json_spirit::Array& params, bool fHelp);

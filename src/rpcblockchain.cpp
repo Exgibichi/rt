@@ -3,6 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "base58.h"
 #include "checkpoints.h"
 #include "main.h"
 #include "rpcserver.h"
@@ -692,4 +693,166 @@ Value reconsiderblock(const Array& params, bool fHelp)
     }
 
     return Value::null;
+}
+
+Value gettxlistfor(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() < 3 || params.size() > 5)
+        throw runtime_error(
+                "gettxlistfor <from block> <to block> <address> [type=0] [verbose=0]\n"
+                "[type]: 0 - sent/received, 1 - received, 2 - sent\n"
+                "[verbose]: 0 - false, 1 - true\n"
+                );
+
+    int nFromHeight = params[0].get_int();
+    int nToHeight   = params[1].get_int();
+    if (nFromHeight < 0 || nFromHeight > nToHeight || nToHeight > chainActive.Height())
+        throw runtime_error("<from block> must be less than or equal <to block> AND must be inside blockchain height\n");
+
+    CBitcoinAddress searchAddress(params[2].get_str());
+    if (!searchAddress.IsValid())
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "address not found");
+
+    int type = 0;
+    if (params.size() > 3)
+    {
+        type = params[3].get_int();
+        if (type < 0 || type > 2)
+            throw runtime_error("[type] must be between 0 and 2");
+    }
+
+    bool verbose = false;
+    if (params.size() > 4)
+    {
+        verbose = params[4].get_int();
+        if (verbose < 0 || verbose > 1)
+            throw runtime_error("[verbose] must be 0 or 1");
+    }
+
+    CBlockIndex* pblockindex = chainActive[nFromHeight];
+
+    Array res;
+    while (pblockindex->nHeight <= nToHeight)
+    {
+        CBlock block;
+        if (!ReadBlockFromDisk(block, pblockindex))
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Can't read block from disk");
+
+        map<uint256, CTransaction> mapFoundTx;
+
+        // recieved by searchAddress
+        Array recieved;
+        BOOST_FOREACH (const CTransaction& tx, block.vtx)
+        {
+            bool found = false;
+            int64_t nValueOut = 0;
+            Array vouts;
+            int voutNumber = 0;
+
+            BOOST_FOREACH(const CTxOut& txout, tx.vout)
+            {
+                txnouttype type;
+                vector<CTxDestination> addresses;
+                int nRequired;
+                if (!ExtractDestinations(txout.scriptPubKey, type, addresses, nRequired))
+                    continue;
+
+                BOOST_FOREACH(const CTxDestination& addr, addresses) // 1 txout can contain more than 1 address
+                    if (CBitcoinAddress(addr).ToString() == CBitcoinAddress(searchAddress).ToString())
+                    {
+                        mapFoundTx[tx.GetHash()] = tx;
+                        found = true;
+                        nValueOut += txout.nValue;
+                        vouts.push_back(voutNumber);
+                        break;
+                    }
+                voutNumber++;
+            }
+
+            if (found && (type == 0 || type == 1))
+            {
+                // get senders info
+                // TODO: check wich one has spent it
+                Array prev_owners;
+                if (verbose)
+                {
+                    set<string> sPrevOwners;
+                    BOOST_FOREACH(const CTxIn& txin, tx.vin)
+                    {
+                        CTransaction prev;
+                        uint256 hashBlock;
+                        if (!GetTransaction(txin.prevout.hash, prev, hashBlock))
+                            throw JSONRPCError(RPC_INTERNAL_ERROR, "previous transaction not found");
+
+                        txnouttype type;
+                        vector<CTxDestination> addresses;
+                        int nRequired;
+                        if (!ExtractDestinations(prev.vout[txin.prevout.n].scriptPubKey, type, addresses, nRequired))
+                            continue;
+
+                        BOOST_FOREACH(const CTxDestination& addr, addresses) // 1 txout can contain more than 1 address
+                            sPrevOwners.insert(CBitcoinAddress(addr).ToString());
+                    }
+
+                    BOOST_FOREACH(string addr, sPrevOwners)
+                        prev_owners.push_back(addr);
+                }
+
+                Object txinfo;
+                txinfo.push_back(Pair("txid", tx.GetHash().ToString()));
+                if (verbose)
+                {
+                    txinfo.push_back(Pair("vout", vouts));
+                    txinfo.push_back(Pair("prev_owners", prev_owners));
+                    txinfo.push_back(Pair("amount", ValueFromAmount(nValueOut)));
+                }
+                txinfo.push_back(Pair("date", DateTimeStrFormat(tx.nTime)));
+                recieved.push_back(txinfo);
+            }
+        }
+
+        // sent by searchAddress
+        Array sent;
+        BOOST_FOREACH (const CTransaction& tx, block.vtx)
+        {
+            bool found = false;
+
+            BOOST_FOREACH(const CTxIn& txin, tx.vin)
+            {
+                if (!mapFoundTx.count(txin.prevout.hash))
+                    continue;
+                found = true;
+
+                //CTransaction prevTx = mapFoundTx[txin.prevout.hash];
+                //int64 nValueIn = prevTx.vout[txin.prevout.n].nValue;
+            }
+
+            if (found && (type == 0 || type == 2))
+            {
+                Object txinfo;
+                txinfo.push_back(Pair("txid", tx.GetHash().ToString()));
+                //txinfo.push_back(Pair("reciever", vouts));
+                //txinfo.push_back(Pair("amount", ValueFromAmount(nValueOut)));
+                txinfo.push_back(Pair("date", DateTimeStrFormat(tx.nTime)));
+                sent.push_back(txinfo);
+            }
+        }
+
+        if (!recieved.empty() || !sent.empty())
+        {
+            Object blockinfo;
+            blockinfo.push_back(Pair("height", (pblockindex->nHeight == std::numeric_limits<int>::max() ? 0 : pblockindex->nHeight)));
+            if (type == 0 || type == 1)
+                blockinfo.push_back(Pair("recieved", recieved));
+            if (type == 0 || type == 2)
+                blockinfo.push_back(Pair("sent", sent));
+            res.push_back(blockinfo);
+        }
+
+        if (pblockindex->nHeight >= nToHeight) // we do not wish to move past last block, as it might not exist
+            break;
+        pblockindex = chainActive.Next(pblockindex);
+    }
+
+    return res;
 }
