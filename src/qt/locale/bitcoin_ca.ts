@@ -2819,8 +2819,8 @@ Address: %4
         <translation>Elimina totes les transaccions del moneder i només recupera aquelles de la cadena de blocs a través de -rescan a l'inici</translation>
     </message>
     <message>
-        <source>Distributed under the MIT software license, see the accompanying file COPYING or &lt;http://www.opensource.org/licenses/mit-license.php&gt;.</source>
-        <translation>Distribuït sota llicència de programari MIT. Vegeu el fitxer acompanyant COPYING o &lt;http://www.opensource.org/licenses/mit-license.php&gt;.</translation>
+        <source>Distributed under the GPL3 software license, see the accompanying file COPYING or &lt;http://www.gnu.org/licenses/gpl.html&gt;.</source>
+        <translation>Distribuït sota llicència de programari GPL3. Vegeu el fitxer acompanyant COPYING o &lt;http://www.gnu.org/licenses/gpl.html&gt;.</translation>
     </message>
     <message>
         <source>Enter regression test mode, which uses a special chain in which blocks can be solved instantly.</source>

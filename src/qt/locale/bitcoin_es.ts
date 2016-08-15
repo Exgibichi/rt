@@ -2819,8 +2819,8 @@ Dirección: %4
         <translation>Borrar todas las transacciones del monedero y sólo recuperar aquellas partes de la cadena de bloques por medio de -rescan on startup.</translation>
     </message>
     <message>
-        <source>Distributed under the MIT software license, see the accompanying file COPYING or &lt;http://www.opensource.org/licenses/mit-license.php&gt;.</source>
-        <translation>Distribuido bajo la licencia de software MIT, vea la copia del archivo adjunto o &lt;http://www.opensource.org/licenses/mit-license.php&gt;.</translation>
+        <source>Distributed under the GPL3 software license, see the accompanying file COPYING or &lt;http://www.gnu.org/licenses/gpl.html&gt;.</source>
+        <translation>Distribuido bajo la licencia de software GPL3, vea la copia del archivo adjunto o &lt;http://www.gnu.org/licenses/gpl.html&gt;.</translation>
     </message>
     <message>
         <source>Enter regression test mode, which uses a special chain in which blocks can be solved instantly.</source>

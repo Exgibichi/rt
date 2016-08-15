@@ -2822,8 +2822,8 @@ Address: %4
         <translation>ウォレットの全トランザクションを削除し、これらを-rescanオプションを用いることで起動時にブロックチェインのデータのみからリカバリします。</translation>
     </message>
     <message>
-        <source>Distributed under the MIT software license, see the accompanying file COPYING or &lt;http://www.opensource.org/licenses/mit-license.php&gt;.</source>
-        <translation>MITソフトウェアライセンスのもとで配布されています。付属のCOPYINGファイルまたは&lt;http://www.opensource.org/licenses/mit-license.php&gt;を参照してください。</translation>
+        <source>Distributed under the GPL3 software license, see the accompanying file COPYING or &lt;http://www.gnu.org/licenses/gpl.html&gt;.</source>
+        <translation>GPL3ソフトウェアライセンスのもとで配布されています。付属のCOPYINGファイルまたは&lt;http://www.gnu.org/licenses/gpl.html&gt;を参照してください。</translation>
     </message>
     <message>
         <source>Enter regression test mode, which uses a special chain in which blocks can be solved instantly.</source>

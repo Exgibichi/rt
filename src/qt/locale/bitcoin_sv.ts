@@ -2816,8 +2816,8 @@ Adress: %4
         <translation>Ta bort alla plånbokstransaktioner och återskapa bara dom som är en del av blockkedjan genom att ange -rescan vid uppstart</translation>
     </message>
     <message>
-        <source>Distributed under the MIT software license, see the accompanying file COPYING or &lt;http://www.opensource.org/licenses/mit-license.php&gt;.</source>
-        <translation>Distribuerad under MIT mjukvarulicens, se den bifogade filen COPYING eller &lt;http://www.opensource.org/licenses/mit-license.php&gt;.</translation>
+        <source>Distributed under the GPL3 software license, see the accompanying file COPYING or &lt;http://www.gnu.org/licenses/gpl.html&gt;.</source>
+        <translation>Distribuerad under GPL3 mjukvarulicens, se den bifogade filen COPYING eller &lt;http://www.gnu.org/licenses/gpl.html&gt;.</translation>
     </message>
     <message>
         <source>Enter regression test mode, which uses a special chain in which blocks can be solved instantly.</source>

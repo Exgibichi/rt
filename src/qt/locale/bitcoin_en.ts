@@ -3630,7 +3630,7 @@ Address: %4
     </message>
     <message>
         <location line="+3"/>
-        <source>Distributed under the MIT software license, see the accompanying file COPYING or &lt;http://www.opensource.org/licenses/mit-license.php&gt;.</source>
+        <source>Distributed under the GPL3 software license, see the accompanying file COPYING or &lt;http://www.gnu.org/licenses/gpl.html&gt;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

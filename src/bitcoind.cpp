@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2013 The Bitcoin developers
-// Distributed under the MIT/X11 software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// Distributed under the GPL3 software license, see the accompanying
+// file COPYING or http://www.gnu.org/licenses/gpl.html.
 
 #include "clientversion.h"
 #include "rpcserver.h"
@@ -25,7 +25,7 @@
  * which enables instant payments to anyone, anywhere in the world. Bitcoin uses peer-to-peer technology to operate
  * with no central authority: managing transactions and issuing money are carried out collectively by the network.
  *
- * The software is a community-driven open source project, released under the MIT license.
+ * The software is a community-driven open source project, released under the GPL3 license.
  *
  * \section Navigation
  * Use the buttons <code>Namespaces</code>, <code>Classes</code> or <code>Files</code> at the top of the page to start navigating the code.

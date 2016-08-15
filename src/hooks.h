@@ -1,6 +1,6 @@
 // Copyright (c) 2010-2011 Vincent Durham
-// Distributed under the MIT/X11 software license, see the accompanying
-// file license.txt or http://www.opensource.org/licenses/mit-license.php.
+// Distributed under the GPL3 software license, see the accompanying
+// file license.txt or http://www.gnu.org/licenses/gpl.html.
 
 #ifndef BITCOIN_HOOKS_H
 #define BITCOIN_HOOKS_H

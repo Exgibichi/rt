@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2014 The Bitcoin developers
-// Distributed under the MIT software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// Distributed under the GPL3 software license, see the accompanying
+// file COPYING or http://www.gnu.org/licenses/gpl.html.
 
 #if defined(HAVE_CONFIG_H)
 #include "config/bitcoin-config.h"

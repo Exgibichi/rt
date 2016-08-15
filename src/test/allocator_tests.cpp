@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2013 The Bitcoin Core developers
-// Distributed under the MIT/X11 software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// Distributed under the GPL3 software license, see the accompanying
+// file COPYING or http://www.gnu.org/licenses/gpl.html.
 
 #include "util.h"
 

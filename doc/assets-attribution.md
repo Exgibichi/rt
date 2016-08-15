@@ -3,7 +3,7 @@ The following is a list of assets used in the bitcoin source and their proper at
 [Wladimir van der Laan](https://github.com/laanwj)
 -----------------------
 #### Info
-* License: MIT
+* License: GPL3
 
 ### Assets Used
 	src/qt/res/icons/clock*.png, src/qt/res/icons/tx*.png,
@@ -46,7 +46,7 @@ md2k7
 ### Info
 * Designer: md2k7
 * License: You are free to do with these icons as you wish, including selling, copying, modifying etc.
-* License: MIT
+* License: GPL3
 * Site: [https://bitcointalk.org/index.php?topic=15276.0](https://bitcointalk.org/index.php?topic=15276.0)
 
 ### Assets Used
@@ -94,7 +94,7 @@ Jonas Schnelli
 
 ### Info
 * Designer: Jonas Schnelli (based on the original bitcoin logo from Bitboy)
-* License: MIT
+* License: GPL3
 
 ### Assets Used
 	src/qt/res/icons/bitcoin.icns, src/qt/res/src/bitcoin.svg,

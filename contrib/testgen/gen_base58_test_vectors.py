@@ -7,7 +7,7 @@ Usage:
     gen_base58_test_vectors.py invalid 50 > ../../src/test/data/base58_keys_invalid.json
 '''
 # 2012 Wladimir J. van der Laan
-# Released under MIT License
+# Released under GPL3 License
 import os
 from itertools import islice
 from base58 import b58encode, b58decode, b58encode_chk, b58decode_chk, b58chars

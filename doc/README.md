@@ -68,6 +68,6 @@ The Bitcoin repo's [root README](https://github.com/bitcoin/bitcoin/blob/master/
 
 License
 ---------------------
-Distributed under the [MIT/X11 software license](http://www.opensource.org/licenses/mit-license.php).
+Distributed under the [GPL3 software license](http://www.gnu.org/licenses/gpl.html).
 This product includes software developed by the OpenSSL Project for use in the [OpenSSL Toolkit](https://www.openssl.org/). This product includes
 cryptographic software written by Eric Young ([eay@cryptsoft.com](mailto:eay@cryptsoft.com)), and UPnP software written by Thomas Bernard.
