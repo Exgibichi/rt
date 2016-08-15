@@ -256,7 +256,7 @@ static const CRPCCommand vRPCCommands[] =
     { "network",            "getnettotals",           &getnettotals,           true,      true,       false },
     { "network",            "getpeerinfo",            &getpeerinfo,            true,      false,      false },
     { "network",            "ping",                   &ping,                   true,      false,      false },
-    { "network",            "getcheckpoint",          &getcheckpoint,          false,     false,      false },
+    { "network",            "getcheckpoint",          &getcheckpoint,          true,      false,      false },
 
     /* Block chain and UTXO */
     { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      true,      false,      false },
@@ -274,11 +274,11 @@ static const CRPCCommand vRPCCommands[] =
     { "blockchain",         "invalidateblock",        &invalidateblock,        true,      true,       false },
     { "blockchain",         "reconsiderblock",        &reconsiderblock,        true,      true,       false },
 
-    { "blockchain",         "name_scan",              &name_scan,              false,     false,      false },
-    { "blockchain",         "name_filter",            &name_filter,            false,     false,      false },
-    { "blockchain",         "name_show",              &name_show,              false,     false,      false },
-    { "blockchain",         "name_history",           &name_history,           false,     false,      false },
-    { "blockchain",         "name_mempool",           &name_mempool,           false,     false,      false },
+    { "blockchain",         "name_scan",              &name_scan,              true,      false,      false },
+    { "blockchain",         "name_filter",            &name_filter,            true,      false,      false },
+    { "blockchain",         "name_show",              &name_show,              true,      false,      false },
+    { "blockchain",         "name_history",           &name_history,           true,      false,      false },
+    { "blockchain",         "name_mempool",           &name_mempool,           true,      false,      false },
 //emercoin    { "blockchain",         "gettxlistfor",           &gettxlistfor,              false,     false,      false },
 
 
@@ -315,7 +315,7 @@ static const CRPCCommand vRPCCommands[] =
     { "hidden",             "invalidateblock",        &invalidateblock,        true,      true,       false },
     { "hidden",             "reconsiderblock",        &reconsiderblock,        true,      true,       false },
     { "hidden",             "setmocktime",            &setmocktime,            true,      false,      false },
-    { "hidden",             "name_debug",             &name_debug,             false,     false,      false },
+    { "hidden",             "name_debug",             &name_debug,             true,      false,      false },
     { "hidden",             "sendalert",              &sendalert,              false,     false,      false },
 
 #ifdef ENABLE_WALLET
@@ -365,7 +365,7 @@ static const CRPCCommand vRPCCommands[] =
     { "wallet",             "name_update",            &name_update,            false,     false,      false },
     { "wallet",             "name_delete",            &name_delete,            false,     false,      false },
     { "wallet",             "sendtoname",             &sendtoname,             false,     false,      false },
-    { "wallet",             "name_list",              &name_list,              false,     false,      false },
+    { "wallet",             "name_list",              &name_list,              true,      false,      false },
 
 #endif // ENABLE_WALLET
   //  --------------------- ------------------------  -----------------------  ---------- ---------- ---------
