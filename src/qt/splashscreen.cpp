@@ -46,7 +46,7 @@ SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle *networkStyle) 
     pixmap     = networkStyle->getSplashImage();
 
     QPainter pixPaint(&pixmap);
-    pixPaint.setPen(QColor(100,100,100));
+    pixPaint.setPen(QColor(0,172,190));
 
     // check font size and drawing with
     pixPaint.setFont(QFont(font, 33*fontFactor));
@@ -75,7 +75,7 @@ SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle *networkStyle) 
 
     // draw copyright stuff
     pixPaint.setFont(QFont(font, 10*fontFactor));
-    QRectF qRect(pixmap.width()-titleTextWidth-paddingRight, paddingTop+titleCopyrightVSpace, titleTextWidth, titleCopyrightVSpace);
+    QRectF qRect(pixmap.width()-titleTextWidth-paddingRight, paddingTop+titleCopyrightVSpace-5, titleTextWidth, titleCopyrightVSpace+8);
     pixPaint.drawText(qRect, copyrightText);
 
     // draw additional text if special network
@@ -119,7 +119,7 @@ static void InitMessage(SplashScreen *splash, const std::string &message)
         Qt::QueuedConnection,
         Q_ARG(QString, QString::fromStdString(message)),
         Q_ARG(int, Qt::AlignBottom|Qt::AlignHCenter),
-        Q_ARG(QColor, QColor(55,55,55)));
+        Q_ARG(QColor, QColor(0,172,190)));
 }
 
 static void ShowProgress(SplashScreen *splash, const std::string &title, int nProgress)
