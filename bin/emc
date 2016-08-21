@@ -1,0 +1,7 @@
+#!/bin/bash
+if [ ! \$1 ]; then
+  echo "Usage $0 <options>"
+  echo "Please ensure you are allowed to run the sudo"
+  exit 1
+fi
+sudo -u emc emercoin-cli -datadir=/var/lib/emc/.emercoin $*
