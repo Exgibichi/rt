@@ -8,7 +8,7 @@ License:        GPLv3
 URL:            http://www.emercoin.com
 Source0:        %{name}.tar.gz
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-BuildRequires:  autoconf gcc-c++ openssl-devel >= 1:1.0.2d libdb4-devel libdb4-cxx-devel miniupnpc-devel boost-devel boost-static
+BuildRequires:  autoconf automake gcc-c++ openssl-devel >= 1:1.0.2d libdb4-devel libdb4-cxx-devel miniupnpc-devel boost-devel boost-static
 Requires:       pwgen openssl >= 1:1.0.2d libdb4 libdb4-cxx miniupnpc logrotate
 
 %description
