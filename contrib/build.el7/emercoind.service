@@ -1,8 +1,9 @@
 [Unit]
 Description=Emercoin Wallet
+After=network.target
 
 [Service]
-ExecStart=/usr/bin/emercoind -daemon
+ExecStart=/usr/bin/emercoind -daemon -datadir=/var/lib/emc/.emercoin
 ExecStop=/usr/bin/emercoin-cli -datadir=/var/lib/emc/.emercoin stop
 PIDFile=/var/lib/emc/.emercoin/emercoind.pid
 User=emc
