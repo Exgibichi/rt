@@ -49,6 +49,7 @@ getent passwd emc >/dev/null && { [ -f /usr/bin/emercoind ] || { echo "Looks lik
 } || exit 0
 
 %posttrans
+[ -f /var/lib/emc/.emercoin/addr.dat ] && { cd /var/lib/emc/.emercoin && rm -rf database addr.dat nameindex* blk* *.log .lock; }
 sed -i -e 's|rpcallowip=\*|rpcallowip=0.0.0.0/0|' /var/lib/emc/.emercoin/emercoin.conf
 systemctl daemon-reload
 systemctl status emercoind >/dev/null && systemctl restart emercoind || exit 0
