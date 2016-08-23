@@ -257,6 +257,7 @@ bool CheckSync(const CBlockIndex* pindexNew)
 {
     assert(pindexNew != NULL);
     if (Params().SyncCheckpointPubKey() == "") return true;  // no public key == no checkpoints
+    if (pindexNew->nHeight == 0) return true;                // genesis cannot be checked against previous block
     const uint256& hashBlock = pindexNew->GetBlockHash();
     int nHeight = pindexNew->nHeight;
 
@@ -264,16 +265,20 @@ bool CheckSync(const CBlockIndex* pindexNew)
     // sync-checkpoint should always be accepted block
     assert(mapBlockIndex.count(hashSyncCheckpoint));
     const CBlockIndex* pindexSync = mapBlockIndex[hashSyncCheckpoint];
-    assert(pindexSync->nStatus & BLOCK_HAVE_DATA);
+    assert(chainActive.Contains(pindexSync));
 
     if (nHeight > pindexSync->nHeight)
     {
-        // trace back to same height as sync-checkpoint
+        // trace back to first block in our chainActive
         const CBlockIndex* pindex = pindexNew;
-        while (pindex->nHeight > pindexSync->nHeight)
+        while (pindex->nHeight > pindexSync->nHeight && !chainActive.Contains(pindex))
             if (!(pindex = pindex->pprev))
                 return error("CheckSync: pprev null - block index structure failure");
-        if (pindex->GetBlockHash() != hashSyncCheckpoint)
+
+        // at this point we could have:
+        // 1. found block in our blockchain
+        // 2. reached pindexSync->nHeight without finding it
+        if (!chainActive.Contains(pindex))
             return false; // only descendant of sync-checkpoint can pass check
     }
     if (nHeight == pindexSync->nHeight && hashBlock != hashSyncCheckpoint)
@@ -310,6 +315,14 @@ bool ResetSyncCheckpoint()
             LogPrintf("ResetSyncCheckpoint: sync-checkpoint reset to %s\n", hashSyncCheckpoint.ToString());
             return true;
         }
+    }
+
+    if (mapBlockIndex.empty())  //emercoin: this might happen during reindexing
+    {
+        if (!WriteSyncCheckpoint(Params().HashGenesisBlock()))
+            return error("ResetSyncCheckpoint: failed to write sync checkpoint %s", hash.ToString());
+        LogPrintf("ResetSyncCheckpoint: sync-checkpoint reset to %s\n", hashSyncCheckpoint.ToString());
+        return true;
     }
 
     return false;
@@ -379,7 +392,7 @@ bool IsSyncCheckpointTooOld(unsigned int nSeconds)
     // sync-checkpoint should always be accepted block
     assert(mapBlockIndex.count(hashSyncCheckpoint));
     const CBlockIndex* pindexSync = mapBlockIndex[hashSyncCheckpoint];
-    assert(pindexSync->nStatus & BLOCK_HAVE_DATA);
+    assert(chainActive.Contains(pindexSync));
 
     return (pindexSync->GetBlockTime() + nSeconds < GetAdjustedTime());
 }
