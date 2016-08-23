@@ -122,9 +122,6 @@ ManageNamesPage::ManageNamesPage(QWidget *parent) :
     connect(ui->tableView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextualMenu(QPoint)));
     ui->tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-    // Reset gui sizes and visibility (for name new)
-    ui->registerAddress->setDisabled(true);
-
     // Catch focus changes to make the appropriate button the default one (Submit or Configure)
     ui->registerName->installEventFilter(this);
     ui->registerValue->installEventFilter(this);
@@ -264,7 +261,7 @@ void ManageNamesPage::on_submitNameButton_clicked()
 
     QString txType = ui->txTypeSelector->currentText();
     QString newAddress = ui->registerAddress->text();
-    if (txType == "NAME_UPDATE")
+    if (txType == "NAME_UPDATE" || txType == "NAME_NEW")
         newAddress = ui->registerAddress->text();
 
     if (qsName == "")
@@ -325,7 +322,7 @@ void ManageNamesPage::on_submitNameButton_clicked()
         {
             nHeight = NameTableEntry::NAME_NEW;
             status = CT_NEW;
-            res = name_operation(OP_NAME_NEW, name, value, days, "");
+            res = name_operation(OP_NAME_NEW, name, value, days, newAddress.toStdString());
         }
         else if (txType == "NAME_UPDATE")
         {
@@ -506,7 +503,7 @@ void ManageNamesPage::on_txTypeSelector_currentIndexChanged(const QString &txTyp
     {
         ui->txTimeTypeSelector->setEnabled(true);
         ui->registerTimeUnits->setEnabled(true);
-        ui->registerAddress->setDisabled(true);
+        ui->registerAddress->setEnabled(true);
         ui->registerValue->setEnabled(true);
     }
     else if (txType == "NAME_UPDATE")

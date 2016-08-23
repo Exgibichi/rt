@@ -957,9 +957,9 @@ bool IsWalletLocked(NameTxReturn& ret)
 
 Value name_new(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() != 3)
+    if (fHelp || params.size() < 2 || params.size() > 4)
         throw runtime_error(
-                "name_new <name> <value> <days>\n"
+                "name_new <name> <value> <days> [toaddress]\n"
                 "Creates new key->value pair which expires after specified number of days.\n"
                 "Cost is square root of (1% of last PoW + 1% per year of last PoW)."
                 + HelpRequiringPassphrase());
@@ -967,8 +967,11 @@ Value name_new(const Array& params, bool fHelp)
     CNameVal name = nameValFromValue(params[0]);
     CNameVal value = nameValFromValue(params[1]);
     int nRentalDays = params[2].get_int();
+    string strAddress = "";
+    if (params.size() == 4)
+        strAddress = params[3].get_str();
 
-    NameTxReturn ret = name_operation(OP_NAME_NEW, name, value, nRentalDays, "");
+    NameTxReturn ret = name_operation(OP_NAME_NEW, name, value, nRentalDays, strAddress);
     if (!ret.ok)
         throw JSONRPCError(ret.err_code, ret.err_msg);
     return ret.hex.GetHex();
@@ -978,7 +981,7 @@ Value name_update(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() < 2 || params.size() > 4)
         throw runtime_error(
-                "name_update <name> <value> <days> [<toaddress>]\nUpdate name value, add days to expiration time and possibly transfer a name to diffrent address."
+                "name_update <name> <value> <days> [toaddress]\nUpdate name value, add days to expiration time and possibly transfer a name to diffrent address."
                 + HelpRequiringPassphrase());
 
     CNameVal name = nameValFromValue(params[0]);
@@ -1110,7 +1113,7 @@ NameTxReturn name_operation(const int op, const CNameVal& name, const CNameVal& 
         }
 
     // add destination to namescript
-        if (op == OP_NAME_UPDATE && strAddress != "")
+        if ((op == OP_NAME_UPDATE || op == OP_NAME_NEW) && strAddress != "")
         {
             CBitcoinAddress address(strAddress);
             if (!address.IsValid())
