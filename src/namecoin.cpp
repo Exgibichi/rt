@@ -1371,7 +1371,7 @@ bool CNamecoinHooks::CheckInputs(const CTransaction& tx, const CBlockIndex* pind
                 return error("CheckInputsHook() : name_update name mismatch for %s", info);
 
             if (!NameActive(dbName, name, pindexBlock->nHeight))
-                return error("CheckInputsHook() : name_update on an unexpired name for %s", info);
+                return error("CheckInputsHook() : name_update on an expired name for %s", info);
             break;
         }
         case OP_NAME_DELETE:
