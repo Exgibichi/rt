@@ -1909,9 +1909,10 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
 
     static int trustheight = -1;
-    if(trustheight < 0) {
-	const Checkpoints::MapCheckpoints& checkpoints = *Params().Checkpoints().mapCheckpoints;
-	GetArg("-trustheight", (checkpoints.rbegin())->first) - 1;
+    if (trustheight < 0)
+    {
+        const Checkpoints::MapCheckpoints& checkpoints = *Params().Checkpoints().mapCheckpoints;
+        trustheight = GetArg("-trustheight", (checkpoints.rbegin())->first - 1);
     }
 
     for (unsigned int i = 0; i < block.vtx.size(); i++)
