@@ -1020,6 +1020,12 @@ NameTxReturn name_operation(const int op, const CNameVal& name, const CNameVal& 
     ret.err_msg = "unkown error";
     ret.ok = false;
 
+    if ((op == OP_NAME_NEW || op == OP_NAME_UPDATE) && value.empty())
+    {
+        ret.err_msg = "value must not be empty";
+        return ret;
+    }
+
     // currently supports only new, update and delete operations.
     if (op != OP_NAME_NEW && op != OP_NAME_UPDATE && op != OP_NAME_DELETE)
     {
@@ -1140,7 +1146,7 @@ NameTxReturn name_operation(const int op, const CNameVal& name, const CNameVal& 
         NameTxInfo nti;
         if (!DecodeNameScript(nameScript, nti))
         {
-            ret.err_msg = "failed to verify name script";
+            ret.err_msg = nti.err_msg;
             return ret;
         }
 
