@@ -13,6 +13,19 @@ mkdir -p /etc/ssl/emc
 [ -f /var/lib/emc/.emercoin/addr.dat ] && { cd /var/lib/emc/.emercoin && rm -rf database addr.dat nameindex* blk* *.log .lock; }
 [ -f /var/lib/emc/.emercoin/emercoin.conf ] && { sed -i -e 's|rpcallowip=\*|rpcallowip=0.0.0.0/0|' /var/lib/emc/.emercoin/emercoin.conf; exit 0; }
 
+mkdir -p /etc/logrotate.d
+cat<<EOF > /etc/logrotate.d/emercoind
+/var/lib/emc/.emercoin/*.log
+{
+  weekly
+  rotate 6
+  compress
+  delaycompress
+  missingok
+  create 0644 emc emc
+}
+EOF
+
 mkdir -p /var/lib/emc/.emercoin
 cat<<EOF >/var/lib/emc/.emercoin/emercoin.conf
 rpcuser=emccoinrpc
