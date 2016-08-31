@@ -13,7 +13,7 @@
 
 #include "version.h"
 
-class CDiskTxPos;
+struct CDiskTxPos;
 
 static const int NAMECOIN_TX_VERSION = 0x0666; //0x0666 is initial version
 typedef std::vector<unsigned char> CNameVal;
