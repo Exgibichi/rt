@@ -136,13 +136,14 @@ public:
          *   vMerkleTree: 4a5e1e
          */
         const char* pszTimestamp = "2013: Emergence is inevitable! heideg.livejournal.com/313676.html";
-        CMutableTransaction txNew;
-        txNew.nTime = 1386627289;
-        txNew.vin.resize(1);
-        txNew.vout.resize(1);
-        txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(9999) << vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
-        txNew.vout[0].nValue = 0;
-        txNew.vout[0].scriptPubKey.clear();
+        std::vector<CTxIn> vin;
+        vin.resize(1);
+        vin[0].scriptSig = CScript() << 486604799 << CScriptNum(9999) << vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
+        std::vector<CTxOut> vout;
+        vout.resize(1);
+        vout[0].nValue = 0;
+        vout[0].scriptPubKey.clear();
+        CMutableTransaction txNew(1, 1386627289, vin, vout, 0);
         genesis.vtx.push_back(txNew);
         genesis.hashPrevBlock = 0;
         genesis.hashMerkleRoot = genesis.BuildMerkleTree();
