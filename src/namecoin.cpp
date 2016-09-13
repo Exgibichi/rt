@@ -957,11 +957,12 @@ bool IsWalletLocked(NameTxReturn& ret)
 
 Value name_new(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() < 2 || params.size() > 4)
+    if (fHelp || params.size() < 2 || params.size() > 5)
         throw runtime_error(
-                "name_new <name> <value> <days> [toaddress]\n"
+                "name_new <name> <value> <days> [toaddress] [valueAsFilepath]\n"
                 "Creates new key->value pair which expires after specified number of days.\n"
                 "Cost is square root of (1% of last PoW + 1% per year of last PoW)."
+                "If [valueAsFilepath] is non-zero it will interpret <value> as a filepath and try to write file contents in binary format.\n"
                 + HelpRequiringPassphrase());
 
     CNameVal name = nameValFromValue(params[0]);
@@ -971,7 +972,11 @@ Value name_new(const Array& params, bool fHelp)
     if (params.size() == 4)
         strAddress = params[3].get_str();
 
-    NameTxReturn ret = name_operation(OP_NAME_NEW, name, value, nRentalDays, strAddress);
+    bool fValueAsFilepath = false;
+    if (params.size() > 4)
+        fValueAsFilepath = (params[4].get_int() != 0);
+
+    NameTxReturn ret = name_operation(OP_NAME_NEW, name, value, nRentalDays, strAddress, fValueAsFilepath);
     if (!ret.ok)
         throw JSONRPCError(ret.err_code, ret.err_msg);
     return ret.hex.GetHex();
@@ -979,9 +984,11 @@ Value name_new(const Array& params, bool fHelp)
 
 Value name_update(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() < 2 || params.size() > 4)
+    if (fHelp || params.size() < 2 || params.size() > 5)
         throw runtime_error(
-                "name_update <name> <value> <days> [toaddress]\nUpdate name value, add days to expiration time and possibly transfer a name to diffrent address."
+                "name_update <name> <value> <days> [toaddress] [valueAsFilepath]\n"
+                "Update name value, add days to expiration time and possibly transfer a name to diffrent address.\n"
+                "If [valueAsFilepath] is non-zero it will interpret <value> as a filepath and try to write file contents in binary format.\n"
                 + HelpRequiringPassphrase());
 
     CNameVal name = nameValFromValue(params[0]);
@@ -991,7 +998,11 @@ Value name_update(const Array& params, bool fHelp)
     if (params.size() == 4)
         strAddress = params[3].get_str();
 
-    NameTxReturn ret = name_operation(OP_NAME_UPDATE, name, value, nRentalDays, strAddress);
+    bool fValueAsFilepath = false;
+    if (params.size() > 4)
+        fValueAsFilepath = (params[4].get_int() != 0);
+
+    NameTxReturn ret = name_operation(OP_NAME_UPDATE, name, value, nRentalDays, strAddress, fValueAsFilepath);
     if (!ret.ok)
         throw JSONRPCError(ret.err_code, ret.err_msg);
     return ret.hex.GetHex();
@@ -1013,7 +1024,7 @@ Value name_delete(const Array& params, bool fHelp)
 
 }
 
-NameTxReturn name_operation(const int op, const CNameVal& name, const CNameVal& value, const int nRentalDays, const string strAddress)
+NameTxReturn name_operation(const int op, const CNameVal& name, CNameVal value, const int nRentalDays, const string strAddress, bool fValueAsFilepath)
 {
     NameTxReturn ret;
     ret.err_code = RPC_INTERNAL_ERROR; // default value in case of abnormal exit
@@ -1031,6 +1042,34 @@ NameTxReturn name_operation(const int op, const CNameVal& name, const CNameVal& 
     {
         ret.err_msg = "illegal name op";
         return ret;
+    }
+
+    if (fValueAsFilepath)
+    {
+        string filepath = stringFromNameVal(value);
+        std::ifstream ifs;
+        ifs.open(filepath.c_str(), std::ios::binary | std::ios::ate);
+        if (!ifs)
+        {
+            ret.err_msg = "failed to open file";
+            return ret;
+        }
+        std::streampos fileSize = ifs.tellg();
+        if (fileSize > MAX_VALUE_LENGTH)
+        {
+            ret.err_msg = "file is larger than maximum allowed size";
+            return ret;
+        }
+
+        ifs.clear();
+        ifs.seekg(0, std::ios::beg);
+
+        value.resize(fileSize);
+        if (!ifs.read(reinterpret_cast<char*>(&value[0]), fileSize))
+        {
+            ret.err_msg = "failed to read file";
+            return ret;
+        }
     }
 
     if (IsInitialBlockDownload())
