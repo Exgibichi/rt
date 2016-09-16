@@ -241,17 +241,17 @@ RES_ICONS = \
   qt/res/icons/eye_minus.png \
   qt/res/icons/eye_plus.png \
   qt/res/icons/filesave.png \
-  qt/res/icons/history.svg \
+  qt/res/icons/history.png \
   qt/res/icons/key.png \
   qt/res/icons/lock_closed.png \
   qt/res/icons/lock_open.png \
-  qt/res/icons/name2.svg \
-  qt/res/icons/overview.svg \
+  qt/res/icons/name2.png \
+  qt/res/icons/overview.png \
   qt/res/icons/qrcode.png \
   qt/res/icons/quit.png \
-  qt/res/icons/receive.svg \
+  qt/res/icons/receive.png \
   qt/res/icons/remove.png \
-  qt/res/icons/send.svg \
+  qt/res/icons/send.png \
   qt/res/icons/synced.png \
   qt/res/icons/transaction0.png \
   qt/res/icons/transaction2.png \
