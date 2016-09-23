@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -e
+. /usr/share/debconf/confmodule
+
+case "$1" in
+  remove|deconfigure)
+    systemctl is-enabled emercoind >/dev/null && systemctl disable emercoind >/dev/null || true
+    systemctl status emercoind >/dev/null && systemctl stop emercoind >/dev/null || true
+    pkill -9 -u emc > /dev/null 2>&1
+    getent passwd emc >/dev/null && userdel emc >/dev/null 2>&1 || true
+    rm -f /etc/ssl/emc/emercoin.key /etc/ssl/emc/emercoin.crt /etc/emercoin/emercoin.conf /etc/emercoin/certs
+  ;;
+  upgrade)
+  ;;
+  failed-upgrade)
+  ;;
+  *)
+    echo "prerm called with unknown argument \`$1'" >&2
+    exit 1
+  ;;
+esac
+
+exit 0
