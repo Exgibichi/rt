@@ -5,6 +5,7 @@ set -e
 
 case "$1" in
   remove|deconfigure|abort-install)
+    rm -f /var/tmp/emercoin-install.flag
     systemctl is-enabled emercoind >/dev/null && systemctl disable emercoind >/dev/null || true
     systemctl status emercoind >/dev/null && systemctl stop emercoind >/dev/null || true
     pkill -9 -u emc > /dev/null 2>&1 || true
