@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -e
+. /usr/share/debconf/confmodule
+
+case "$1" in
+  install)
+    getent passwd emc >/dev/null || {
+      mkdir /tmp/emcskel
+      groupadd emc
+      useradd -m -d /var/lib/emc -k /tmp/emcskel -s /bin/false -g emc emc
+      rmdir /tmp/emcskel
+    }
+    mkdir -p /etc/ssl/emc
+    [ ! -f /etc/ssl/emc/emercoin.key ] || [ ! -f /etc/ssl/emc/emercoin.crt ] && {
+      openssl req -nodes -x509 -newkey rsa:4096 -keyout /etc/ssl/emc/emercoin.key -out /etc/ssl/emc/emercoin.crt -days 3560 -subj /C=CY/L=Nicosia/O=Emercoin/CN=emercoin.emc
+      chown emc.emc /etc/ssl/emc/emercoin.key /etc/ssl/emc/emercoin.crt
+      chmod 600 /etc/ssl/emc/emercoin.key
+    }
+    sed -i -e "s/\(^rpcpassword\)\(.*\)/rpcpassword=$(pwgen 64 1)/" /var/lib/emc/.emercoin/emercoin.conf
+    chmod 600 /var/lib/emc/.emercoin/emercoin.conf
+    chown -R emc.emc /var/lib/emc/.emercoin
+    mkdir -p /etc/emercoin
+    ln -sf /var/lib/emc/.emercoin/emercoin.conf /etc/emercoin/emercoin.conf
+    ln -sf /etc/ssl/emc /etc/emercoin/certs
+    systemctl daemon-reload
+    systemctl enable emercoind
+  ;;
+esac
+
+sed -i -e 's|rpcallowip=\*|rpcallowip=0.0.0.0/0|' /var/lib/emc/.emercoin/emercoin.conf
+[ -f /var/lib/emc/.emercoin/addr.dat ] && { cd /var/lib/emc/.emercoin && rm -rf database addr.dat nameindex* blk* *.log .lock; } || true
+
+exit 0
