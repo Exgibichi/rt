@@ -21,8 +21,8 @@ case "$1" in
     chmod 600 /var/lib/emc/.emercoin/emercoin.conf
     chown -R emc.emc /var/lib/emc/.emercoin
     mkdir -p /etc/emercoin
-    ln -sf /var/lib/emc/.emercoin/emercoin.conf /etc/emercoin/emercoin.conf
-    ln -sf /etc/ssl/emc /etc/emercoin/certs
+    ln -sf /var/lib/emc/.emercoin/emercoin.conf /etc/emercoin/emercoin.conf || true
+    ln -sf /etc/ssl/emc /etc/emercoin/certs || true
     systemctl daemon-reload
     systemctl enable emercoind
   ;;
