@@ -124,6 +124,7 @@ public:
         nStakeMinAge = 60 * 60 * 24 * 30;             // minimum age for coin age
         nStakeMaxAge = 60 * 60 * 24 * 90;             // stake age of full weight
         nStakeModifierInterval = 6 * 60 * 60;         // time to elapse before new modifier is computed
+        nMaxTipAge = 24 * 60 * 60;
 
         /**
          * Build the genesis block. Note that the output of the genesis coinbase cannot
@@ -209,6 +210,7 @@ public:
         nCoinbaseMaturity = 1;
         nStakeMinAge = 60 * 60 * 24;        // test net min age is 1 day
         nStakeModifierInterval = 60 * 20;   // test net modifier interval is 20 minutes
+        nMaxTipAge = 0x7fffffff;
 
         //! Modify the testnet genesis block so the timestamp is valid for a later start.
         genesis.nBits = bnProofOfWorkLimit.GetCompact();
@@ -265,6 +267,7 @@ public:
         //genesis.nTime = 1296688602;
         //genesis.nBits = 0x207fffff;
         //genesis.nNonce = 2;
+        nMaxTipAge = 24 * 60 * 60;
         hashGenesisBlock = genesis.GetHash();
         nDefaultPort = 6664;
         assert(hashGenesisBlock == uint256("0x0000000810da236a5c9239aa1c49ab971de289dbd41d08c4120fc9c8920d2212"));

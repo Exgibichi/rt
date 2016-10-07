@@ -74,6 +74,7 @@ public:
     int64_t StakeMinAge() const { return nStakeMinAge; }
     int64_t StakeMaxAge() const { return nStakeMaxAge; }
     int64_t StakeModifierInterval() const { return nStakeModifierInterval; }
+    int64_t MaxTipAge() const { return nMaxTipAge; }
     /** Make miner stop after a block is found. In RPC, don't return until nGenProcLimit blocks are generated */
     bool MineBlocksOnDemand() const { return fMineBlocksOnDemand; }
     /** In the future use NetworkIDString() for RPC fields */
@@ -108,6 +109,7 @@ protected:
     int64_t nStakeMaxAge;
     int64_t nStakeModifierInterval;
     int nMinerThreads;
+    long nMaxTipAge;
     std::vector<CDNSSeedData> vSeeds;
     std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
     CBaseChainParams::Network networkID;

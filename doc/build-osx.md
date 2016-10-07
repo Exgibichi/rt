@@ -1,6 +1,6 @@
 Mac OS X Build Instructions and Notes
 ====================================
-This guide will show you how to build bitcoind(headless client) for OSX.
+This guide will show you how to build bitcoind(headless client) for OS X.
 
 Notes
 -----
@@ -13,8 +13,8 @@ built-in one is located in `/Applications/Utilities`.
 Preparation
 -----------
 
-You need to install XCode with all the options checked so that the compiler
-and everything is available in /usr not just /Developer. XCode should be
+You need to install Xcode with all the options checked so that the compiler
+and everything is available in /usr not just /Developer. Xcode should be
 available on your OS X installation media, but if not, you can get the
 current version from https://developer.apple.com/xcode/. If you install
 Xcode 4.3 or later, you'll need to install its command line tools. This can
@@ -65,7 +65,7 @@ After exiting, you'll get a warning that the install is keg-only, which means it
 
 ### Building `bitcoind`
 
-1. Clone the github tree to get the source code and go into the directory.
+1. Clone the GitHub tree to get the source code and go into the directory.
 
         git clone https://github.com/bitcoin/bitcoin.git
         cd bitcoin
@@ -89,7 +89,7 @@ Use Qt Creator as IDE
 You can use Qt Creator as IDE, for debugging and for manipulating forms, etc.
 Download Qt Creator from http://www.qt.io/download/. Download the "community edition" and only install Qt Creator (uncheck the rest during the installation process).
 
-1. Make sure you installed everything through homebrew mentioned above 
+1. Make sure you installed everything through Homebrew mentioned above
 2. Do a proper ./configure --with-gui=qt5 --enable-debug
 3. In Qt Creator do "New Project" -> Import Project -> Import Existing Project
 4. Enter "bitcoin-qt" as project name, enter src/qt as location
@@ -127,7 +127,7 @@ directory. We have to first create the RPC configuration file, though.
 Run `./bitcoind` to get the filename where it should be put, or just try these
 commands:
 
-    echo -e "rpcuser=bitcoinrpc\nrpcpassword=$(xxd -l 16 -p /dev/urandom)" > "/Users/${USER}/Library/Application Support/Bitcoin/bitcoin.conf"
+    echo -e "rpcuser=emercoinrpc\nrpcpassword=$(xxd -l 16 -p /dev/urandom)" > "/Users/${USER}/Library/Application Support/Bitcoin/bitcoin.conf"
     chmod 600 "/Users/${USER}/Library/Application Support/Bitcoin/bitcoin.conf"
 
 The next time you run it, it will start downloading the blockchain, but it won't
