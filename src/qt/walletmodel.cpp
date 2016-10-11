@@ -247,7 +247,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             {
                 return InvalidAddress;
             }
-            if(rcp.amount <= MIN_TXOUT_AMOUNT)
+            if(rcp.amount < MIN_TXOUT_AMOUNT)
             {
                 return InvalidAmount;
             }
