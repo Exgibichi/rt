@@ -157,7 +157,9 @@ public:
         assert(hashGenesisBlock == uint256("0x00000000bcccd459d036a588d1008fce8da3754b205736f32ddfd35350e84c2d"));
         assert(genesis.hashMerkleRoot == uint256("0xd8eee032f95716d0cf14231dc7a238b96bbf827e349e75344c9a88e849262ee0"));
 
-        vSeeds.push_back(CDNSSeedData("emercoin", "seed.emercoin.com"));
+        vSeeds.push_back(CDNSSeedData("emercoin.com", "seed.emercoin.com"));
+        vSeeds.push_back(CDNSSeedData("emercoin.net", "seed.emercoin.net"));
+        vSeeds.push_back(CDNSSeedData("emergate.net", "seed.emergate.net"));
         vSeeds.push_back(CDNSSeedData("emcdns", "seed.emc"));
 
         base58Prefixes[PUBKEY_ADDRESS] = list_of(33);   // emercoin: addresses begin with 'E'
