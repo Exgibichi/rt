@@ -6,4 +6,7 @@
   delaycompress
   missingok
   create 0644 emc emc
+  postrotate
+    systemctl status emercoind >/dev/null 2>&1 && systemctl restart emercoind
+  endscript
 }
