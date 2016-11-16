@@ -4,4 +4,4 @@ if [ ! \$1 ]; then
   echo "Please ensure you are allowed to run the sudo"
   exit 1
 fi
-sudo -u emc emercoin-cli -datadir=/var/lib/emc/.emercoin $*
+sudo -u emc emercoin-cli -datadir=/var/lib/emc/.emercoin "$@"
