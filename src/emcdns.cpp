@@ -45,11 +45,14 @@
 #define BUF_SIZE (512 + 512)
 #define MAX_OUT  512	// Old DNS restricts UDP to 512 bytes
 #define MAX_TOK  64	// Maximal TokenQty in the vsl_list, like A=IP1,..,IPn
-#define MAX_DOM  10	// Maximal domain level
+#define MAX_DOM  20	// Maximal domain level; min 10 is needed for NAPTR E164
 
 #define VAL_SIZE (MAX_VALUE_LENGTH + 16)
 #define DNS_PREFIX "dns"
 #define REDEF_SYM  '~'
+
+// HT offset contains it for ENUM SPFUN
+#define ENUM_FLAG	(1 << 14)
 
 /*---------------------------------------------------*/
 
@@ -171,7 +174,7 @@ EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
 	  *p = pos = step = 0;
 	  continue;
 	}
-	if(c == '.') {
+	if(c == '.' || c == '$') {
 	  if(p[1] > 040) { // if allowed domain is not empty - save it into ht
 	    step |= 1;
 	    if(m_verbose > 3)
@@ -180,6 +183,8 @@ EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
 	      pos += step;
             while(m_ht_offset[pos] != 0);
 	    m_ht_offset[pos] = p + 1 - m_allowed_base;
+	    if(c == '$')
+	      m_ht_offset[pos] |= ENUM_FLAG;
 	    m_allowed_qty++;
 	  }
 	  *p = pos = step = 0;
@@ -324,12 +329,12 @@ void EmcDns::HandlePacket() {
     }
 
     if(IsInitialBlockDownload()) {
-      m_hdr->Bits |= 2; // Server failure - not available valud nameindex DB yet
+      m_hdr->Bits |= 2; // Server failure - not available valid nameindex DB yet
       break;
     }
 
     // Handle questions here
-    for(uint16_t qno = 0; qno < m_hdr->QDCount && m_snd < m_bufend; qno--) {
+    for(uint16_t qno = 0; qno < m_hdr->QDCount && m_snd < m_bufend; qno++) {
       uint16_t rc = HandleQuery();
       if(rc) {
 	m_hdr->Bits |= rc;
@@ -365,7 +370,7 @@ uint16_t EmcDns::HandleQuery() {
   uint8_t key[BUF_SIZE];				// Key, transformed to dot-separated LC
   uint8_t *key_end = key;
   uint8_t *domain_ndx[MAX_DOM];				// indexes to domains
-  uint8_t **domain_ndx_p = domain_ndx;			// Ptr to end
+  uint8_t **domain_ndx_p = domain_ndx;			// Ptr to the end
 
   // m_rcv is pointer to QNAME
   // Set reference to domain label
@@ -380,10 +385,12 @@ uint16_t EmcDns::HandleQuery() {
       return 1; // Invalid request
     *domain_ndx_p++ = key_end;
     do {
-      *key_end++ = tolower(*m_rcv++);
+      // *key_end++ = tolower(*m_rcv++);
+      *key_end++ = 040 | *m_rcv++;
     } while(--dom_len);
     *key_end++ = '.'; // Set DOT at domain end
-  }
+  } //  while(dom_len)
+
   *--key_end = 0; // Remove last dot, set EOLN
 
   if(m_verbose > 3) 
@@ -398,9 +405,9 @@ uint16_t EmcDns::HandleQuery() {
   if(qclass != 1)
     return 4; // Not implemented - support INET only
 
-  // If thid is puplic gateway, gw-suffix can be specified, like 
+  // If thid is public gateway, gw-suffix can be specified, like 
   // emcdnssuffix=.xyz.com
-  // Followind block cuts this suffix, if exist.
+  // Followind block cuts this suffix, if exists.
   // If received domain name "xyz.com" only, keyp is empty string
 
   if(m_gw_suf_len) { // suffix defined [public DNS], need to cut
@@ -462,7 +469,12 @@ uint16_t EmcDns::HandleQuery() {
   	    LogPrintf("EmcDns::HandleQuery: TLD-suffix=[.%s] in given key=%s is not allowed; return NXDOMAIN\n", p, key);
 	  return 3; // Reached EndOfList, so NXDOMAIN
         } 
-      } while(m_ht_offset[pos] < 0 || strcmp((const char *)p, m_allowed_base + m_ht_offset[pos]) != 0);
+      } while(m_ht_offset[pos] < 0 || strcmp((const char *)p, m_allowed_base + (m_ht_offset[pos] & ~ENUM_FLAG)) != 0);
+
+      // ENUM SPFUN works only if TLD-filter is active
+      if(m_ht_offset[pos] & ENUM_FLAG)
+        return SpfunENUM(domain_ndx, domain_ndx_p);
+
     } // if(m_allowed_qty)
 
     uint8_t **cur_ndx_p, **prev_ndx_p = domain_ndx_p - 2;
@@ -605,7 +617,7 @@ void EmcDns::Answer_ALL(uint16_t qtype, char *buf) {
       case 16 : key = "TXT";    break;
       case 28 : key = "AAAA";   break;
       default: return;
-  } // swithc
+  } // switch
 
   char *tokens[MAX_TOK];
   int tokQty = Tokenize(key, ",", tokens, buf);
@@ -753,4 +765,58 @@ DNSAP *EmcDns::CheckDAP(uint32_t ip_addr) {
   dap->timestamp = timestamp;
   return (dap->ed_size <= EMCDNS_DAPTRESHOLD)? dap : NULL;
 } // EmcDns::CheckDAP 
+
+
+/*---------------------------------------------------*/
+// Handle Special function - phone number in the E.164 format
+// to support ENUM service
+int EmcDns::SpfunENUM(uint8_t **domain_start, uint8_t **domain_end) {
+  int dom_length = domain_end - domain_start;
+
+  if(m_verbose > 3)
+    LogPrintf("\tEmcDns::SpfunENUM: Domain=[%s] N=%u TLD=[%s]\n", (const char*)*domain_start, dom_length, (const char*)domain_end[-1]);
+
+  do {
+    if(dom_length < 2)
+      break; // no domains for phone number - NXDOMAIN
+
+    char itut_num[64], *pitut = itut_num;
+    for(const uint8_t *p = domain_end[-1]; --p >= *domain_start; )
+      if(*p >= '0' && *p <= '9') {
+	*pitut++ = *p;
+        if(pitut >= itut_num + sizeof(itut_num))
+	    return 1; // Format error - tool logn number
+      }
+    *pitut = 0; // EOLN at phone number end
+
+    if(pitut == itut_num)
+      break; // Empty phone number - NXDOMAIN
+
+    if(m_verbose > 3)
+      LogPrintf("\tEmcDns::SpfunENUM: ITU_T num=[%s]\n", itut_num);
+
+    // Itrrate all available ENUM-records, and build joined answer from them
+    for(int16_t qno = 0; qno >= 0; qno++) {
+      char q_str[100];
+      sprintf(q_str, "enum:%s:%u", itut_num, qno); 
+      if(m_verbose > 1) 
+        LogPrintf("\tEmcDns::SpfunENUM Lookup(%s)\n", q_str);
+
+      string value;
+      if(!hooks->getNameValue(string(q_str), value))
+        return m_hdr->ANCount? 0 : 3;
+
+      strcpy(m_value, value.c_str());
+      Answer_ENUM();
+    } // for 
+
+  } while(false);
+
+  return 3; // NXDOMAIN
+} // EmcDns::SpfunENUM
+
+/*---------------------------------------------------*/
+// Generate answewr for found EMUM NVS record
+void EmcDns::Answer_ENUM() {
+} // EmcDns::Answer_ENUM
 

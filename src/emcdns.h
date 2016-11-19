@@ -54,6 +54,12 @@ class EmcDns {
     void Fill_RD_DName(char *txt, uint8_t mxsz, int8_t txtcor);
     int  TryMakeref(uint16_t label_ref);
 
+    // Handle Special function - phone number in the E.164 format
+    // to support ENUM service
+    int SpfunENUM(uint8_t **domain_start, uint8_t **domain_end);
+    // Generate answewr for found EMUM NVS record
+    void Answer_ENUM();
+
     // Returns x = hash index to update size; x==NULL = disable;
     DNSAP  *CheckDAP(uint32_t ip_addr);
 
