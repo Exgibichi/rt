@@ -1,6 +1,10 @@
 #ifndef EMCDNS_H
 #define EMCDNS_H
 
+#include <string>
+#include <map>
+using namespace std;
+
 #include <boost/thread.hpp>
 
 #define EMCDNS_DAPSIZE     (8 * 1024)
@@ -28,16 +32,25 @@ struct DNSHeader {
   }
 } __attribute__((packed)); // struct DNSHeader
 
-
 struct DNSAP {		// DNS Amplifier Protector ExpDecay structure
   uint16_t timestamp;	// Time in 64s ticks
   uint16_t ed_size;	// ExpDecay output size in 64-byte units
 } __attribute__((packed));
 
+struct Verifier {
+    Verifier() : mask(0) { 
+	bzero(address, sizeof(address)); 
+    }
+    uint32_t mask;		// Signature Revocation List mask
+    string   srl_tpl;		// Signature Revocation List template
+    char     address[34];	// Verifiyer EMC address
+}; // 72 bytes = 18 words
+
+
 class EmcDns {
   public:
      EmcDns(const char *bind_ip, uint16_t port_no,
-	    const char *gw_suffix, const char *allowed_suff, const char *local_fname, uint8_t verbose);
+	    const char *gw_suffix, const char *allowed_suff, const char *local_fname, const char *enums, uint8_t verbose);
     ~EmcDns();
 
     void Run();
@@ -56,9 +69,10 @@ class EmcDns {
 
     // Handle Special function - phone number in the E.164 format
     // to support ENUM service
-    int SpfunENUM(uint8_t **domain_start, uint8_t **domain_end);
+    int SpfunENUM(uint8_t len, uint8_t **domain_start, uint8_t **domain_end);
     // Generate answewr for found EMUM NVS record
-    void Answer_ENUM();
+    void Answer_ENUM(const char *q_str);
+    bool CheckEnumSig(const char *q_str, char *sig_str);
 
     // Returns x = hash index to update size; x==NULL = disable;
     DNSAP  *CheckDAP(uint32_t ip_addr);
@@ -89,6 +103,7 @@ class EmcDns {
     socklen_t m_addrLen;
 
     boost::thread m_thread;
+    map<string, Verifier> m_verifiers;
 }; // class EmcDns
 
 #endif // EMCDNS_H

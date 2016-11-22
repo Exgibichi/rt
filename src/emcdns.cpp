@@ -85,7 +85,7 @@ int inet_pton(int af, const char *src, void *dst)
 /*---------------------------------------------------*/
 
 EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
-	  const char *gw_suffix, const char *allowed_suff, const char *local_fname, uint8_t verbose) 
+	  const char *gw_suffix, const char *allowed_suff, const char *local_fname, const char *enums, uint8_t verbose) 
     : m_status(0), m_thread(StatRun, this) {
 
     // Set object to a new state
@@ -139,7 +139,6 @@ EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
     // Allocate memory
     int allowed_len = allowed_suff == NULL? 0 : strlen(allowed_suff);
     m_gw_suf_len    = gw_suffix    == NULL? 0 : strlen(gw_suffix);
-
     // Compute dots in the gw-suffix
     m_gw_suf_dots = 0;
     if(m_gw_suf_len)
@@ -157,6 +156,16 @@ EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
     if(m_value == NULL) 
       throw runtime_error("EmcDns::EmcDns: Cannot allocate buffer");
 
+    // Temporary use m_value for parse enum-verifiers, if exists
+    if(enums && *enums) {
+      char *str = strcpy(m_value, enums);
+      Verifier empty_ver;
+      while(char *p_tok = strsep(&str, "|,"))
+        if(*p_tok)
+          m_verifiers[p_tok] = empty_ver;
+    } // ENUMs completed 
+
+    // Assign data buffers inside m_value hyper-array
     m_buf    = (uint8_t *)(m_value + VAL_SIZE);
     m_bufend = m_buf + MAX_OUT;
     char *varbufs = m_value + VAL_SIZE + BUF_SIZE + 2;
@@ -175,19 +184,27 @@ EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
 	  continue;
 	}
 	if(c == '.' || c == '$') {
+	  *p = 64;
 	  if(p[1] > 040) { // if allowed domain is not empty - save it into ht
 	    step |= 1;
-	    if(m_verbose > 3)
-	      LogPrintf("\tEmcDns::EmcDns: Insert TLD=%s: pos=%u step=%u\n", p + 1, pos, step);
 	    do 
 	      pos += step;
             while(m_ht_offset[pos] != 0);
 	    m_ht_offset[pos] = p + 1 - m_allowed_base;
-	    if(c == '$')
+	    const char *dnstype = "DNS";
+	    if(c == '$') {
 	      m_ht_offset[pos] |= ENUM_FLAG;
+	      char *pp = p; // ref to $
+	      while(--pp >= m_allowed_base && *pp >= '0' && *pp <= '9');
+	      if(++pp < p)
+	        *p = atoi(pp);
+	      dnstype = "ENUM";
+	    }
 	    m_allowed_qty++;
+	    if(m_verbose > 3)
+	      LogPrintf("\tEmcDns::EmcDns: Insert %s TLD=%s:%u\n", dnstype, p + 1, *p);
 	  }
-	  *p = pos = step = 0;
+	  pos = step = 0;
 	  continue;
 	}
         pos  = ((pos >> 7) | (pos << 1)) + c;
@@ -335,6 +352,8 @@ void EmcDns::HandlePacket() {
 
     // Handle questions here
     for(uint16_t qno = 0; qno < m_hdr->QDCount && m_snd < m_bufend; qno++) {
+      if(m_verbose > 5) 
+        LogPrintf("\tEmcDns::HandlePacket: qno=%u m_hdr->QDCount=%u\n", qno, m_hdr->QDCount);
       uint16_t rc = HandleQuery();
       if(rc) {
 	m_hdr->Bits |= rc;
@@ -385,7 +404,6 @@ uint16_t EmcDns::HandleQuery() {
       return 1; // Invalid request
     *domain_ndx_p++ = key_end;
     do {
-      // *key_end++ = tolower(*m_rcv++);
       *key_end++ = 040 | *m_rcv++;
     } while(--dom_len);
     *key_end++ = '.'; // Set DOT at domain end
@@ -473,7 +491,8 @@ uint16_t EmcDns::HandleQuery() {
 
       // ENUM SPFUN works only if TLD-filter is active
       if(m_ht_offset[pos] & ENUM_FLAG)
-        return SpfunENUM(domain_ndx, domain_ndx_p);
+        return SpfunENUM(m_allowed_base[(m_ht_offset[pos] & ~ENUM_FLAG) - 1], domain_ndx, domain_ndx_p);
+      
 
     } // if(m_allowed_qty)
 
@@ -770,22 +789,24 @@ DNSAP *EmcDns::CheckDAP(uint32_t ip_addr) {
 /*---------------------------------------------------*/
 // Handle Special function - phone number in the E.164 format
 // to support ENUM service
-int EmcDns::SpfunENUM(uint8_t **domain_start, uint8_t **domain_end) {
+int EmcDns::SpfunENUM(uint8_t len, uint8_t **domain_start, uint8_t **domain_end) {
   int dom_length = domain_end - domain_start;
+  const char *tld = (const char*)domain_end[-1];
 
   if(m_verbose > 3)
-    LogPrintf("\tEmcDns::SpfunENUM: Domain=[%s] N=%u TLD=[%s]\n", (const char*)*domain_start, dom_length, (const char*)domain_end[-1]);
+    LogPrintf("\tEmcDns::SpfunENUM: Domain=[%s] N=%u TLD=[%s] Len=%u\n", 
+	    (const char*)*domain_start, dom_length, tld, len);
 
   do {
     if(dom_length < 2)
       break; // no domains for phone number - NXDOMAIN
 
-    char itut_num[64], *pitut = itut_num;
+    char itut_num[68], *pitut = itut_num, *pitutend = itut_num + len;
     for(const uint8_t *p = domain_end[-1]; --p >= *domain_start; )
       if(*p >= '0' && *p <= '9') {
 	*pitut++ = *p;
-        if(pitut >= itut_num + sizeof(itut_num))
-	    return 1; // Format error - tool logn number
+        if(pitut >= pitutend)
+	  break;
       }
     *pitut = 0; // EOLN at phone number end
 
@@ -793,21 +814,21 @@ int EmcDns::SpfunENUM(uint8_t **domain_start, uint8_t **domain_end) {
       break; // Empty phone number - NXDOMAIN
 
     if(m_verbose > 3)
-      LogPrintf("\tEmcDns::SpfunENUM: ITU_T num=[%s]\n", itut_num);
+      LogPrintf("\tEmcDns::SpfunENUM: ITU-T num=[%s]\n", itut_num);
 
     // Itrrate all available ENUM-records, and build joined answer from them
     for(int16_t qno = 0; qno >= 0; qno++) {
       char q_str[100];
-      sprintf(q_str, "enum:%s:%u", itut_num, qno); 
+      sprintf(q_str, "%s:%s:%u", tld, itut_num, qno); 
       if(m_verbose > 1) 
-        LogPrintf("\tEmcDns::SpfunENUM Lookup(%s)\n", q_str);
+        LogPrintf("\tEmcDns::SpfunENUM Search(%s)\n", q_str);
 
       string value;
       if(!hooks->getNameValue(string(q_str), value))
         return m_hdr->ANCount? 0 : 3;
 
       strcpy(m_value, value.c_str());
-      Answer_ENUM();
+      Answer_ENUM(q_str);
     } // for 
 
   } while(false);
@@ -816,7 +837,59 @@ int EmcDns::SpfunENUM(uint8_t **domain_start, uint8_t **domain_end) {
 } // EmcDns::SpfunENUM
 
 /*---------------------------------------------------*/
+
+#define ENC3(a, b, c) (a << 24) | (b << 8) | c
+
+/*---------------------------------------------------*/
 // Generate answewr for found EMUM NVS record
-void EmcDns::Answer_ENUM() {
+void EmcDns::Answer_ENUM(const char *q_str) {
+  char *str_val = m_value;
+  const char *pttl;
+  char *e2u[VAL_SIZE / 4]; // 20kb max input, and min 4 bytes per token
+  uint16_t e2uN = 0;
+  bool sigOK = false;
+
+  // Tokenize lines in the NVS-value.
+  // There can be prefixes SIG=, TTL=, E2U
+  while(char *tok = strsep(&str_val, "\n\r"))
+    switch(*(uint32_t*)tok & 0xffffff) {
+	case ENC3('E', '2', 'U'):
+	  e2u[e2uN++] = tok;
+	  continue;
+
+	case ENC3('T', 'T', 'L'):
+	  pttl  = strchr(tok + 3, '=');
+	  m_ttl = pttl == NULL? 24 * 3600 : atoi(pttl + 1);
+	  continue;
+
+	case ENC3('S', 'I', 'G'):
+	  if(!sigOK)
+	    sigOK = CheckEnumSig(q_str, strchr(tok + 3, '='));
+	  continue;
+
+	default:
+	  continue;
+    } // while + switch
+
+  if(!sigOK)
+    return; // This ENUM-record does not contain a valid signature
+
+  // Generate ENUM-answers here
+
+
 } // EmcDns::Answer_ENUM
+
+/*---------------------------------------------------*/
+bool EmcDns::CheckEnumSig(const char *q_str, char *sig_str) {
+    if(sig_str == NULL)
+      return false;
+
+    // skip SP/TABs in signature
+    while(*++sig_str <= ' ');
+
+
+
+
+    return true; // TODO - work here
+} // EmcDns::CheckEnumSig
 
