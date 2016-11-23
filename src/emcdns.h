@@ -72,6 +72,7 @@ class EmcDns {
     int SpfunENUM(uint8_t len, uint8_t **domain_start, uint8_t **domain_end);
     // Generate answewr for found EMUM NVS record
     void Answer_ENUM(const char *q_str);
+    void HandleE2U(char *e2u);
     bool CheckEnumSig(const char *q_str, char *sig_str);
 
     // Returns x = hash index to update size; x==NULL = disable;
@@ -79,6 +80,7 @@ class EmcDns {
 
     inline void Out2(uint16_t x) { x = htons(x); memcpy(m_snd, &x, 2); m_snd += 2; }
     inline void Out4(uint32_t x) { x = htonl(x); memcpy(m_snd, &x, 4); m_snd += 4; }
+    void OutS(const char *p);
 
     DNSHeader *m_hdr;
     DNSAP    *m_dap_ht;	// Hashtable for DAP; index is hash(IP)

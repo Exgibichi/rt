@@ -838,7 +838,7 @@ int EmcDns::SpfunENUM(uint8_t len, uint8_t **domain_start, uint8_t **domain_end)
 
 /*---------------------------------------------------*/
 
-#define ENC3(a, b, c) (a << 24) | (b << 8) | c
+#define ENC3(a, b, c) a | (b << 8) | (c << 16)
 
 /*---------------------------------------------------*/
 // Generate answewr for found EMUM NVS record
@@ -849,20 +849,23 @@ void EmcDns::Answer_ENUM(const char *q_str) {
   uint16_t e2uN = 0;
   bool sigOK = false;
 
+  m_ttl = 24 * 3600; // 24h by default
+
   // Tokenize lines in the NVS-value.
   // There can be prefixes SIG=, TTL=, E2U
   while(char *tok = strsep(&str_val, "\n\r"))
-    switch(*(uint32_t*)tok & 0xffffff) {
-	case ENC3('E', '2', 'U'):
+    switch(*(uint32_t*)tok & 0xffffff | 0x202020) {
+	case ENC3('e', '2', 'u'):
 	  e2u[e2uN++] = tok;
 	  continue;
 
-	case ENC3('T', 'T', 'L'):
-	  pttl  = strchr(tok + 3, '=');
-	  m_ttl = pttl == NULL? 24 * 3600 : atoi(pttl + 1);
+	case ENC3('t', 't', 'l'):
+	  pttl = strchr(tok + 3, '=');
+	  if(pttl) 
+	    m_ttl = atoi(pttl + 1);
 	  continue;
 
-	case ENC3('S', 'I', 'G'):
+	case ENC3('s', 'i', 'g'):
 	  if(!sigOK)
 	    sigOK = CheckEnumSig(q_str, strchr(tok + 3, '='));
 	  continue;
@@ -875,9 +878,63 @@ void EmcDns::Answer_ENUM(const char *q_str) {
     return; // This ENUM-record does not contain a valid signature
 
   // Generate ENUM-answers here
+  for(uint16_t e2undx = 0; e2undx < e2uN; e2undx++)
+    if(m_snd < m_bufend - 24)
+      HandleE2U(e2u[e2undx]);
 
+ } // EmcDns::Answer_ENUM
 
-} // EmcDns::Answer_ENUM
+/*---------------------------------------------------*/
+void EmcDns::OutS(const char *p) {
+  int len = strlen(strcpy((char *)m_snd + 1, p));
+  *m_snd = len;
+  m_snd += len + 1; 
+} // EmcDns::OutS
+
+/*---------------------------------------------------*/
+ // Generate ENUM-answers for a single E2U entry
+ // E2U+sip=100|10|!^(.*)$!sip:17771234567@in.callcentric.com!
+void EmcDns::HandleE2U(char *e2u) {
+  char *data = strchr(e2u, '='), *p = data;
+  if(data == NULL) 
+    return;
+
+  // Cleanum sufix for service; Service started from E2U
+  for(char *p = data; *--p <= 040; *p = 0) {}
+
+  unsigned int ord, pref;
+  char re[VAL_SIZE];
+
+  *data++ = 0; // Remove '='
+
+  if(sscanf(data, "%u | %u | %s", &ord, &pref, re) != 3)
+    return;
+
+    if(m_verbose > 3)
+      LogPrintf("\tEmcDns::HandleE2U: Parsed: %u %u %s %s\n", ord, pref, e2u, re);
+
+  if(m_snd + strlen(re) + strlen(e2u) + 24 >= m_bufend)
+    return;
+
+  Out2(m_label_ref);
+  Out2(0x23); // NAPTR record
+  Out2(1); //  INET
+  Out4(m_ttl);
+  uint8_t *snd0 = m_snd; m_snd += 2;
+  Out2(ord);
+  Out2(pref);
+  OutS("u");
+  OutS(e2u);
+  // DBG OutS("!^\\+44111555(.+)$!sip:7\\1@sip.example.com!");
+  OutS(re);
+  *m_snd++ = 0;
+
+  uint16_t len = m_snd - snd0 - 2;
+  *snd0++ = len >> 8;
+  *snd0++ = len;
+
+  m_hdr->ANCount++;
+} //  EmcDns::HandleE2U
 
 /*---------------------------------------------------*/
 bool EmcDns::CheckEnumSig(const char *q_str, char *sig_str) {
@@ -887,9 +944,15 @@ bool EmcDns::CheckEnumSig(const char *q_str, char *sig_str) {
     // skip SP/TABs in signature
     while(*++sig_str <= ' ');
 
+    char *signature = strchr(sig_str, '|');
+    if(signature == NULL)
+      return false
+    
+    for(char *p = signature; *--p <= 040; *p = 0) {}
+    *signature++ = NULL;
 
-
-
+    // m_verifiers 
+  
     return true; // TODO - work here
 } // EmcDns::CheckEnumSig
 
