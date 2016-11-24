@@ -13,6 +13,10 @@ using namespace std;
 #define EMCDNS_DAPSIZE     (8 * 1024)
 #define EMCDNS_DAPTRESHOLD 300 // 20K/min limit answer
 
+#define VERMASK_NEW	-1
+#define VERMASK_BLOCKED -2
+#define VERMASK_NOSRL	(1 << 24)
+
 struct DNSHeader {
   static const uint32_t QR_MASK = 0x8000;
   static const uint32_t OPCODE_MASK = 0x7800; // shr 11
@@ -41,7 +45,7 @@ struct DNSAP {		// DNS Amplifier Protector ExpDecay structure
 } __attribute__((packed));
 
 struct Verifier {
-    Verifier() : mask(-1) {}	// -1 == uninited, neg != -1 == cant fetch
+    Verifier() : mask(VERMASK_NEW) {}	// -1 == uninited, neg != -1 == cant fetch
     int32_t  mask;		// Signature Revocation List mask
     string   srl_tpl;		// Signature Revocation List template
     CKeyID   keyID;		// Key for verify message

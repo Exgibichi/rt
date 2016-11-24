@@ -348,7 +348,8 @@ void EmcDns::HandlePacket() {
       break;
     }
 
-    if(m_status && (m_status = IsInitialBlockDownload())) {
+    //if(m_status && (m_status = IsInitialBlockDownload())) {
+    if(IsInitialBlockDownload()) {
       m_hdr->Bits |= 2; // Server failure - not available valid nameindex DB yet
       break;
     }
@@ -844,7 +845,7 @@ int EmcDns::SpfunENUM(uint8_t len, uint8_t **domain_start, uint8_t **domain_end)
 
 /*---------------------------------------------------*/
 
-#define ENC3(a, b, c) a | (b << 8) | (c << 16)
+#define ENC3(a, b, c) (a | (b << 8) | (c << 16))
 
 /*---------------------------------------------------*/
 // Generate answewr for found EMUM NVS record
@@ -963,7 +964,7 @@ bool EmcDns::CheckEnumSig(const char *q_str, char *sig_str) {
     Verifier &ver = it->second;
 
     if(ver.mask < 0) {
-      if(ver.mask == -2)
+      if(ver.mask == VERMASK_BLOCKED)
 	return false; // Already unable to fetch
 
       do {
@@ -986,26 +987,29 @@ bool EmcDns::CheckEnumSig(const char *q_str, char *sig_str) {
         if(!addr.GetKeyID(ver.keyID))
           break; // Address does not refer to key
 
+
+	ver.mask = VERMASK_NOSRL; // Even positive value by default = no SRL
+
+	// Verifier has been read successfully, configure SRL if exist
 	char valbuf[VAL_SIZE], *str_val = valbuf;
         memcpy(valbuf, &nti.value[0], nti.value.size());
         valbuf[nti.value.size()] = 0;
 
-        while(char *tok = strsep(&str_val, "\n\r") && ver.mask < 0)
-	  if(*(uint32_t*)tok & 0xffffff | 0x202020 == ENC3('s', 'r', 'l') && tok = strchr(tok + 3, '=')) {
+        while(char *tok = strsep(&str_val, "\n\r"))
+	  if((*(uint32_t*)tok & 0xffffff | 0x202020) == ENC3('s', 'r', 'l') && (tok = strchr(tok + 3, '='))) {
 	    unsigned mask = atoi(++tok);
             if(mask > 30) mask = 30;
-	    mask = (1 << mask) - 1;
+	    ///mask = (1 << mask) - 1;
 	    tok = strchr(tok, '|');
 	    if(tok != NULL) {
 	    }
-	  }
-
-	ver.mask = 0;// TODO
-
+	    if(ver.mask & 1)
+	      break; // Mack found
+	  } // while + if
       } while(false);
 
       if(ver.mask < 0) {
-	ver.mask = -2; // Unable to read - block next read
+	ver.mask = VERMASK_BLOCKED; // Unable to read - block next read
 	return false;
       } // if(ver.mask < 0)
 
@@ -1025,10 +1029,10 @@ bool EmcDns::CheckEnumSig(const char *q_str, char *sig_str) {
     ss << string(q_str);
 
     CPubKey pubkey;
-    if (!pubkey.RecoverCompact(ss.GetHash(), vchSig))
-        return false;
+    if(!pubkey.RecoverCompact(ss.GetHash(), vchSig))
+      return false;
 
-    return (pubkey.GetID() == ver.keyID);
+    return pubkey.GetID() == ver.keyID;
 
 } // EmcDns::CheckEnumSig
 
