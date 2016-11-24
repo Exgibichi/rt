@@ -86,10 +86,10 @@ int inet_pton(int af, const char *src, void *dst)
 
 EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
 	  const char *gw_suffix, const char *allowed_suff, const char *local_fname, const char *enums, uint8_t verbose) 
-    : m_status(0), m_thread(StatRun, this) {
+    : m_status(-1), m_thread(StatRun, this) {
 
-    // Set object to a new state
-    memset(this, 0, sizeof(EmcDns)); // Clear previous state
+    // Clear vars [m_hdr..m_verbose)
+    memset(&m_hdr, 0, &m_verbose - (uint8_t *)&m_hdr); // Clear previous state
     m_verbose = verbose;
 
     // Create and socket
@@ -161,8 +161,11 @@ EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
       char *str = strcpy(m_value, enums);
       Verifier empty_ver;
       while(char *p_tok = strsep(&str, "|,"))
-        if(*p_tok)
-          m_verifiers[p_tok] = empty_ver;
+        if(*p_tok) {
+	  if(m_verbose > 5)
+	  LogPrintf("\tEmcDns::EmcDns: enumtrust=%s\n", p_tok);
+          m_verifiers[string(p_tok)] = empty_ver;
+	}
     } // ENUMs completed 
 
     // Assign data buffers inside m_value hyper-array
@@ -242,7 +245,7 @@ EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
 		 m_address.sin_addr.s_addr == INADDR_ANY? "INADDR_ANY" : bind_ip, 
 		 port_no, m_allowed_qty, local_qty);
 
-    m_status = 1; // Active 
+    m_status = 1; // Active, and maybe download
 } // EmcDns::EmcDns
 
 /*---------------------------------------------------*/
@@ -274,8 +277,8 @@ void EmcDns::StatRun(void *p) {
 void EmcDns::Run() {
   if(m_verbose > 2) LogPrintf("EmcDns::Run: started\n");
 
-  while(m_status == 0)
-      MilliSleep(133);
+  while(m_status < 0) // not initied yet
+    MilliSleep(133);
 
   for( ; ; ) {
     m_addrLen = sizeof(m_clientAddress);
@@ -345,7 +348,7 @@ void EmcDns::HandlePacket() {
       break;
     }
 
-    if(IsInitialBlockDownload()) {
+    if(m_status && (m_status = IsInitialBlockDownload())) {
       m_hdr->Bits |= 2; // Server failure - not available valid nameindex DB yet
       break;
     }
@@ -801,6 +804,9 @@ int EmcDns::SpfunENUM(uint8_t len, uint8_t **domain_start, uint8_t **domain_end)
     if(dom_length < 2)
       break; // no domains for phone number - NXDOMAIN
 
+    if(m_verifiers.empty())	
+      break; // no verifier - all ENUMs untrusted
+
     char itut_num[68], *pitut = itut_num, *pitutend = itut_num + len;
     for(const uint8_t *p = domain_end[-1]; --p >= *domain_start; )
       if(*p >= '0' && *p <= '9') {
@@ -925,7 +931,6 @@ void EmcDns::HandleE2U(char *e2u) {
   Out2(pref);
   OutS("u");
   OutS(e2u);
-  // DBG OutS("!^\\+44111555(.+)$!sip:7\\1@sip.example.com!");
   OutS(re);
   *m_snd++ = 0;
 
@@ -946,13 +951,84 @@ bool EmcDns::CheckEnumSig(const char *q_str, char *sig_str) {
 
     char *signature = strchr(sig_str, '|');
     if(signature == NULL)
-      return false
+      return false;
     
     for(char *p = signature; *--p <= 040; *p = 0) {}
-    *signature++ = NULL;
+    *signature++ = 0;
 
-    // m_verifiers 
-  
-    return true; // TODO - work here
+    map<string, Verifier>::iterator it = m_verifiers.find(sig_str);
+    if(it == m_verifiers.end())
+      return false; // Unknown verifier - do not trust it
+
+    Verifier &ver = it->second;
+
+    if(ver.mask < 0) {
+      if(ver.mask == -2)
+	return false; // Already unable to fetch
+
+      do {
+        NameTxInfo nti;
+        CNameRecord nameRec;
+        CTransaction tx;
+        LOCK(cs_main);
+        CNameDB dbName("r");
+        if(!dbName.ReadName(CNameVal(it->first.c_str(), it->first.c_str() + it->first.size()), nameRec))
+	  break; // failed to read from name DB
+        if(nameRec.vtxPos.size() < 1)
+	  break; // no result returned
+        if(!tx.ReadFromDisk(nameRec.vtxPos.back().txPos))
+          break; // failed to read from from disk
+        if(!DecodeNameTx(tx, nti, true))
+          break; // failed to decode name
+	CBitcoinAddress addr(nti.strAddress);
+        if(!addr.IsValid())
+          break; // Invalid address
+        if(!addr.GetKeyID(ver.keyID))
+          break; // Address does not refer to key
+
+	char valbuf[VAL_SIZE], *str_val = valbuf;
+        memcpy(valbuf, &nti.value[0], nti.value.size());
+        valbuf[nti.value.size()] = 0;
+
+        while(char *tok = strsep(&str_val, "\n\r") && ver.mask < 0)
+	  if(*(uint32_t*)tok & 0xffffff | 0x202020 == ENC3('s', 'r', 'l') && tok = strchr(tok + 3, '=')) {
+	    unsigned mask = atoi(++tok);
+            if(mask > 30) mask = 30;
+	    mask = (1 << mask) - 1;
+	    tok = strchr(tok, '|');
+	    if(tok != NULL) {
+	    }
+	  }
+
+	ver.mask = 0;// TODO
+
+      } while(false);
+
+      if(ver.mask < 0) {
+	ver.mask = -2; // Unable to read - block next read
+	return false;
+      } // if(ver.mask < 0)
+
+    } // if(ver.mask < 0)
+ 
+    while(*signature <= 040 && *signature) 
+      signature++;
+
+    bool fInvalid = false;
+    vector<unsigned char> vchSig(DecodeBase64(signature, &fInvalid));
+
+    if(fInvalid)
+      return false;
+
+    CHashWriter ss(SER_GETHASH, 0);
+    ss << strMessageMagic;
+    ss << string(q_str);
+
+    CPubKey pubkey;
+    if (!pubkey.RecoverCompact(ss.GetHash(), vchSig))
+        return false;
+
+    return (pubkey.GetID() == ver.keyID);
+
 } // EmcDns::CheckEnumSig
 

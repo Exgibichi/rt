@@ -7,6 +7,9 @@ using namespace std;
 
 #include <boost/thread.hpp>
 
+#include "pubkey.h"
+
+
 #define EMCDNS_DAPSIZE     (8 * 1024)
 #define EMCDNS_DAPTRESHOLD 300 // 20K/min limit answer
 
@@ -38,12 +41,10 @@ struct DNSAP {		// DNS Amplifier Protector ExpDecay structure
 } __attribute__((packed));
 
 struct Verifier {
-    Verifier() : mask(0) { 
-	bzero(address, sizeof(address)); 
-    }
-    uint32_t mask;		// Signature Revocation List mask
+    Verifier() : mask(-1) {}	// -1 == uninited, neg != -1 == cant fetch
+    int32_t  mask;		// Signature Revocation List mask
     string   srl_tpl;		// Signature Revocation List template
-    char     address[34];	// Verifiyer EMC address
+    CKeyID   keyID;		// Key for verify message
 }; // 72 bytes = 18 words
 
 
@@ -82,7 +83,7 @@ class EmcDns {
     inline void Out4(uint32_t x) { x = htonl(x); memcpy(m_snd, &x, 4); m_snd += 4; }
     void OutS(const char *p);
 
-    DNSHeader *m_hdr;
+    DNSHeader *m_hdr; // 1st bzero element
     DNSAP    *m_dap_ht;	// Hashtable for DAP; index is hash(IP)
     char     *m_value;
     const char *m_gw_suffix;
@@ -93,17 +94,17 @@ class EmcDns {
     uint32_t  m_ttl;
     uint16_t  m_label_ref;
     uint16_t  m_gw_suf_len;
-    uint8_t   m_gw_suf_dots;
-    uint8_t   m_verbose;
-    uint8_t   m_allowed_qty;
-    uint8_t   m_status;
     char     *m_allowed_base;
     char     *m_local_base;
     int16_t   m_ht_offset[0x100]; // Hashtable for allowed TLD-suffixes(>0) and local names(<0)
     struct sockaddr_in m_clientAddress;
     struct sockaddr_in m_address;
     socklen_t m_addrLen;
+    uint8_t   m_gw_suf_dots;
+    uint8_t   m_allowed_qty;
+    uint8_t   m_verbose;	// LAST bzero element
 
+    int8_t    m_status;
     boost::thread m_thread;
     map<string, Verifier> m_verifiers;
 }; // class EmcDns

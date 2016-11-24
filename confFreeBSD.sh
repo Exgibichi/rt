@@ -6,6 +6,6 @@ CXXFLAGS=$CPPFLAGS
 
 export LDFLAGS CPPFLAGS CFLAGS CXXFLAGS
 
-./configure
-#./configure --enable-debug
+#./configure
+./configure --enable-debug
 #./configure --enable-debug --with-libs 
