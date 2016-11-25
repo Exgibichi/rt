@@ -348,8 +348,8 @@ void EmcDns::HandlePacket() {
       break;
     }
 
-    //if(m_status && (m_status = IsInitialBlockDownload())) {
-    if(IsInitialBlockDownload()) {
+//    if(IsInitialBlockDownload()) {
+    if(m_status && (m_status = IsInitialBlockDownload())) {
       m_hdr->Bits |= 2; // Server failure - not available valid nameindex DB yet
       break;
     }
@@ -987,33 +987,49 @@ bool EmcDns::CheckEnumSig(const char *q_str, char *sig_str) {
         if(!addr.GetKeyID(ver.keyID))
           break; // Address does not refer to key
 
-
-	ver.mask = VERMASK_NOSRL; // Even positive value by default = no SRL
-
 	// Verifier has been read successfully, configure SRL if exist
 	char valbuf[VAL_SIZE], *str_val = valbuf;
         memcpy(valbuf, &nti.value[0], nti.value.size());
         valbuf[nti.value.size()] = 0;
 
+	// Proces SRL-line like
+	// SRL=5|srl:hello-%02x
+	ver.mask = VERMASK_NOSRL;
         while(char *tok = strsep(&str_val, "\n\r"))
 	  if((*(uint32_t*)tok & 0xffffff | 0x202020) == ENC3('s', 'r', 'l') && (tok = strchr(tok + 3, '='))) {
-	    unsigned mask = atoi(++tok);
-            if(mask > 30) mask = 30;
-	    ///mask = (1 << mask) - 1;
+	    unsigned nbits = atoi(++tok);
+            if(nbits > 30) nbits = 30;
 	    tok = strchr(tok, '|');
 	    if(tok != NULL) {
-	    }
-	    if(ver.mask & 1)
-	      break; // Mack found
+		do {
+		  if(*++tok == 0)
+		    break; // empty SRL, thus keep VERMASK_NOSRL
+		  char *pp = strchr(tok, '%');
+		  if(pp != NULL) {
+		    if(*++pp == '0')
+		      do ++pp; while(*pp >= '0' && *pp <= '9');
+                    if(strchr("diouXx", *pp) == NULL)
+			break; // Invalid char in the template
+		    if(strchr(pp, '%'))
+			break; // Not allowed 2nd % symbol
+		  } else
+		    nbits = 0; // Don't needed nbits/mask for no-bucket srl_tpl
+
+                  ver.srl_tpl.assign(tok);
+		  ver.mask = (1 << nbits) - 1;
+		} while(false);
+	    } // if(tok != NULL)
+	    if(ver.mask != VERMASK_NOSRL)
+	      break; // Mask found
 	  } // while + if
       } while(false);
 
       if(ver.mask < 0) {
 	ver.mask = VERMASK_BLOCKED; // Unable to read - block next read
 	return false;
-      } // if(ver.mask < 0)
+      } // if(ver.mask < 0) - after try-fill verifiyer
 
-    } // if(ver.mask < 0)
+    } // if(ver.mask < 0) - main
  
     while(*signature <= 040 && *signature) 
       signature++;
@@ -1032,7 +1048,35 @@ bool EmcDns::CheckEnumSig(const char *q_str, char *sig_str) {
     if(!pubkey.RecoverCompact(ss.GetHash(), vchSig))
       return false;
 
-    return pubkey.GetID() == ver.keyID;
+    if(pubkey.GetID() != ver.keyID)
+	return false; // Signature check did not passed
 
+    if(ver.mask == VERMASK_NOSRL)
+	return true; // This verifiyer does not have active SRL
+
+    // TODO - check SRL here
+    
+    char valbuf[VAL_SIZE];
+
+    // Compute a simple hash from q_str like enum:17771234567:0
+    // This hasu must be used by verifiyers for build buckets
+    unsigned h = 0x5555;
+    for(const char *p = q_str; *p; p++)
+	h += (h << 5) + *p;
+    sprintf(valbuf, ver.srl_tpl.c_str(), h & ver.mask);
+
+    string value;
+    if(!hooks->getNameValue(string(valbuf), value))
+      return true; // Unable fetch SRL - as same as SRL does not exist
+
+    return !value.find(q_str);
+#if 0
+    char *valstr = strcpy(valbuf, value.c_str());
+    while(char *tok = strsep(&valstr, "|, \r\n\t"))
+      if(strcmp(tok, q_str) == 0)
+	reurn false;
+
+    return true;
+#endif
 } // EmcDns::CheckEnumSig
 
