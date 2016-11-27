@@ -14,7 +14,7 @@ using namespace std;
 
 
 #define EMCDNS_DAPSIZE     (8 * 1024)
-#define EMCDNS_DAPTRESHOLD 300 // 20K/min limit answer
+#define EMCDNS_DAPTRESHOLD 3000 // 200K/min limit answer
 
 #define VERMASK_NEW	-1
 #define VERMASK_BLOCKED -2
