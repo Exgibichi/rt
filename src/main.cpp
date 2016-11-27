@@ -1348,7 +1348,7 @@ bool IsInitialBlockDownload()
       if (fImporting || fReindex)
         break; // ret true
  
-      unsigned int cah = chainActive.Height();
+      int cah = chainActive.Height();
 
       if(cah < Checkpoints::GetTotalBlocksEstimate() || cah < pindexBestHeader->nHeight - 24 * 6)
         break; // ret true
