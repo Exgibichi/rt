@@ -1360,8 +1360,10 @@ bool AppInit2(boost::thread_group& threadGroup)
         string bind_ip = GetArg("-emcdnsbindip", "");
         string allowed = GetArg("-emcdnsallowed", "");
         string localcf = GetArg("-emcdnslocalcf", "");
+        string enums   = GetArg("-enumtrust", "");
+        string tf      = GetArg("-enumtollfree", "");
         emcdns = new EmcDns(bind_ip.c_str(), port,
-        suffix.c_str(), allowed.c_str(), localcf.c_str(), verbose);
+        suffix.c_str(), allowed.c_str(), localcf.c_str(), enums.c_str(), tf.c_str(), verbose);
         LogPrintf("DNS server started\n");
     }
 

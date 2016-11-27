@@ -1337,7 +1337,31 @@ CAmount GetProofOfStakeReward(int64_t nCoinAge)
 
 bool IsInitialBlockDownload()
 {
-    const CChainParams& chainParams = Params();
+    static bool rc = true; // Default - we're in the Initial Download
+    do {
+      if(rc == false)
+	break; // ret false
+
+      const CChainParams& chainParams = Params();
+      LOCK(cs_main);
+ 
+      if (fImporting || fReindex)
+        break; // ret true
+ 
+      unsigned int cah = chainActive.Height();
+
+      if(cah < Checkpoints::GetTotalBlocksEstimate() || cah < pindexBestHeader->nHeight - 24 * 6)
+        break; // ret true
+
+      rc = pindexBestHeader->GetBlockTime() < GetTime() - chainParams.MaxTipAge();
+
+    } while(false);
+
+    return rc;
+}
+
+#if 0
+const CChainParams& chainParams = Params();
     LOCK(cs_main);
     if (fImporting || fReindex || chainActive.Height() < Checkpoints::GetTotalBlocksEstimate())
         return true;
@@ -1349,7 +1373,7 @@ bool IsInitialBlockDownload()
     if (!state)
         lockIBDState = true;
     return state;
-}
+#endif
 
 bool fLargeWorkForkFound = false;
 bool fLargeWorkInvalidChainFound = false;
