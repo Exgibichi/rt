@@ -259,7 +259,7 @@ EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
     m_status = 1; // Active, and maybe download
 } // EmcDns::EmcDns
 /*---------------------------------------------------*/
-void EmcDns::AddTF(const char *tf_tok) {
+void EmcDns::AddTF(char *tf_tok) {
   // Skip comments and empty lines
   if(tf_tok[0] < '0')
     return;
