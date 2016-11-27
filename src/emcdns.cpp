@@ -85,7 +85,7 @@ int inet_pton(int af, const char *src, void *dst)
 /*---------------------------------------------------*/
 
 EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
-	  const char *gw_suffix, const char *allowed_suff, const char *local_fname, const char *enums, uint8_t verbose) 
+	  const char *gw_suffix, const char *allowed_suff, const char *local_fname, const char *enums, const char *tollfree, uint8_t verbose) 
     : m_status(-1), m_thread(StatRun, this) {
 
     // Clear vars [m_hdr..m_verbose)
@@ -156,7 +156,8 @@ EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
     if(m_value == NULL) 
       throw runtime_error("EmcDns::EmcDns: Cannot allocate buffer");
 
-    // Temporary use m_value for parse enum-verifiers, if exists
+    // Temporary use m_value for parse enum-verifiers and toll-free lists, if exist
+
     if(enums && *enums) {
       char *str = strcpy(m_value, enums);
       Verifier empty_ver;
@@ -245,8 +246,41 @@ EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
 		 m_address.sin_addr.s_addr == INADDR_ANY? "INADDR_ANY" : bind_ip, 
 		 port_no, m_allowed_qty, local_qty);
 
+    // Hack - pass TF file list through m_value to HandlePacket()
+
+    if(tollfree && *tollfree)
+      if(m_verbose > 3)
+	LogPrintf("\tEmcDns::EmcDns: Setup deferred toll-free=%s\n", tollfree);
+      strcpy(m_value, tollfree);
+    else
+      m_value[0] = 0;
+
     m_status = 1; // Active, and maybe download
 } // EmcDns::EmcDns
+/*---------------------------------------------------*/
+void EmcDns::AddTF(const char *tf_tok) {
+  // Skip comments and empty lines
+  if(tf_tok[0] < '0')
+    return;
+
+  // Clear TABs and SPs at the end of the line
+  char *end = strchr(tf_tok, 0);
+  while(*--end <= 040) {
+    *end = 0;
+    if(end <= tf_tok)
+      return;
+  }
+  
+  if(tf_tok[0] == '=') {
+    if(tf_tok[1])
+      m_tollfree.push_back(TollFree(tf_tok + 1));
+  } else 
+      if(!m_tollfree.empty())
+        m_tollfree.back().e2u.push_back(string(tf_tok));
+
+  if(m_verbose > 3)
+    LogPrintf("\tEmcDns::AddTF: Added token [%s] %u:%u\n", tf_tok, m_tollfree.size(), m_tollfree.back().e2u.size()); 
+} // EmcDns::AddTF
 
 /*---------------------------------------------------*/
 
@@ -348,11 +382,35 @@ void EmcDns::HandlePacket() {
       break;
     }
 
-//    if(IsInitialBlockDownload()) {
-    if(m_status && (m_status = IsInitialBlockDownload())) {
-      m_hdr->Bits |= 2; // Server failure - not available valid nameindex DB yet
-      break;
-    }
+    if(m_status) {
+      if(m_status = IsInitialBlockDownload()) {
+        m_hdr->Bits |= 2; // Server failure - not available valid nameindex DB yet
+        break;
+      } else {
+	// Fill deferred toll-free default entries
+        char *tf_str = m_value;
+        // Iterate the list of Toll-Free fnames; can be fnames and NVS records
+        while(char *tf_fname = strsep(&tf_str, "|")) {
+          if(m_verbose > 3)
+	    LogPrintf("\tEmcDns::HandlePacket: handle deferred toll-free=%s\n", tf_fname);
+          if(tf_fname[0] == '@') { // this is NVS record
+            string value;
+            if(hooks->getNameValue(string(tf_fname + 1), value)) {
+              char *tf_val = strcpy(m_value, value.c_str());
+              while(char *tf_tok = strsep(&tf_val, "\r\n"))
+	        AddTF(tf_tok);
+	    }
+          } else { // This is file
+	    FILE *tf = fopen(tf_fname, "r");
+ 	    if(tf != NULL) {
+	      while(fgets(m_value, VAL_SIZE, tf))
+	        AddTF(m_value);
+	      fclose(tf);
+	    }
+          } // if @
+        } // while tf_name
+      } // m_status #2
+    } // m_status #1
 
     // Handle questions here
     for(uint16_t qno = 0; qno < m_hdr->QDCount && m_snd < m_bufend; qno++) {
@@ -805,9 +863,10 @@ int EmcDns::SpfunENUM(uint8_t len, uint8_t **domain_start, uint8_t **domain_end)
     if(dom_length < 2)
       break; // no domains for phone number - NXDOMAIN
 
-    if(m_verifiers.empty())	
+    if(m_verifiers.empty() && m_tollfree.empty())	
       break; // no verifier - all ENUMs untrusted
 
+    // convert reversed domain record to ITU-T number
     char itut_num[68], *pitut = itut_num, *pitutend = itut_num + len;
     for(const uint8_t *p = domain_end[-1]; --p >= *domain_start; )
       if(*p >= '0' && *p <= '9') {
@@ -824,19 +883,38 @@ int EmcDns::SpfunENUM(uint8_t len, uint8_t **domain_start, uint8_t **domain_end)
       LogPrintf("\tEmcDns::SpfunENUM: ITU-T num=[%s]\n", itut_num);
 
     // Itrrate all available ENUM-records, and build joined answer from them
-    for(int16_t qno = 0; qno >= 0; qno++) {
-      char q_str[100];
-      sprintf(q_str, "%s:%s:%u", tld, itut_num, qno); 
-      if(m_verbose > 1) 
-        LogPrintf("\tEmcDns::SpfunENUM Search(%s)\n", q_str);
+    if(!m_verifiers.empty())
+      for(int16_t qno = 0; qno >= 0; qno++) {
+        char q_str[100];
+        sprintf(q_str, "%s:%s:%u", tld, itut_num, qno); 
+        if(m_verbose > 1) 
+          LogPrintf("\tEmcDns::SpfunENUM Search(%s)\n", q_str);
 
-      string value;
-      if(!hooks->getNameValue(string(q_str), value))
-        return m_hdr->ANCount? 0 : 3;
+        string value;
+        if(!hooks->getNameValue(string(q_str), value))
+          break;
 
-      strcpy(m_value, value.c_str());
-      Answer_ENUM(q_str);
-    } // for 
+        strcpy(m_value, value.c_str());
+        Answer_ENUM(q_str);
+      } // for 
+
+      // If notheing found in the ENUM - try to search in the Toll-Free
+      m_ttl = 24 * 3600; // 24h by default
+      boost::xpressive::smatch nameparts;
+      for(vector<TollFree>::const_iterator tf = m_tollfree.begin(); 
+	      m_hdr->ANCount == 0 && tf != m_tollfree.end(); 
+	      tf++) {
+	bool matched = regex_match(string(itut_num), nameparts, tf->regex);
+	// bool matched = regex_search(string(itut_num), nameparts, tf->regex);
+        if(m_verbose > 3) 
+          LogPrintf("\tEmcDns::SpfunENUM TF-match N=[%s] RE=[%s] -> %u\n", itut_num, tf->regex_str.c_str(), matched);
+        if(matched)
+	  for(vector<string>::const_iterator e2u = tf->e2u.begin(); e2u != tf->e2u.end(); e2u++)
+	      HandleE2U(strcpy(m_value, e2u->c_str()));
+      } // tf processing
+
+      if(m_hdr->ANCount)
+	return 0; // if collected some answers - OK
 
   } while(false);
 
@@ -1054,8 +1132,6 @@ bool EmcDns::CheckEnumSig(const char *q_str, char *sig_str) {
     if(ver.mask == VERMASK_NOSRL)
 	return true; // This verifiyer does not have active SRL
 
-    // TODO - check SRL here
-    
     char valbuf[VAL_SIZE];
 
     // Compute a simple hash from q_str like enum:17771234567:0
@@ -1069,7 +1145,9 @@ bool EmcDns::CheckEnumSig(const char *q_str, char *sig_str) {
     if(!hooks->getNameValue(string(valbuf), value))
       return true; // Unable fetch SRL - as same as SRL does not exist
 
-    return !value.find(q_str);
+    // Is q_str missing in the SRL
+    return value.find(q_str) == string::npos;
+
 #if 0
     char *valstr = strcpy(valbuf, value.c_str());
     while(char *tok = strsep(&valstr, "|, \r\n\t"))

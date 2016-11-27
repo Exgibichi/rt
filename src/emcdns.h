@@ -3,9 +3,12 @@
 
 #include <string>
 #include <map>
-using namespace std;
 
 #include <boost/thread.hpp>
+#include <boost/xpressive/xpressive_dynamic.hpp>
+
+using namespace std;
+
 
 #include "pubkey.h"
 
@@ -52,10 +55,21 @@ struct Verifier {
 }; // 72 bytes = 18 words
 
 
+struct TollFree {
+    TollFree(const char *re) :
+	regex(boost::xpressive::sregex::compile(string(re))), regex_str(re)
+    {}
+    boost::xpressive::sregex	regex;
+    string			regex_str;
+    vector<string>		e2u;
+};
+
 class EmcDns {
   public:
      EmcDns(const char *bind_ip, uint16_t port_no,
-	    const char *gw_suffix, const char *allowed_suff, const char *local_fname, const char *enums, uint8_t verbose);
+	    const char *gw_suffix, const char *allowed_suff, 
+	    const char *local_fname, const char *enums, const char *tollfree, 
+	    uint8_t verbose);
     ~EmcDns();
 
     void Run();
@@ -79,7 +93,7 @@ class EmcDns {
     void Answer_ENUM(const char *q_str);
     void HandleE2U(char *e2u);
     bool CheckEnumSig(const char *q_str, char *sig_str);
-
+    void AddTF(const char *tf_tok);
     // Returns x = hash index to update size; x==NULL = disable;
     DNSAP  *CheckDAP(uint32_t ip_addr);
 
@@ -111,6 +125,7 @@ class EmcDns {
     int8_t    m_status;
     boost::thread m_thread;
     map<string, Verifier> m_verifiers;
+    vector<TollFree>      m_tollfree;
 }; // class EmcDns
 
 #endif // EMCDNS_H
