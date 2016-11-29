@@ -23,7 +23,6 @@
 #include "json/json_spirit_utils.h"
 #include "json/json_spirit_writer_template.h"
 
-using namespace json_spirit;
 extern Array read_json(const std::string& jsondata);
 
 // Old script.cpp SignatureHash function

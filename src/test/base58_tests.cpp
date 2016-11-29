@@ -1,6 +1,7 @@
 // Copyright (c) 2011-2014 The Bitcoin Core developers
 // Distributed under the GPL3 software license, see the accompanying
 // file COPYING or http://www.gnu.org/licenses/gpl.html.
+#if 0
 
 #include "base58.h"
 
@@ -16,11 +17,7 @@
 
 #include <boost/foreach.hpp>
 #include <boost/test/unit_test.hpp>
-#include "json/json_spirit_reader_template.h"
-#include "json/json_spirit_utils.h"
-#include "json/json_spirit_writer_template.h"
 
-using namespace json_spirit;
 extern Array read_json(const std::string& jsondata);
 
 BOOST_AUTO_TEST_SUITE(base58_tests)
@@ -279,3 +276,4 @@ BOOST_AUTO_TEST_CASE(base58_keys_invalid)
 
 BOOST_AUTO_TEST_SUITE_END()
 
+#endif

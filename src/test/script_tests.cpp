@@ -1,6 +1,7 @@
 // Copyright (c) 2011-2014 The Bitcoin Core developers
 // Distributed under the GPL3 software license, see the accompanying
 // file COPYING or http://www.gnu.org/licenses/gpl.html.
+#if 0
 
 // emercoin: TODO: redo a lot of test cases, because nTime from ppcoin broke most signature hashes.
 
@@ -33,12 +34,8 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/foreach.hpp>
 #include <boost/test/unit_test.hpp>
-#include "json/json_spirit_reader_template.h"
-#include "json/json_spirit_utils.h"
-#include "json/json_spirit_writer_template.h"
 
 using namespace std;
-using namespace json_spirit;
 using namespace boost::algorithm;
 
 // Uncomment if you want to output updated JSON tests.
@@ -61,8 +58,6 @@ read_json(const std::string& jsondata)
     }
     return v.get_array();
 }
-
-#if 0
 
 BOOST_AUTO_TEST_SUITE(script_tests)
 

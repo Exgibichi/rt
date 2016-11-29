@@ -11,7 +11,6 @@
 #include <fstream>
 
 using namespace std;
-using namespace json_spirit;
 
 map<CNameVal, set<uint256> > mapNamePending; // for pending tx
 
@@ -52,7 +51,7 @@ bool CTransaction::ReadFromDisk(const CDiskTxPos& postx)
     return true;
 }
 
-CNameVal nameValFromValue(const Value& value) {
+CNameVal nameValFromValue(const UniValue& value) {
     string strName = value.get_str();
     unsigned char *strbeg = (unsigned char*)strName.c_str();
     return CNameVal(strbeg, strbeg + strName.size());
@@ -303,7 +302,7 @@ bool GetLastTxOfName(CNameDB& dbName, const CNameVal& name, CTransaction& tx)
 }
 
 
-Value sendtoname(const Array& params, bool fHelp)
+UniValue sendtoname(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() < 2 || params.size() > 4)
         throw runtime_error(
@@ -319,9 +318,9 @@ Value sendtoname(const Array& params, bool fHelp)
 
     // Wallet comments
     CWalletTx wtx;
-    if (params.size() > 2 && params[2].type() != null_type && !params[2].get_str().empty())
+    if (params.size() > 2 && !params[2].isNull() && !params[2].get_str().empty())
         wtx.mapValue["comment"] = params[2].get_str();
-    if (params.size() > 3 && params[3].type() != null_type && !params[3].get_str().empty())
+    if (params.size() > 3 && !params[3].isNull() && !params[3].get_str().empty())
         wtx.mapValue["to"]      = params[3].get_str();
 
     string error;
@@ -331,7 +330,7 @@ Value sendtoname(const Array& params, bool fHelp)
 
     SendMoney(address.Get(), nAmount, wtx);
 
-    Object res;
+    UniValue res(UniValue::VOBJ);
     res.push_back(Pair("sending to", address.ToString()));
     res.push_back(Pair("transaction", wtx.GetHash().GetHex()));
     return res;
@@ -378,7 +377,7 @@ bool CNamecoinHooks::RemoveNameScriptPrefix(const CScript& scriptIn, CScript& sc
     return ::RemoveNameScriptPrefix(scriptIn, scriptOut);
 }
 
-Value name_list(const Array& params, bool fHelp)
+UniValue name_list(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() > 1)
         throw runtime_error(
@@ -396,10 +395,10 @@ Value name_list(const Array& params, bool fHelp)
     map<CNameVal, NameTxInfo> mapNames, mapPending;
     GetNameList(nameUniq, mapNames, mapPending);
 
-    Array oRes;
+    UniValue oRes(UniValue::VARR);
     BOOST_FOREACH(const PAIRTYPE(CNameVal, NameTxInfo)& item, mapNames)
     {
-        Object oName;
+        UniValue oName(UniValue::VOBJ);
         oName.push_back(Pair("name", stringFromNameVal(item.second.name)));
         oName.push_back(Pair("value", stringFromNameVal(item.second.value)));
         if (item.second.fIsMine == false)
@@ -485,7 +484,7 @@ void GetNameList(const CNameVal& nameUniq, std::map<CNameVal, NameTxInfo> &mapNa
     }
 }
 
-Value name_debug(const Array& params, bool fHelp)
+UniValue name_debug(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() < 1)
         throw runtime_error(
@@ -514,7 +513,7 @@ Value name_debug(const Array& params, bool fHelp)
     return true;
 }
 
-Value name_show(const Array& params, bool fHelp)
+UniValue name_show(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() < 1 || params.size() > 2)
         throw runtime_error(
@@ -526,7 +525,7 @@ Value name_show(const Array& params, bool fHelp)
     if (IsInitialBlockDownload())
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
 
-    Object oName;
+    UniValue oName(UniValue::VOBJ);
     CNameVal name = nameValFromValue(params[0]);
     string sName = stringFromNameVal(name);
     NameTxInfo nti;
@@ -577,7 +576,7 @@ Value name_show(const Array& params, bool fHelp)
     return oName;
 }
 
-Value name_history (const Array& params, bool fHelp)
+UniValue name_history (const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() < 1 || params.size() > 2)
         throw std::runtime_error (
@@ -626,7 +625,7 @@ Value name_history (const Array& params, bool fHelp)
     if (!fFullHistory && !NameActive(name))
         throw JSONRPCError(RPC_MISC_ERROR, "record for this name exists, but this name is not active");
 
-    Array res;
+    UniValue res(UniValue::VARR);
     for (unsigned int i = fFullHistory ? 0 : nameRec.nLastActiveChainIndex; i < nameRec.vtxPos.size(); i++)
     {
         CTransaction tx;
@@ -637,7 +636,7 @@ Value name_history (const Array& params, bool fHelp)
         if (!DecodeNameTx(tx, nti, true))
             throw JSONRPCError(RPC_DATABASE_ERROR, "failed to decode namecoin transaction");
 
-        Object obj;
+        UniValue obj(UniValue::VOBJ);
         obj.push_back(Pair("txid",             tx.GetHash().ToString()));
         obj.push_back(Pair("time",             (boost::int64_t)tx.nTime));
         obj.push_back(Pair("height",           nameRec.vtxPos[i].nHeight));
@@ -656,7 +655,7 @@ Value name_history (const Array& params, bool fHelp)
     return res;
 }
 
-Value name_mempool (const Array& params, bool fHelp)
+UniValue name_mempool (const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() > 0)
         throw std::runtime_error (
@@ -680,7 +679,7 @@ Value name_mempool (const Array& params, bool fHelp)
             + HelpExampleRpc ("name_mempool", "" )
         );
 
-    Array res;
+    UniValue res(UniValue::VARR);
     BOOST_FOREACH(const PAIRTYPE(CNameVal, set<uint256>) &pairPending, mapNamePending)
     {
         string sName = stringFromNameVal(pairPending.first);
@@ -694,7 +693,7 @@ Value name_mempool (const Array& params, bool fHelp)
             if (!DecodeNameTx(tx, nti, true))
                 throw JSONRPCError(RPC_DATABASE_ERROR, "failed to decode namecoin transaction");
 
-            Object obj;
+            UniValue obj(UniValue::VOBJ);
             obj.push_back(Pair("name",             sName));
             obj.push_back(Pair("txid",             hash.ToString()));
             obj.push_back(Pair("time",             (boost::int64_t)tx.nTime));
@@ -714,13 +713,14 @@ Value name_mempool (const Array& params, bool fHelp)
 }
 
 // used for sorting in name_filter by nHeight
-bool mycompare2 (const Object& lhs, const Object& rhs)
+bool mycompare2 (const UniValue& lhs, const UniValue& rhs)
 {
+    // TODO check exact position
     int pos = 2; //this should exactly match field name position in name_filter
 
-    return lhs[pos].value_.get_int() < rhs[pos].value_.get_int();
+    return lhs[pos].get_int() < rhs[pos].get_int();
 }
-Value name_filter(const Array& params, bool fHelp)
+UniValue name_filter(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() > 5)
         throw runtime_error(
@@ -765,7 +765,7 @@ Value name_filter(const Array& params, bool fHelp)
 
 
     CNameDB dbName("r");
-    vector<Object> oRes;
+    vector<UniValue> oRes;
 
     CNameVal name;
     vector<pair<CNameVal, pair<CNameIndex,int> > > nameScan;
@@ -802,7 +802,7 @@ Value name_filter(const Array& params, bool fHelp)
         if(nCountFrom < nFrom + 1)
             continue;
 
-        Object oName;
+        UniValue oName(UniValue::VOBJ);
         if (!fStat) {
             oName.push_back(Pair("name", name));
 
@@ -824,16 +824,18 @@ Value name_filter(const Array& params, bool fHelp)
             break;
     }
 
-    Array oRes2;
+    UniValue oRes2(UniValue::VARR);
     if (!fStat)
     {
         std::sort(oRes.begin(), oRes.end(), mycompare2); //sort by nHeight
-        BOOST_FOREACH(const Object& res, oRes)
+        for (unsigned int idx = 0; idx < oRes.size(); idx++) {
+            const UniValue& res = oRes[idx];
             oRes2.push_back(res);
+        }
     }
     else
     {
-        Object oStat;
+        UniValue oStat(UniValue::VOBJ);
         oStat.push_back(Pair("blocks",    chainActive.Height()));
         oStat.push_back(Pair("count",     (int)oRes2.size()));
         //oStat.push_back(Pair("sha256sum", SHA256(oRes), true));
@@ -843,7 +845,7 @@ Value name_filter(const Array& params, bool fHelp)
     return oRes2;
 }
 
-Value name_scan(const Array& params, bool fHelp)
+UniValue name_scan(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() > 3)
         throw runtime_error(
@@ -868,7 +870,7 @@ Value name_scan(const Array& params, bool fHelp)
         mMaxShownValue = params[2].get_int();
 
     CNameDB dbName("r");
-    Array oRes;
+    UniValue oRes(UniValue::VARR);
 
     vector<pair<CNameVal, pair<CNameIndex,int> > > nameScan;
     if (!dbName.ScanNames(name, nMax, nameScan))
@@ -877,7 +879,7 @@ Value name_scan(const Array& params, bool fHelp)
     pair<CNameVal, pair<CNameIndex,int> > pairScan;
     BOOST_FOREACH(pairScan, nameScan)
     {
-        Object oName;
+        UniValue oName(UniValue::VOBJ);
         string name = stringFromNameVal(pairScan.first);
         oName.push_back(Pair("name", name));
 
@@ -955,7 +957,7 @@ bool IsWalletLocked(NameTxReturn& ret)
     return false;
 }
 
-Value name_new(const Array& params, bool fHelp)
+UniValue name_new(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() < 2 || params.size() > 5)
         throw runtime_error(
@@ -982,7 +984,7 @@ Value name_new(const Array& params, bool fHelp)
     return ret.hex.GetHex();
 }
 
-Value name_update(const Array& params, bool fHelp)
+UniValue name_update(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() < 2 || params.size() > 5)
         throw runtime_error(
@@ -1008,7 +1010,7 @@ Value name_update(const Array& params, bool fHelp)
     return ret.hex.GetHex();
 }
 
-Value name_delete(const Array& params, bool fHelp)
+UniValue name_delete(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
         throw runtime_error(

@@ -28,7 +28,6 @@
 #include "json/json_spirit_writer_template.h"
 
 using namespace std;
-using namespace json_spirit;
 using namespace boost::algorithm;
 
 // In script_tests.cpp

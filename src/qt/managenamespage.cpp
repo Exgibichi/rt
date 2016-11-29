@@ -358,7 +358,7 @@ void ManageNamesPage::on_submitNameButton_clicked()
 
         err_msg = QString::fromStdString(res.err_msg);
     }
-    catch (json_spirit::Object& objError)
+    catch (UniValue& objError)
     {
         err_msg = QString::fromStdString(find_value(objError, "message").get_str());
     }
