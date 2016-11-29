@@ -715,7 +715,6 @@ UniValue name_mempool (const UniValue& params, bool fHelp)
 // used for sorting in name_filter by nHeight
 bool mycompare2 (const UniValue& lhs, const UniValue& rhs)
 {
-    // TODO check exact position
     int pos = 2; //this should exactly match field name position in name_filter
 
     return lhs[pos].get_int() < rhs[pos].get_int();
