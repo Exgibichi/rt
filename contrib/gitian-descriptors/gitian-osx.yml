@@ -21,7 +21,7 @@ packages:
 - "libbz2-dev"
 reference_datetime: "2016-01-01 00:00:00"
 remotes:
-- "url": "/home/evgenij/programming/c++/emercoinDev/.git"
+- "url": "https://github.com/Emercoin/emercoin.git"
   "dir": "emercoin"
 files:
 - "MacOSX10.11.sdk.tar.gz"
