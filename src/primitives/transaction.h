@@ -240,7 +240,9 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(*const_cast<int32_t*>(&this->nVersion));
         nVersion = this->nVersion;
-        READWRITE(*const_cast<uint32_t*>(&nTime));
+        // emercoin: do not read/write nTime in case of auxPow tx
+        if (!(nType & SER_BTC_TX))
+            READWRITE(*const_cast<uint32_t*>(&nTime));
         READWRITE(*const_cast<std::vector<CTxIn>*>(&vin));
         READWRITE(*const_cast<std::vector<CTxOut>*>(&vout));
         READWRITE(*const_cast<uint32_t*>(&nLockTime));
@@ -255,6 +257,10 @@ public:
     const uint256& GetHash() const {
         return hash;
     }
+
+    // emercoin: get bitcoin compatible hash for merged mining usage
+    //           this hash is computed without nTime
+    const uint256 GetBtcHash() const;
 
     // Return sum of txouts.
     CAmount GetValueOut() const;

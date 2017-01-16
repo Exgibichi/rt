@@ -139,16 +139,25 @@ bool CCoinsViewDB::GetStats(CCoinsStats &stats) const {
     return true;
 }
 
-bool CBlockTreeDB::WriteBatchSync(const std::vector<std::pair<int, const CBlockFileInfo*> >& fileInfo, int nLastFile, const std::vector<const CBlockIndex*>& blockinfo) {
+bool CBlockTreeDB::WriteBatchSync(const std::vector<std::pair<int, const CBlockFileInfo*> >& fileInfo, int nLastFile, const std::vector<const CBlockIndex*>& blockinfo, const std::map<uint256, boost::shared_ptr<CAuxPow> >& auxpows) {
     CLevelDBBatch batch;
     for (std::vector<std::pair<int, const CBlockFileInfo*> >::const_iterator it=fileInfo.begin(); it != fileInfo.end(); it++) {
         batch.Write(make_pair('f', it->first), *it->second);
     }
     batch.Write('l', nLastFile);
     for (std::vector<const CBlockIndex*>::const_iterator it=blockinfo.begin(); it != blockinfo.end(); it++) {
-        batch.Write(make_pair('b', (*it)->GetBlockHash()), CDiskBlockIndex(*it));
+        const std::map<uint256, boost::shared_ptr<CAuxPow> >::const_iterator auxIt = auxpows.find((*it)->GetBlockHash());
+        if (auxIt != auxpows.end()) {
+            batch.Write(make_pair(make_pair('b', (*it)->GetBlockHash()), 'a'), CDiskBlockIndex(*it, auxIt->second));
+        }
+        batch.Write(make_pair(make_pair('b', (*it)->GetBlockHash()), 'b'), **it);
     }
     return WriteBatch(batch, true);
+}
+
+bool CBlockTreeDB::ReadDiskBlockIndex(const uint256 &blkid, CDiskBlockIndex &diskblockindex)
+{
+    return Read(std::make_pair(std::make_pair('b', blkid), 'a'), diskblockindex);
 }
 
 bool CBlockTreeDB::ReadTxIndex(const uint256 &txid, CDiskTxPos &pos) {
@@ -179,7 +188,8 @@ bool CBlockTreeDB::LoadBlockIndexGuts()
     boost::scoped_ptr<leveldb::Iterator> pcursor(NewIterator());
 
     CDataStream ssKeySet(SER_DISK, CLIENT_VERSION);
-    ssKeySet << make_pair('b', uint256(0));
+    ssKeySet << make_pair(std::make_pair('b', uint256(0)), 'a'); // 'b' is the prefix for BlockIndex, 'a' signifies the first part
+    uint256 hash;
     pcursor->Seek(ssKeySet.str());
 
     // Load mapBlockIndex
@@ -191,24 +201,23 @@ bool CBlockTreeDB::LoadBlockIndexGuts()
             char chType;
             ssKey >> chType;
             if (chType == 'b') {
+                ssKey >> hash;
                 leveldb::Slice slValue = pcursor->value();
-                CDataStream ssValue(slValue.data(), slValue.data()+slValue.size(), SER_DISK, CLIENT_VERSION);
+                CDataStream ssValue_immutable(slValue.data(), slValue.data()+slValue.size(), SER_DISK, CLIENT_VERSION);
                 CDiskBlockIndex diskindex;
-                ssValue >> diskindex;
+                ssValue_immutable >> diskindex;
 
-                // Construct block index object
-                CBlockIndex* pindexNew = InsertBlockIndex(diskindex.GetBlockHash());
+                // Construct immutable parts of block index object
+                CBlockIndex* pindexNew = InsertBlockIndex(hash);
+                assert(diskindex.GetBlockHash() == *pindexNew->phashBlock); // paranoia check
+
                 pindexNew->pprev          = InsertBlockIndex(diskindex.hashPrev);
                 pindexNew->nHeight        = diskindex.nHeight;
-                pindexNew->nFile          = diskindex.nFile;
-                pindexNew->nDataPos       = diskindex.nDataPos;
-                pindexNew->nUndoPos       = diskindex.nUndoPos;
                 pindexNew->nVersion       = diskindex.nVersion;
                 pindexNew->hashMerkleRoot = diskindex.hashMerkleRoot;
                 pindexNew->nTime          = diskindex.nTime;
                 pindexNew->nBits          = diskindex.nBits;
                 pindexNew->nNonce         = diskindex.nNonce;
-                pindexNew->nStatus        = diskindex.nStatus;
                 pindexNew->nTx            = diskindex.nTx;
 
                 // ppcoin related block index fields
@@ -220,15 +229,24 @@ bool CBlockTreeDB::LoadBlockIndexGuts()
                 pindexNew->nStakeTime     = diskindex.nStakeTime;
                 pindexNew->hashProofOfStake = diskindex.hashProofOfStake;
 
-                // emercoin: we ignore this check if header was gotten from old client and we still did not download block for it.
-                if (pindexNew->IsProofOfWork() && !CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits))
+                pcursor->Next(); // now we should be on the 'b' subkey
+                assert(pcursor->Valid());
+
+                slValue = pcursor->value();
+                CDataStream ssValue_mutable(slValue.data(), slValue.data()+slValue.size(), SER_DISK, CLIENT_VERSION);
+                ssValue_mutable >> *pindexNew; // read all mutable data
+
+                //mm: test this out for AuxPow blocks
+                map<uint256, boost::shared_ptr<CAuxPow> > dummy;
+                CBlockHeader tmp = pindexNew->GetBlockHeader(dummy);
+                if (pindexNew->IsProofOfWork() && !CheckBlockProofOfWork(&tmp))
                     return error("LoadBlockIndex() : CheckProofOfWork failed: %s", pindexNew->ToString());
 
                 pcursor->Next();
             } else {
                 break; // if shutdown requested or finished loading block index
             }
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
             return error("%s : Deserialize or I/O error - %s", __func__, e.what());
         }
     }

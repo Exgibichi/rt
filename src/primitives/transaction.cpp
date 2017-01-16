@@ -146,3 +146,8 @@ std::string CTransaction::ToString() const
         str += "    " + vout[i].ToString() + "\n";
     return str;
 }
+
+const uint256 CTransaction::GetBtcHash() const
+{
+    return SerializeHash(*this, SER_GETHASH | SER_BTC_TX);
+}
