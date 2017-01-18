@@ -61,6 +61,19 @@ template<typename Stream> void SerReadWrite(Stream& s, boost::shared_ptr<CAuxPow
         pobj.reset();
 }
 
+
+class CSizeComputer;
+class CDataStream;
+class CAutoFile;
+
+template void SerReadWrite<CSizeComputer>(CSizeComputer& s, boost::shared_ptr<CAuxPow>& pobj, int nType, int nVersion, CSerActionSerialize ser_action);
+template void SerReadWrite<CDataStream>(CDataStream& s, boost::shared_ptr<CAuxPow>& pobj, int nType, int nVersion, CSerActionSerialize ser_action);
+template void SerReadWrite<CAutoFile>(CAutoFile& s, boost::shared_ptr<CAuxPow>& pobj, int nType, int nVersion, CSerActionSerialize ser_action);
+
+//template void SerReadWrite<CSizeComputer>(CSizeComputer& s, boost::shared_ptr<CAuxPow>& pobj, int nType, int nVersion, CSerActionUnserialize ser_action);
+template void SerReadWrite<CDataStream>(CDataStream& s, boost::shared_ptr<CAuxPow>& pobj, int nType, int nVersion, CSerActionUnserialize ser_action);
+template void SerReadWrite<CAutoFile>(CAutoFile& s, boost::shared_ptr<CAuxPow>& pobj, int nType, int nVersion, CSerActionUnserialize ser_action);
+
 extern void RemoveMergedMiningHeader(std::vector<unsigned char>& vchAux);
 
 #endif
