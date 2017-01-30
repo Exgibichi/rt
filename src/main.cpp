@@ -4242,7 +4242,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         // ppcoin: relay sync-checkpoint
         {
-            LOCK(CheckpointsSync::cs_hashSyncCheckpoint);
+            LOCK(cs_main);
             if (!CheckpointsSync::checkpointMessage.IsNull())
                 CheckpointsSync::checkpointMessage.RelayTo(pfrom);
         }

@@ -118,7 +118,6 @@ uint256 hashPendingCheckpoint = 0;
 CSyncCheckpoint checkpointMessage;
 CSyncCheckpoint checkpointMessagePending;
 uint256 hashInvalidCheckpoint = 0;
-CCriticalSection cs_hashSyncCheckpoint;
 
 // ppcoin: only descendant of current sync-checkpoint is allowed
 bool ValidateSyncCheckpoint(uint256 hashCheckpoint)
@@ -172,7 +171,7 @@ bool WriteSyncCheckpoint(const uint256& hashCheckpoint)
 
 bool AcceptPendingSyncCheckpoint()
 {
-    LOCK(cs_hashSyncCheckpoint);
+    LOCK(cs_main);
     bool havePendingCheckpoint = hashPendingCheckpoint != 0 && mapBlockIndex.count(hashPendingCheckpoint);
     if (!havePendingCheckpoint)
         return false;
@@ -253,13 +252,13 @@ uint256 AutoSelectSyncCheckpoint()
 // Check against synchronized checkpoint
 bool CheckSync(const CBlockIndex* pindexNew)
 {
+    LOCK(cs_main);
     assert(pindexNew != NULL);
     if (Params().SyncCheckpointPubKey() == "") return true;  // no public key == no checkpoints
     if (pindexNew->nHeight == 0) return true;                // genesis cannot be checked against previous block
     const uint256& hashBlock = pindexNew->GetBlockHash();
     int nHeight = pindexNew->nHeight;
 
-    LOCK(cs_hashSyncCheckpoint);
     // sync-checkpoint should always be accepted block
     assert(mapBlockIndex.count(hashSyncCheckpoint));
     const CBlockIndex* pindexSync = mapBlockIndex[hashSyncCheckpoint];
@@ -290,7 +289,7 @@ bool CheckSync(const CBlockIndex* pindexNew)
 // ppcoin: reset synchronized checkpoint to last hardened checkpoint
 bool ResetSyncCheckpoint()
 {
-    LOCK(cs_hashSyncCheckpoint);
+    LOCK(cs_main);
     const uint256& hash = Checkpoints::GetLatestHardenedCheckpoint();
     bool fHaveBlock = mapBlockIndex.count(hash) && (mapBlockIndex[hash]->nStatus & BLOCK_HAVE_DATA);
     if (!fHaveBlock)
@@ -386,7 +385,7 @@ bool IsSyncCheckpointTooOld(unsigned int nSeconds)
 {
     if (Params().SyncCheckpointPubKey() == "") return false;  // no public key == no checkpoints
 
-    LOCK(cs_hashSyncCheckpoint);
+    LOCK(cs_main);
     // sync-checkpoint should always be accepted block
     assert(mapBlockIndex.count(hashSyncCheckpoint));
     const CBlockIndex* pindexSync = mapBlockIndex[hashSyncCheckpoint];
@@ -423,13 +422,13 @@ bool CSyncCheckpoint::ProcessSyncCheckpoint()
     if (!CheckSignature())
         return false;
 
+    LOCK(cs_main);
     if (!mapBlockIndex.count(hashCheckpoint))
     {
         LogPrintf("Missing headers for received sync-checkpoint %s\n", hashCheckpoint.ToString());
         return false;
     }
 
-    LOCK(CheckpointsSync::cs_hashSyncCheckpoint);
     if (!CheckpointsSync::ValidateSyncCheckpoint(hashCheckpoint))
         return false;
 
