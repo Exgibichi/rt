@@ -52,7 +52,6 @@ namespace CheckpointsSync
     extern uint256 hashPendingCheckpoint;
     extern CSyncCheckpoint checkpointMessage;
     extern uint256 hashInvalidCheckpoint;
-    extern CCriticalSection cs_hashSyncCheckpoint;
 
     bool WriteSyncCheckpoint(const uint256& hashCheckpoint);
     bool AcceptPendingSyncCheckpoint();
