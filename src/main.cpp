@@ -4861,8 +4861,16 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         if (checkpoint.ProcessSyncCheckpoint())
         {
             // Relay
+            vector<CNode*> vNodesCopy;
+            {
+                LOCK(cs_vNodes);
+                vNodesCopy = vNodes;
+                BOOST_FOREACH(CNode* pnode, vNodesCopy) {
+                    pnode->AddRef();
+                }
+            }
+
             pfrom->hashCheckpointKnown = checkpoint.hashCheckpoint;
-            LOCK2(pfrom->cs_vSend, cs_vNodes);
             BOOST_FOREACH(CNode* pnode, vNodes)
                 checkpoint.RelayTo(pnode);
         }
