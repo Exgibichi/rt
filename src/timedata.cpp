@@ -32,7 +32,7 @@ int64_t GetTimeOffset()
     do {
 	cnt1    = nUpdCount;
 	offset  = nTimeOffset;
-    } while(cnt1 != nUpdCount && cnt1 > 0);
+    } while(cnt1 != nUpdCount || cnt1 > 0);
     return offset;
 }
 
@@ -119,7 +119,7 @@ void AddTimeData(const CNetAddr& ip, int64_t nTime)
 	// Lock-free update nTimeOffset
 	nUpdCount = -nUpdCount;
         nTimeOffset = nMedian;
-	nUpdCount = ~nUpdCount | 0xe000;
+	nUpdCount = ~nUpdCount | 0xe0000000;
 
         if (fDebug) {
             BOOST_FOREACH(int64_t n, vSorted)
