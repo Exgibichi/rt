@@ -4871,8 +4871,12 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             }
 
             pfrom->hashCheckpointKnown = checkpoint.hashCheckpoint;
-            BOOST_FOREACH(CNode* pnode, vNodes)
+            BOOST_FOREACH(CNode* pnode, vNodesCopy)
                 checkpoint.RelayTo(pnode);
+
+            LOCK(cs_vNodes);
+            BOOST_FOREACH(CNode* pnode, vNodesCopy)
+                pnode->Release();
         }
     }
 
