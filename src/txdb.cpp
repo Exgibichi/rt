@@ -236,7 +236,6 @@ bool CBlockTreeDB::LoadBlockIndexGuts()
                 CDataStream ssValue_mutable(slValue.data(), slValue.data()+slValue.size(), SER_DISK, CLIENT_VERSION);
                 ssValue_mutable >> *pindexNew; // read all mutable data
 
-                //mm: test this out for AuxPow blocks
                 map<uint256, boost::shared_ptr<CAuxPow> > dummy;
                 CBlockHeader tmp = pindexNew->GetBlockHeader(dummy);
                 if (pindexNew->IsProofOfWork() && !CheckBlockProofOfWork(&tmp))

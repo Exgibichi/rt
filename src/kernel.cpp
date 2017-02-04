@@ -376,6 +376,19 @@ bool CheckStakeKernelHash(unsigned int nBits, const CBlock& blockFrom, unsigned 
     }
 
     ss << nTimeBlockFrom << nTxPrevOffset << txPrev.nTime << prevout.n << nTimeTx;
+
+
+    // emercoin: check against last block hash when 95% of last 1000 blocks are mined by new client
+    // note: block headers with nVersion < 5 will be rejected in ContextualCheckBlockHeader() when upgrade happens
+    // so, it is safe to assume that IsSuperMajority() will always return true once it returned true once
+    static bool fAllowBlockHash = false;
+    if (!fAllowBlockHash && CBlockIndex::IsSuperMajority(5, chainActive.Tip(), Params().RejectBlockOutdatedMajority()))
+        fAllowBlockHash = true;
+
+    if (fAllowBlockHash)
+        ss << chainActive.Tip()->GetBlockHash();
+
+
     hashProofOfStake = Hash(ss.begin(), ss.end());
     if (fPrintProofOfStake)
     {
