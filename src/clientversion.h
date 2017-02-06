@@ -19,13 +19,13 @@
 #define CLIENT_VERSION_REVISION 4
 
 #define EMERCOIN_VERSION_MAJOR 0
-#define EMERCOIN_VERSION_MINOR 5
-#define EMERCOIN_VERSION_REVISION 2
+#define EMERCOIN_VERSION_MINOR 6
+#define EMERCOIN_VERSION_REVISION 0
 
 #define CLIENT_VERSION_BUILD 0
 
 //! Set to true for release, false for prerelease or test build
-#define CLIENT_VERSION_IS_RELEASE true
+#define CLIENT_VERSION_IS_RELEASE false
 
 /**
  * Copyright year (2009-this)
