@@ -3584,7 +3584,7 @@ bool LoadBlockIndex()
     // check if database exists (should have txindex)
     // if exists: check if it supports auxpow
     bool txindex;
-    if (pblocktree->ReadFlag("auxpow", txindex))
+    if (pblocktree->ReadFlag("txindex", txindex))
     {
         bool fAuxPow;
         if (!fReindex && (!pblocktree->ReadFlag("auxpow", fAuxPow) || !fAuxPow)) {

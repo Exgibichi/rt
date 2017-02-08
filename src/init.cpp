@@ -1078,7 +1078,6 @@ bool AppInit2(boost::thread_group& threadGroup)
                     else
                         strLoadError = _("Error loading block database");
                     break;
-                    break;
                 }
 
                 // If the loaded chain has a wrong genesis, bail out immediately
