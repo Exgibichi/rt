@@ -510,9 +510,13 @@ boost::filesystem::path GetConfigFile()
 void ReadConfigFile(map<string, string>& mapSettingsRet,
                     map<string, vector<string> >& mapMultiSettingsRet)
 {
-    boost::filesystem::ifstream streamConfig(GetConfigFile());
+    boost::filesystem::path pathConf = GetConfigFile();
+    boost::filesystem::ifstream streamConfig(pathConf);
     if (!streamConfig.good())
+    {
+        fopen(pathConf.string().c_str(), "a");  // create empty config if it does not exist
         return; // No bitcoin.conf file is OK
+    }
 
     set<string> setOptions;
     setOptions.insert("*");
