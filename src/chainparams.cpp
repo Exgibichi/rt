@@ -118,7 +118,7 @@ public:
 
         // ppcoin: PoS spacing = nStakeTargetSpacing
         //         PoW spacing = depends on how much PoS block are between last two PoW blocks, with maximum value = nTargetSpacingMax
-        nCoinbaseMaturity = 12;                       // coinbase transaction outputs can only be spent after this number of new blocks (12+20 = 32)
+        nCoinbaseMaturity = 32;                       // coinbase transaction outputs can only be spent after this number of new blocks
         nStakeTargetSpacing = 10 * 60;                // 10 minutes
         nTargetSpacingMax = 12 * nStakeTargetSpacing; // 2 hours
         nStakeMinAge = 60 * 60 * 24 * 30;             // minimum age for coin age

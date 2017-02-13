@@ -2808,7 +2808,7 @@ int CMerkleTx::GetBlocksToMaturity() const
 {
     if (!(IsCoinBase() || IsCoinStake()))
         return 0;
-    return max(0, ((int)Params().CoinbaseMaturity()+20) - GetDepthInMainChain());
+    return max(0, ((int)Params().CoinbaseMaturity()) - GetDepthInMainChain());
 }
 
 
