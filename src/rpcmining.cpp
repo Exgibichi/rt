@@ -650,6 +650,13 @@ UniValue submitblock(const UniValue& params, bool fHelp)
         }
     }
 
+    // check block before attempting to sign it.
+    {
+        CValidationState state;
+        if (!CheckBlock(block, state, true, true, false))
+            throw JSONRPCError(-100, "Block failed CheckBlock() function.");
+    }
+
     if (!SignBlock(block, *pwalletMain))
         throw JSONRPCError(-100, "Unable to sign block, wallet locked?");
 
@@ -771,6 +778,13 @@ UniValue getauxblock(const UniValue& params, bool fHelp)
                 return "duplicate";
             if (pindex->nStatus & BLOCK_FAILED_MASK)
                 return "duplicate-invalid";
+        }
+
+        // check block before attempting to sign it.
+        {
+            CValidationState state;
+            if (!CheckBlock(*pblock, state, true, true, false))
+                throw JSONRPCError(-100, "Block failed CheckBlock() function.");
         }
 
         if (!SignBlock(*pblock, *pwalletMain))
