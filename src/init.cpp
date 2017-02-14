@@ -1043,6 +1043,7 @@ bool AppInit2(boost::thread_group& threadGroup)
     nCoinCacheSize = nTotalCache / 300; // coins in memory require around 300 bytes
 
     bool fLoaded = false;
+    int fAuxReindex = 0;   // emercoin: used when upgrading pre-auxpow blockindex
     while (!fLoaded) {
         bool fReset = fReindex;
         std::string strLoadError;
@@ -1073,8 +1074,11 @@ bool AppInit2(boost::thread_group& threadGroup)
 
                 if (!LoadBlockIndex()) {
                     bool fAuxPow;
-                    if (!pblocktree->ReadFlag("auxpow", fAuxPow) || !fAuxPow)
-                        strLoadError = _("You need to rebuild the database using -reindex to enable auxpow support");
+                    if (fAuxReindex == 0 && (!pblocktree->ReadFlag("auxpow", fAuxPow) || !fAuxPow))
+                    {
+                        strLoadError = _("No auxpow support found, trying to reindex blockindex...");
+                        fAuxReindex++;
+                    }
                     else
                         strLoadError = _("Error loading block database");
                     break;
@@ -1115,15 +1119,27 @@ bool AppInit2(boost::thread_group& threadGroup)
         if (!fLoaded) {
             // first suggest a reindex
             if (!fReset) {
-                bool fRet = uiInterface.ThreadSafeMessageBox(
-                    strLoadError + ".\n\n" + _("Do you want to rebuild the block database now?"),
-                    "", CClientUIInterface::MSG_ERROR | CClientUIInterface::BTN_ABORT);
-                if (fRet) {
+                // emercoin: try to reindex if no auxpow flag
+                bool fAuxPow;
+                if (fAuxReindex == 1 && (!pblocktree->ReadFlag("auxpow", fAuxPow) || !fAuxPow))
+                {
                     fReindex = true;
                     fRequestShutdown = false;
-                } else {
-                    LogPrintf("Aborted block database rebuild. Exiting.\n");
-                    return false;
+                    fAuxReindex++;
+                }
+                else
+                // proceed normaly
+                {
+                    bool fRet = uiInterface.ThreadSafeMessageBox(
+                        strLoadError + ".\n\n" + _("Do you want to rebuild the block database now?"),
+                        "", CClientUIInterface::MSG_ERROR | CClientUIInterface::BTN_ABORT);
+                    if (fRet) {
+                        fReindex = true;
+                        fRequestShutdown = false;
+                    } else {
+                        LogPrintf("Aborted block database rebuild. Exiting.\n");
+                        return false;
+                    }
                 }
             } else {
                 return InitError(strLoadError);
