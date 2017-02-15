@@ -40,7 +40,7 @@ getent passwd emc >/dev/null && { [ -f /usr/bin/emercoind ] || { echo "Looks lik
 
 %post
 [ $1 == 1 ] && {
-  sed -i -e "s/\(^rpcpassword\)\(.*\)/rpcpassword=$(pwgen 64 1)/" /var/lib/emc/.emercoin/emercoin.conf
+  sed -i -e "s/\(^rpcpassword=MySuperPassword\)\(.*\)/rpcpassword=$(pwgen 64 1)/" /var/lib/emc/.emercoin/emercoin.conf
   openssl req -nodes -x509 -newkey rsa:4096 -keyout /etc/ssl/emc/emercoin.key -out /etc/ssl/emc/emercoin.crt -days 3560 -subj /C=US/ST=Oregon/L=Portland/O=IT/CN=emercoin.emc
   ln -sf /var/lib/emc/.emercoin/emercoin.conf /etc/emercoin/emercoin.conf
   ln -sf /etc/ssl/emc /etc/emercoin/certs
