@@ -516,7 +516,7 @@ void ReadConfigFile(map<string, string>& mapSettingsRet,
     {
         FILE * pFile;
         pFile = fopen(pathConf.string().c_str(), "a");  // create empty config if it does not exist
-        fclose(pFile);
+        if (pFile != NULL) fclose(pFile);
         return;
     }
 
