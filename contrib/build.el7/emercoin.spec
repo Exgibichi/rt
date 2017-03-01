@@ -25,7 +25,7 @@ make
 %install
 %{__rm} -rf $RPM_BUILD_ROOT
 %{__mkdir} -p $RPM_BUILD_ROOT%{_bindir} $RPM_BUILD_ROOT/etc/emercoin $RPM_BUILD_ROOT/etc/ssl/emc $RPM_BUILD_ROOT/var/lib/emc/.emercoin $RPM_BUILD_ROOT/usr/lib/systemd/system $RPM_BUILD_ROOT/etc/logrotate.d
-%{__install} -m 755 bin/* $RPM_BUILD_ROOT%{_bindir}
+%{__mv} -f bin/emc $RPM_BUILD_ROOT%{_bindir}
 %{__install} -m 755 src/emercoind $RPM_BUILD_ROOT%{_bindir}
 %{__install} -m 755 src/emercoin-cli $RPM_BUILD_ROOT%{_bindir}
 %{__install} -m 600 contrib/build.el7/emercoin.conf $RPM_BUILD_ROOT/var/lib/emc/.emercoin
