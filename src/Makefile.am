@@ -161,7 +161,8 @@ BITCOIN_CORE_H = \
   hooks.h \
   emcdns.h \
   checkpoints_eb.h \
-  ministun.h
+  ministun.h \
+  exch.h
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
@@ -200,6 +201,7 @@ libbitcoin_server_a_SOURCES = \
   namecoin.cpp \
   emcdns.cpp \
   stun.cpp \
+  exch.cpp \
   $(BITCOIN_CORE_H)
 
 # wallet: shared between bitcoind and bitcoin-qt, but only linked
