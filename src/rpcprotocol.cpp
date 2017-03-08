@@ -183,7 +183,7 @@ int ReadHTTPHeaders(std::basic_istream<char>& stream, map<string, string>& mapHe
     {
         string str;
         std::getline(stream, str);
-        if (str.empty() || str == "\r")
+        if (str.empty() || str[0] == '\r' || str[0] == '\n')
             break;
         string::size_type nColon = str.find(":");
         if (nColon != string::npos)
@@ -207,7 +207,7 @@ int ReadHTTPMessage(std::basic_istream<char>& stream, map<string,
                     int nProto, size_t max_size)
 {
     mapHeadersRet.clear();
-    strMessageRet = "";
+    strMessageRet.erase();
 
     // Read header
     int nLen = ReadHTTPHeaders(stream, mapHeadersRet);
@@ -229,6 +229,11 @@ int ReadHTTPMessage(std::basic_istream<char>& stream, map<string,
             ptr += bytes_to_read;
         }
         strMessageRet = string(vch.begin(), vch.end());
+    }
+
+    if(nLen == 0) {
+      while(stream.good() && --max_size > 0)
+        strMessageRet.push_back(stream.get());
     }
 
     string sConHdr = mapHeadersRet["connection"];
