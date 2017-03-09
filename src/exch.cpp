@@ -22,7 +22,7 @@ ExchBox::~ExchBox() {
 //-----------------------------------------------------
 Exch::Exch(const string &retAddr)
 : m_retAddr(retAddr) {
-  m_rate = m_limit = m_min = m_minerFee = 0.0;
+  m_depAmo = m_outAmo = m_rate = m_limit = m_min = m_minerFee = 0.0;
 }
 
 //-----------------------------------------------------
@@ -151,16 +151,6 @@ printf("DBG: Exch::httpsFetch: Reply from server: [%s]\n", strReply.c_str());
 
 } // UniValue Exch::httpsFetch
 
-
-
-
-
-
-
-//-----------------------------------------------------
-//-----------------------------------------------------
-//-----------------------------------------------------
-
 //=====================================================
 
 //-----------------------------------------------------
@@ -179,7 +169,6 @@ const string& ExchCoinReform::Name() const {
 
 //-----------------------------------------------------
 const string& ExchCoinReform::Host() const {
-  //static const string rc("shapeshift.io");
   static const string rc("www.coinreform.com");
   return rc;
 }
@@ -254,9 +243,7 @@ string ExchCoinReform::Send(const string &to, double amount) {
   } catch(std::exception &e) { // something wrong at HTTPS
     return e.what();
   }
-
 } // ExchCoinReform::Send
-
 
 //-----------------------------------------------------
 // Check status of existing transaction.
