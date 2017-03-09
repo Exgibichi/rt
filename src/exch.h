@@ -28,8 +28,16 @@ class Exch {
   // Throws exception if error
   const UniValue RawMarketInfo(const string &path);
 
+  // Creatse SEND exchange channel for 
+  // Send "amount" in external currecny "to" address
+  // Fills m_depAddr..m_txKey, and updates m_rate
+  // Returns error text, oe rmpty string, if OK
   virtual string Send(const string &to, double amount);
 
+  // Check status of existing transaction.
+  // If key is empty, used the last key
+  // Returns status, or an empty string, if "not my" key
+  virtual string TxStat(const string &txkey, UniValue &details);
 
   string m_retAddr; // Return EMC Addr
 
@@ -41,8 +49,8 @@ class Exch {
   double m_minerFee;
 
   // Send fills these params _ m_rate above
-  double m_depAddr;	// Address to pay EMC
-  double m_outAddr;	// Address to pay from exchange
+  string m_depAddr;	// Address to pay EMC
+  string m_outAddr;	// Address to pay from exchange
   double m_depAmo;	// amount in EMC
   double m_outAmo;	// Amount transferred to BTC
   string m_txKey;	// TX reference key
@@ -62,6 +70,17 @@ class ExchCoinReform : public Exch {
   // Fill MarketInfo from exchange.
   // Returns empty string if OK, or error message, if erroe
   virtual string MarketInfo(const string &currency);
+
+  // Creatse SEND exchange channel for 
+  // Send "amount" in external currecny "to" address
+  // Fills m_depAddr..m_txKey, and updates m_rate
+  virtual string Send(const string &to, double amount);
+
+  // Check status of existing transaction.
+  // If key is empty, used the last key
+  // Returns status, or an empty string, if "not my" key
+  virtual string TxStat(const string &txkey, UniValue &details);
+ 
 
 }; // class ExchCoinReform
 

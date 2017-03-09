@@ -56,8 +56,19 @@ const UniValue Exch::RawMarketInfo(const string &path) {
 } //  Exch::RawMarketInfo
 
 //-----------------------------------------------------
+// Creatse SEND exchange channel for 
+// Send "amount" in external currecny "to" address
+// Fills m_depAddr..m_txKey, and updates m_rate
 string Exch::Send(const string &to, double amount) {
-  return "ERR";
+  return Name();
+}
+
+//-----------------------------------------------------
+// Check status of existing transaction.
+// If key is empty, used the last key
+// Returns status, or an empty string, if "not my" key
+string Exch::TxStat(const string &txkey, UniValue &details) {
+  return Name();
 }
 
 //-----------------------------------------------------
@@ -195,13 +206,81 @@ string ExchCoinReform::MarketInfo(const string &currency) {
 //coinReform
 //{"pair":"EMC_BTC","rate":"0.00016236","limit":"0.01623600","min":"0.00030000","minerFee":"0.00050000"}
 
+//-----------------------------------------------------
+// Creatse SEND exchange channel for 
+// Send "amount" in external currecny "to" address
+// Fills m_depAddr..m_txKey, and updates m_rate
+// Returns error text, oe rmpty string, if OK
+string ExchCoinReform::Send(const string &to, double amount) {
+  if(amount < m_min)
+   return strprintf("amount=%lf is less than minimum=%lf", amount, m_min);
+  if(amount > m_limit)
+   return strprintf("amount=%lf is greater than limit=%lf", amount, m_limit);
+
+  // Cleanum output
+  m_depAddr.erase();
+  m_outAddr.erase();
+  m_txKey.erase();
+  m_depAmo = m_outAmo = 0.0;
+
+  try {
+    UniValue Req(UniValue::VOBJ);
+    Req.push_back(Pair("amount", amount));
+    Req.push_back(Pair("withdrawal", to));
+    Req.push_back(Pair("pair", m_pair));
+    Req.push_back(Pair("refund_address", m_retAddr));
+    Req.push_back(Pair("ref_id", "2f77783d"));
+    UniValue Resp(httpsFetch("/api/sendamount", &Req));
+    printf("DBG: ExchCoinReform::Send(%s|%s) returns <%s>\n\n", Host().c_str(), m_pair.c_str(), Resp.write(0, 0, 0).c_str());
+
+    try {
+      m_rate     = atof(Resp["rate"].get_str().c_str());
+
+      m_depAddr  = Resp["deposit"].get_str();			// Address to pay EMC
+      m_outAddr  = Resp["withdrawal"].get_str();			// Address to pay from exchange
+      m_depAmo   = atof(Resp["deposit_amount"].get_str().c_str());// amount in EMC
+      m_outAmo   = atof(Resp["withdrawal_amount"].get_str().c_str());// Amount transferred to BTC
+      m_txKey    = Name() + ':' + Resp["key"].get_str();		// TX reference key
+
+      return "";
+
+    } catch(std::exception &e2) { // Cannot get data from JSON response
+      try {
+        return Resp["error"].get_str();
+      } catch(std::exception &e3) {
+        return e2.what();
+      }
+    }
+  } catch(std::exception &e) { // something wrong at HTTPS
+    return e.what();
+  }
+
+} // ExchCoinReform::Send
 
 
+//-----------------------------------------------------
+// Check status of existing transaction.
+// If key is empty, used the last key
+// Returns status, or an empty string, if "not my" key
+string ExchCoinReform::TxStat(const string &txkey, UniValue &details) {
+  const char *key = txkey.empty()? m_txKey.c_str() : txkey.c_str();
+  if(strncmp(key, Name().c_str(), Name().length()) != 0) 
+    return ""; // Not my key
+
+  key += Name().length();
+  if(*key++ != ':')
+    return ""; // Not my key
+
+  char buf[200];
+  snprintf(buf, sizeof(buf), "/api/txstat/%s.json", key);
+  details = httpsFetch(buf, NULL);
+  printf("DBG: ExchCoinReform::TxStat(%s|%s) returns <%s>\n\n", Host().c_str(), buf, details.write(0, 0, 0).c_str());
+  return details["status"].get_str();
+} // ExchCoinReform::TxStat
 
 
-
-
-
+//=====================================================
+//
 // ShapeShift
 // <{"pair":"ltc_btc","rate":0.00320953,"minerFee":0.0012,"limit":256.45898362,"minimum":0.74136083,"maxLimit":641.14745904}
 /*
@@ -214,14 +293,36 @@ string ExchCoinReform::MarketInfo(const string &currency) {
 //-----------------------------------------------------
 //=====================================================
 void exch_test() {
-    ExchBox  eBox("ESgQZ4oU5TN6BRK3DqZX3qDSrQjPwWHP7t");
+  ExchBox  eBox("ESgQZ4oU5TN6BRK3DqZX3qDSrQjPwWHP7t");
+  do {
       Exch    *exch = eBox.m_v_exch[0];
       printf("exch_test()\nwork with exch=0, Name=%s URL=%s\n", exch->Name().c_str(), exch->Host().c_str());
+
       string err(exch->MarketInfo("btc"));
       printf("MarketInfo returned: [%s]\n", err.c_str());
+      if(!err.empty()) break;
       printf("Values from exch: m_rate=%lf; m_limit=%lf; m_min=%lf; m_minerFee=%lf\n", exch->m_rate, exch->m_limit, exch->m_min, exch->m_minerFee);
-      printf("Quit from test\n");
-      exit(0);
+
+      printf("\nTryint to send BTC\n");
+      err = exch->Send("1Evqeh5pWphbWzmRAc4d3Wb82mAUBhWEVF", 0.001); // good addr
+      // bad err = exch->Send("1Evqeh5pWphbWzmRAc4d3Wb82mAUBhWEVz", 0.001); // bad addr
+      printf("Send returned: [%s]\n", err.c_str());
+      if(!err.empty()) break;
+      printf("m_depAddr=%s, m_outAddr=%s m_depAmo=%lf m_outAmo=%lf m_txKey=%s\n",
+	      exch->m_depAddr.c_str(), exch->m_outAddr.c_str(), exch->m_depAmo, exch->m_outAmo, exch->m_txKey.c_str());
+
+      sleep(1);
+
+      printf("\nChecking TX status\n");
+      UniValue Det(UniValue::VOBJ);
+      err = exch->TxStat("", Det);
+      printf("TxStat returned: [%s]\n", err.c_str());
+      printf("TxStat Details: <%s>\n\n", Det.write(0, 0, 0).c_str());
+
+  } while(0);
+
+  printf("Quit from test\n");
+  exit(0);
 }
 
 //-----------------------------------------------------
