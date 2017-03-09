@@ -231,6 +231,9 @@ string ExchCoinReform::Send(const string &to, double amount) {
       m_outAmo   = atof(Resp["withdrawal_amount"].get_str().c_str());// Amount transferred to BTC
       m_txKey    = Name() + ':' + Resp["key"].get_str();		// TX reference key
 
+      // Adjust deposit amount to 1EMCent, upward
+      m_depAmo = ceil(m_depAmo * 100.0) / 100.0;
+
       return "";
 
     } catch(std::exception &e2) { // Cannot get data from JSON response
