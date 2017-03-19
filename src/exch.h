@@ -39,6 +39,11 @@ class Exch {
   // Returns status, or an empty string, if "not my" key
   virtual string TxStat(const string &txkey, UniValue &details);
 
+  // Check JSON-answer for "error" key, and throw error
+  // message, if exists
+  virtual void CheckERR(const UniValue &reply) const;
+
+
   string m_retAddr; // Return EMC Addr
 
   // MarketInfo fills these params
@@ -81,7 +86,6 @@ class ExchCoinReform : public Exch {
   // Returns status, or an empty string, if "not my" key
   virtual string TxStat(const string &txkey, UniValue &details);
  
-
 }; // class ExchCoinReform
 
 //-----------------------------------------------------

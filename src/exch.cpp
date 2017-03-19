@@ -151,6 +151,16 @@ printf("DBG: Exch::httpsFetch: Reply from server: [%s]\n", strReply.c_str());
 
 } // UniValue Exch::httpsFetch
 
+//-----------------------------------------------------
+// Check JSON-answer for "error" key, and throw error
+// message, if exists
+void Exch::CheckERR(const UniValue &reply) const {
+  const UniValue& err = find_value(reply, "error");
+  if(err.isStr())
+    throw runtime_error(err.get_str().c_str());
+} // Exch::CheckERR
+
+
 //=====================================================
 
 //-----------------------------------------------------
@@ -182,6 +192,7 @@ string ExchCoinReform::MarketInfo(const string &currency) {
     //const UniValue mi(RawMarketInfo("/marketinfo/ltc_" + currency));
     const UniValue mi(RawMarketInfo("/api/marketinfo/emc_" + currency + ".json"));
     printf("DBG: ExchCoinReform::MarketInfo(%s|%s) returns <%s>\n\n", Host().c_str(), currency.c_str(), mi.write(0, 0, 0).c_str());
+    CheckERR(mi);
     m_pair     = mi["pair"].get_str();
     m_rate     = atof(mi["rate"].get_str().c_str());
     m_limit    = atof(mi["limit"].get_str().c_str());
@@ -221,28 +232,19 @@ string ExchCoinReform::Send(const string &to, double amount) {
     Req.push_back(Pair("ref_id", "2f77783d"));
     UniValue Resp(httpsFetch("/api/sendamount", &Req));
     printf("DBG: ExchCoinReform::Send(%s|%s) returns <%s>\n\n", Host().c_str(), m_pair.c_str(), Resp.write(0, 0, 0).c_str());
+    CheckERR(Resp);
+    m_rate     = atof(Resp["rate"].get_str().c_str());
 
-    try {
-      m_rate     = atof(Resp["rate"].get_str().c_str());
+    m_depAddr  = Resp["deposit"].get_str();			// Address to pay EMC
+    m_outAddr  = Resp["withdrawal"].get_str();			// Address to pay from exchange
+    m_depAmo   = atof(Resp["deposit_amount"].get_str().c_str());// amount in EMC
+    m_outAmo   = atof(Resp["withdrawal_amount"].get_str().c_str());// Amount transferred to BTC
+    m_txKey    = Name() + ':' + Resp["key"].get_str();		// TX reference key
 
-      m_depAddr  = Resp["deposit"].get_str();			// Address to pay EMC
-      m_outAddr  = Resp["withdrawal"].get_str();			// Address to pay from exchange
-      m_depAmo   = atof(Resp["deposit_amount"].get_str().c_str());// amount in EMC
-      m_outAmo   = atof(Resp["withdrawal_amount"].get_str().c_str());// Amount transferred to BTC
-      m_txKey    = Name() + ':' + Resp["key"].get_str();		// TX reference key
+    // Adjust deposit amount to 1EMCent, upward
+    m_depAmo = ceil(m_depAmo * 100.0) / 100.0;
 
-      // Adjust deposit amount to 1EMCent, upward
-      m_depAmo = ceil(m_depAmo * 100.0) / 100.0;
-
-      return "";
-
-    } catch(std::exception &e2) { // Cannot get data from JSON response
-      try {
-        return Resp["error"].get_str();
-      } catch(std::exception &e3) {
-        return e2.what();
-      }
-    }
+    return "";
   } catch(std::exception &e) { // something wrong at HTTPS
     return e.what();
   }
@@ -265,6 +267,7 @@ string ExchCoinReform::TxStat(const string &txkey, UniValue &details) {
   snprintf(buf, sizeof(buf), "/api/txstat/%s.json", key);
   details = httpsFetch(buf, NULL);
   printf("DBG: ExchCoinReform::TxStat(%s|%s) returns <%s>\n\n", Host().c_str(), buf, details.write(0, 0, 0).c_str());
+  CheckERR(details);
   return details["status"].get_str();
 } // ExchCoinReform::TxStat
 
@@ -289,29 +292,30 @@ void exch_test() {
       printf("exch_test()\nwork with exch=0, Name=%s URL=%s\n", exch->Name().c_str(), exch->Host().c_str());
 
       string err(exch->MarketInfo("btc"));
-      printf("MarketInfo returned: [%s]\n", err.c_str());
+      //string err(exch->MarketInfo("zzQ"));
+      printf("exch_test:MarketInfo returned: [%s]\n", err.c_str());
       if(!err.empty()) break;
-      printf("Values from exch: m_rate=%lf; m_limit=%lf; m_min=%lf; m_minerFee=%lf\n", exch->m_rate, exch->m_limit, exch->m_min, exch->m_minerFee);
+      printf("exch_test:Values from exch: m_rate=%lf; m_limit=%lf; m_min=%lf; m_minerFee=%lf\n", exch->m_rate, exch->m_limit, exch->m_min, exch->m_minerFee);
 
-      printf("\nTryint to send BTC\n");
+      printf("\nexch_test:Tryint to send BTC\n");
       err = exch->Send("1Evqeh5pWphbWzmRAc4d3Wb82mAUBhWEVF", 0.001); // good addr
       // bad err = exch->Send("1Evqeh5pWphbWzmRAc4d3Wb82mAUBhWEVz", 0.001); // bad addr
-      printf("Send returned: [%s]\n", err.c_str());
+      printf("exch_test:Send returned: [%s]\n", err.c_str());
       if(!err.empty()) break;
       printf("m_depAddr=%s, m_outAddr=%s m_depAmo=%lf m_outAmo=%lf m_txKey=%s\n",
 	      exch->m_depAddr.c_str(), exch->m_outAddr.c_str(), exch->m_depAmo, exch->m_outAmo, exch->m_txKey.c_str());
 
       sleep(1);
 
-      printf("\nChecking TX status\n");
+      printf("\nexch_test:Checking TX status\n");
       UniValue Det(UniValue::VOBJ);
       err = exch->TxStat("", Det);
-      printf("TxStat returned: [%s]\n", err.c_str());
-      printf("TxStat Details: <%s>\n\n", Det.write(0, 0, 0).c_str());
+      printf("exch_test:TxStat returned: [%s]\n", err.c_str());
+      printf("exch_test:TxStat Details: <%s>\n\n", Det.write(0, 0, 0).c_str());
 
   } while(0);
 
-  printf("Quit from test\n");
+  printf("exch_test:Quit from test\n");
   exit(0);
 }
 
