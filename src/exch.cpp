@@ -147,6 +147,9 @@ printf("DBG: Exch::httpsFetch: Reply from server: [%s]\n", strReply.c_str());
   if(reply.empty())
     throw runtime_error("Empty JSON reply");
 
+  // Check for error message in the reply
+  CheckERR(reply);
+
   return reply;
 
 } // UniValue Exch::httpsFetch
@@ -192,7 +195,6 @@ string ExchCoinReform::MarketInfo(const string &currency) {
     //const UniValue mi(RawMarketInfo("/marketinfo/ltc_" + currency));
     const UniValue mi(RawMarketInfo("/api/marketinfo/emc_" + currency + ".json"));
     printf("DBG: ExchCoinReform::MarketInfo(%s|%s) returns <%s>\n\n", Host().c_str(), currency.c_str(), mi.write(0, 0, 0).c_str());
-    CheckERR(mi);
     m_pair     = mi["pair"].get_str();
     m_rate     = atof(mi["rate"].get_str().c_str());
     m_limit    = atof(mi["limit"].get_str().c_str());
@@ -230,11 +232,10 @@ string ExchCoinReform::Send(const string &to, double amount) {
     Req.push_back(Pair("pair", m_pair));
     Req.push_back(Pair("refund_address", m_retAddr));
     Req.push_back(Pair("ref_id", "2f77783d"));
+
     UniValue Resp(httpsFetch("/api/sendamount", &Req));
     printf("DBG: ExchCoinReform::Send(%s|%s) returns <%s>\n\n", Host().c_str(), m_pair.c_str(), Resp.write(0, 0, 0).c_str());
-    CheckERR(Resp);
     m_rate     = atof(Resp["rate"].get_str().c_str());
-
     m_depAddr  = Resp["deposit"].get_str();			// Address to pay EMC
     m_outAddr  = Resp["withdrawal"].get_str();			// Address to pay from exchange
     m_depAmo   = atof(Resp["deposit_amount"].get_str().c_str());// amount in EMC
@@ -267,7 +268,6 @@ string ExchCoinReform::TxStat(const string &txkey, UniValue &details) {
   snprintf(buf, sizeof(buf), "/api/txstat/%s.json", key);
   details = httpsFetch(buf, NULL);
   printf("DBG: ExchCoinReform::TxStat(%s|%s) returns <%s>\n\n", Host().c_str(), buf, details.write(0, 0, 0).c_str());
-  CheckERR(details);
   return details["status"].get_str();
 } // ExchCoinReform::TxStat
 
