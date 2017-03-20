@@ -17,33 +17,10 @@ ExchBox::~ExchBox() {
 }
 
 //-----------------------------------------------------
-//-----------------------------------------------------
-
-//-----------------------------------------------------
 Exch::Exch(const string &retAddr)
 : m_retAddr(retAddr) {
   m_depAmo = m_outAmo = m_rate = m_limit = m_min = m_minerFee = 0.0;
 }
-
-//-----------------------------------------------------
-const string& Exch::Name() const { 
-  static const string rc("ERROR: Used base class Exch");
-  return rc;
-}
-
-//-----------------------------------------------------
-const string& Exch::Host() const {
-  return Name();
-}
-
-//-----------------------------------------------------
-// Get currency for exchnagge to, like btc, ltc, etc
-// Fill MarketInfo from exchange.
-// Returns empty string if OK, or error message, if error
-string  Exch::MarketInfo(const string &currency) {
-  return Name();
-}
-
 //-----------------------------------------------------
 // Get input path within server, like: /api/marketinfo/emc_btc.json
 // Called from exchange-specific MarketInfo()
@@ -56,23 +33,8 @@ const UniValue Exch::RawMarketInfo(const string &path) {
 } //  Exch::RawMarketInfo
 
 //-----------------------------------------------------
-// Creatse SEND exchange channel for 
-// Send "amount" in external currecny "to" address
-// Fills m_depAddr..m_txKey, and updates m_rate
-string Exch::Send(const string &to, double amount) {
-  return Name();
-}
-
-//-----------------------------------------------------
-// Check status of existing transaction.
-// If key is empty, used the last key
-// Returns status, or an empty string, if "not my" key
-string Exch::TxStat(const string &txkey, UniValue &details) {
-  return Name();
-}
-
-//-----------------------------------------------------
 // Connect to the server by https, fetch JSON and parse to UniValue
+// Throws exception if error
 UniValue Exch::httpsFetch(const char *get, const UniValue *post) {
   // Connect to exchange
   asio::io_service io_service;
@@ -212,7 +174,7 @@ string ExchCoinReform::MarketInfo(const string &currency) {
 // Creatse SEND exchange channel for 
 // Send "amount" in external currecny "to" address
 // Fills m_depAddr..m_txKey, and updates m_rate
-// Returns error text, oe rmpty string, if OK
+// Returns error text, or empty string, if OK
 string ExchCoinReform::Send(const string &to, double amount) {
   if(amount < m_min)
    return strprintf("amount=%lf is less than minimum=%lf", amount, m_min);
@@ -224,6 +186,7 @@ string ExchCoinReform::Send(const string &to, double amount) {
   m_outAddr.erase();
   m_txKey.erase();
   m_depAmo = m_outAmo = 0.0;
+  m_txKey.erase();
 
   try {
     UniValue Req(UniValue::VOBJ);
@@ -254,21 +217,28 @@ string ExchCoinReform::Send(const string &to, double amount) {
 //-----------------------------------------------------
 // Check status of existing transaction.
 // If key is empty, used the last key
-// Returns status, or an empty string, if "not my" key
+// Returns status (including err), or minus "-", if "not my" key
 string ExchCoinReform::TxStat(const string &txkey, UniValue &details) {
   const char *key = txkey.empty()? m_txKey.c_str() : txkey.c_str();
-  if(strncmp(key, Name().c_str(), Name().length()) != 0) 
-    return ""; // Not my key
+  do {
+    if(strncmp(key, Name().c_str(), Name().length()) != 0) 
+      break; // Not my key
 
-  key += Name().length();
-  if(*key++ != ':')
-    return ""; // Not my key
+    key += Name().length();
+    if(*key++ != ':')
+      break; // Not my key
 
-  char buf[200];
-  snprintf(buf, sizeof(buf), "/api/txstat/%s.json", key);
-  details = httpsFetch(buf, NULL);
-  printf("DBG: ExchCoinReform::TxStat(%s|%s) returns <%s>\n\n", Host().c_str(), buf, details.write(0, 0, 0).c_str());
-  return details["status"].get_str();
+    char buf[200];
+    snprintf(buf, sizeof(buf), "/api/txstat/%s.json", key);
+    try {
+      details = httpsFetch(buf, NULL);
+      printf("DBG: ExchCoinReform::TxStat(%s|%s) returns <%s>\n\n", Host().c_str(), buf, details.write(0, 0, 0).c_str());
+      return details["status"].get_str();
+    } catch(std::exception &e) { // something wrong at HTTPS
+      return e.what();
+    }
+  } while(false);
+  return "-"; //  Not my key
 } // ExchCoinReform::TxStat
 
 

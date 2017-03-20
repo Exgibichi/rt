@@ -11,38 +11,24 @@ class Exch {
   Exch(const string &retAddr); 
   virtual ~Exch() {};
 
-  virtual const string& Name() const;
-  virtual const string& Host() const;
+  virtual const string& Name() const = 0;
+  virtual const string& Host() const = 0;
   
-  // Connect to the server by https, fetch JSON and parse to UniValue
-  UniValue httpsFetch(const char *get, const UniValue *post);
-
   // Get currency for exchnagge to, like btc, ltc, etc
   // Fill MarketInfo from exchange.
-  // Returns empty string if OK, or error message, if error
-  virtual string MarketInfo(const string &currency);
+  // Returns the empty string if OK, or error message, if error
+  virtual string MarketInfo(const string &currency) = 0;
 
-  // Get input path within server, like: /api/marketinfo/emc_btc.json
-  // Called from exchange-specific MarketInfo()
-  // Fill MarketInfo from exchange.
-  // Throws exception if error
-  const UniValue RawMarketInfo(const string &path);
-
-  // Creatse SEND exchange channel for 
+  // Create SEND exchange channel for 
   // Send "amount" in external currecny "to" address
   // Fills m_depAddr..m_txKey, and updates m_rate
-  // Returns error text, oe rmpty string, if OK
-  virtual string Send(const string &to, double amount);
+  // Returns error text, or an empty string, if OK
+  virtual string Send(const string &to, double amount) = 0;
 
   // Check status of existing transaction.
   // If key is empty, used the last key
-  // Returns status, or an empty string, if "not my" key
-  virtual string TxStat(const string &txkey, UniValue &details);
-
-  // Check JSON-answer for "error" key, and throw error
-  // message, if exists
-  virtual void CheckERR(const UniValue &reply) const;
-
+  // Returns status (including err), or minus "-", if "not my" key
+  virtual string TxStat(const string &txkey, UniValue &details) = 0;
 
   string m_retAddr; // Return EMC Addr
 
@@ -53,12 +39,28 @@ class Exch {
   double m_min;
   double m_minerFee;
 
-  // Send fills these params _ m_rate above
+  // Send fills these params + m_rate above
   string m_depAddr;	// Address to pay EMC
   string m_outAddr;	// Address to pay from exchange
   double m_depAmo;	// amount in EMC
   double m_outAmo;	// Amount transferred to BTC
   string m_txKey;	// TX reference key
+
+  protected:
+  // Connect to the server by https, fetch JSON and parse to UniValue
+  // Throws exception if error
+  UniValue httpsFetch(const char *get, const UniValue *post);
+
+  // Get input path within server, like: /api/marketinfo/emc_btc.json
+  // Called from exchange-specific MarketInfo()
+  // Fill MarketInfo from exchange.
+  // Throws exception if error
+  const UniValue RawMarketInfo(const string &path);
+
+  // Check JSON-answer for "error" key, and throw error
+  // message, if exists
+  virtual void CheckERR(const UniValue &reply) const;
+
 
 }; // class Exch
 
@@ -72,8 +74,9 @@ class ExchCoinReform : public Exch {
   virtual const string& Name() const;
   virtual const string& Host() const;
 
+  // Get currency for exchnagge to, like btc, ltc, etc
   // Fill MarketInfo from exchange.
-  // Returns empty string if OK, or error message, if erroe
+  // Returns the empty string if OK, or error message, if error
   virtual string MarketInfo(const string &currency);
 
   // Creatse SEND exchange channel for 
@@ -83,7 +86,7 @@ class ExchCoinReform : public Exch {
 
   // Check status of existing transaction.
   // If key is empty, used the last key
-  // Returns status, or an empty string, if "not my" key
+  // Returns status (including err), or minus "-", if "not my" key
   virtual string TxStat(const string &txkey, UniValue &details);
  
 }; // class ExchCoinReform
