@@ -45,20 +45,6 @@ UniValue Exch::httpsFetch(const char *get, const UniValue *post) {
   SSLIOStreamDevice<asio::ip::tcp> d(sslStream, true); // use SSL
   iostreams::stream< SSLIOStreamDevice<asio::ip::tcp> > stream(d);
 
-  int sock = sslStream.lowest_layer().native();
-
-#ifdef WIN32
-  int32_t timeout = 15000;
-  setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
-  setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout));
-#else
-  struct timeval tv;
-  tv.tv_sec  = 15; 
-  tv.tv_usec = 0;         
-  setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-  setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
-#endif
-
   if(!d.connect(Host(), "443"))
     throw runtime_error("Couldn't connect to server");
 
