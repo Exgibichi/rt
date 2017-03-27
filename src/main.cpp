@@ -2071,6 +2071,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     if (fWriteNames)
         hooks->ConnectBlock(pindex, vName);
 
+    if (block.nVersion & BLOCK_VERSION_AUXPOW)
+        mapDirtyAuxPow.insert(std::make_pair(block.GetHash(), block.auxpow));
+
     return true;
 }
 
@@ -2655,7 +2658,8 @@ CBlockIndex* AddToBlockIndex(const CBlockHeader& block)
         pindexBestHeader = pindexNew;
 
     setDirtyBlockIndex.insert(pindexNew);
-    mapDirtyAuxPow.insert(std::make_pair(block.GetHash(), block.auxpow));
+    if (block.nVersion & BLOCK_VERSION_AUXPOW)
+        mapDirtyAuxPow.insert(std::make_pair(block.GetHash(), block.auxpow));
 
     return pindexNew;
 }
@@ -2671,7 +2675,8 @@ bool ReceivedBlockTransactions(const CBlock &block, CValidationState& state, CBl
     pindexNew->nStatus |= BLOCK_HAVE_DATA;
     pindexNew->RaiseValidity(BLOCK_VALID_TRANSACTIONS);
     setDirtyBlockIndex.insert(pindexNew);
-    mapDirtyAuxPow.insert(std::make_pair(block.GetHash(), block.auxpow));
+    if (block.nVersion & BLOCK_VERSION_AUXPOW)
+        mapDirtyAuxPow.insert(std::make_pair(block.GetHash(), block.auxpow));
 
     if (pindexNew->pprev == NULL || pindexNew->pprev->nChainTx) {
         // If pindexNew is the genesis block or all parents are BLOCK_VALID_TRANSACTIONS.
@@ -2971,7 +2976,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
         // Reject block.nVersion=4 blocks when 95% (75% on testnet) of the network has upgraded:
         if (block.nVersion < 5 && CBlockIndex::IsSuperMajority(5, pindexPrev, Params().RejectBlockOutdatedMajority()))
         {
-            return state.Invalid(error("%s : rejected nVersion=3 block", __func__),
+            return state.Invalid(error("%s : rejected nVersion=4 block", __func__),
                                  REJECT_OBSOLETE, "bad-version");
         }
 

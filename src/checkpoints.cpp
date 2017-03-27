@@ -389,7 +389,7 @@ bool IsSyncCheckpointTooOld(unsigned int nSeconds)
     // sync-checkpoint should always be accepted block
     assert(mapBlockIndex.count(hashSyncCheckpoint));
     const CBlockIndex* pindexSync = mapBlockIndex[hashSyncCheckpoint];
-    assert(chainActive.Contains(pindexSync));
+    //assert(chainActive.Contains(pindexSync));  //disabled for reconsiderblock function
 
     return (pindexSync->GetBlockTime() + nSeconds < GetAdjustedTime());
 }

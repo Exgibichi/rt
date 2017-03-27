@@ -147,9 +147,8 @@ bool CBlockTreeDB::WriteBatchSync(const std::vector<std::pair<int, const CBlockF
     batch.Write('l', nLastFile);
     for (std::vector<const CBlockIndex*>::const_iterator it=blockinfo.begin(); it != blockinfo.end(); it++) {
         const std::map<uint256, boost::shared_ptr<CAuxPow> >::const_iterator auxIt = auxpows.find((*it)->GetBlockHash());
-        if (auxIt != auxpows.end()) {
-            batch.Write(make_pair(make_pair('b', (*it)->GetBlockHash()), 'a'), CDiskBlockIndex(*it, auxIt->second));
-        }
+        boost::shared_ptr<CAuxPow> p = auxIt != auxpows.end() ? auxIt->second : boost::shared_ptr<CAuxPow>();
+        batch.Write(make_pair(make_pair('b', (*it)->GetBlockHash()), 'a'), CDiskBlockIndex(*it, p));
         batch.Write(make_pair(make_pair('b', (*it)->GetBlockHash()), 'b'), **it);
     }
     return WriteBatch(batch, true);
