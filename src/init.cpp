@@ -1070,7 +1070,7 @@ bool AppInit2(boost::thread_group& threadGroup)
 
                 if (!LoadBlockIndex()) {
                     bool fAuxPow;
-                    if (fAuxReindex == 0 && (!pblocktree->ReadFlag("auxpow", fAuxPow) || !fAuxPow))
+                    if (fAuxReindex == 0 && (!pblocktree->ReadFlag("auxpow2", fAuxPow) || !fAuxPow))
                     {
                         strLoadError = _("No auxpow support found, trying to reindex blockindex...");
                         fAuxReindex++;
@@ -1117,7 +1117,7 @@ bool AppInit2(boost::thread_group& threadGroup)
             if (!fReset) {
                 // emercoin: try to reindex if no auxpow flag
                 bool fAuxPow;
-                if (fAuxReindex == 1 && (!pblocktree->ReadFlag("auxpow", fAuxPow) || !fAuxPow))
+                if (fAuxReindex == 1 && (!pblocktree->ReadFlag("auxpow2", fAuxPow) || !fAuxPow))
                 {
                     fReindex = true;
                     fRequestShutdown = false;

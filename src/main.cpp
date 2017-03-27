@@ -3592,7 +3592,7 @@ bool LoadBlockIndex()
     if (pblocktree->ReadFlag("txindex", txindex))
     {
         bool fAuxPow;
-        if (!fReindex && (!pblocktree->ReadFlag("auxpow", fAuxPow) || !fAuxPow)) {
+        if (!fReindex && (!pblocktree->ReadFlag("auxpow2", fAuxPow) || !fAuxPow)) {
             return false;
         }
     }
@@ -3614,7 +3614,7 @@ bool InitBlockIndex() {
         //fTxIndex = GetBoolArg("-txindex", false);
         fTxIndex = true; // ppcoin: txindex is always enabled
         pblocktree->WriteFlag("txindex", fTxIndex);
-        pblocktree->WriteFlag("auxpow", true);
+        pblocktree->WriteFlag("auxpow2", true);
         LogPrintf("Initializing databases...\n");
 
         // Only add the genesis block if not reindexing (in which case we reuse the one already on disk)
