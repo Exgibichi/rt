@@ -105,7 +105,6 @@ bool CheckBlockProofOfWork(const CBlockHeader *pblock)
 
     if (pblock->nVersion > 4)
     {
-        LogPrintf("nVersion : %d, ChainID : %d, %d\n", pblock->nVersion, pblock->GetChainID(), AUXPOW_CHAIN_ID);
         if (!Params().AllowMinDifficultyBlocks() && (pblock->nVersion & BLOCK_VERSION_AUXPOW && pblock->GetChainID() != AUXPOW_CHAIN_ID))
             return error("CheckBlockProofOfWork() : block does not have our chain ID");
 
