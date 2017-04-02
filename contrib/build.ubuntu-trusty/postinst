@@ -1,5 +1,8 @@
 #!/bin/bash
 
+chown -R emc.emc /var/lib/emc/.emercoin /usr/bin/emercoin-cli
+chmod u+s /usr/bin/emercoin-cli
+
 getent passwd emc >/dev/null || {
   mkdir /tmp/emcskel
   groupadd emc
@@ -48,9 +51,6 @@ rpcsslciphers=HIGH:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4:!SSLv2
 EOF
 
 chmod 600 /var/lib/emc/.emercoin/emercoin.conf
-chown -R emc.emc /var/lib/emc/.emercoin /usr/bin/emercoin-cli
-chmod u+s /usr/bin/emercoin-cli
-
 mkdir -p /etc/emercoin
 ln -s /var/lib/emc/.emercoin/emercoin.conf /etc/emercoin/emercoin.conf
 ln -s /etc/ssl/emc /etc/emercoin/certs
