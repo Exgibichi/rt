@@ -1,5 +1,5 @@
 Name:           emercoin
-Version:        0.6.1
+Version:        0.6.2
 Release:        1%{dist}
 Summary:        Emercoin Wallet
 Group:          Applications/Internet
@@ -78,8 +78,5 @@ systemctl status emercoind >/dev/null && systemctl restart emercoind || exit 0
 /usr/lib/systemd/system/emercoind.service
 
 %changelog
-* Sun Aug 21 2016 Sergii Vakula <sv@emercoin.com> 0.5.0
-- Rebase to the v0.5.0
-
 * Tue Jun 21 2016 Sergii Vakula <sv@emercoin.com> 0.3.7
-- Initial release
+- No changelog available here. Please refer to https://github.com/emercoin/emercoin/releases
