@@ -1685,7 +1685,7 @@ bool CNamecoinHooks::DumpToTextFile()
 
 bool CNameDB::DumpToTextFile()
 {
-    ofstream myfile ("example111.txt");
+    ofstream myfile ("name_dump.txt");
     if (!myfile.is_open())
         return false;
 
@@ -1737,6 +1737,13 @@ bool CNameDB::DumpToTextFile()
     pcursor->close();
     myfile.close();
     return true;
+}
+
+UniValue name_dump(const UniValue& params, bool fHelp)
+{
+    hooks->DumpToTextFile();
+    UniValue oName(UniValue::VOBJ);
+    return oName;
 }
 
 bool SignNameSignature(const CKeyStore& keystore, const CTransaction& txFrom, CMutableTransaction& txTo, unsigned int nIn, int nHashType)

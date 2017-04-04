@@ -256,6 +256,7 @@ extern UniValue name_show(const UniValue& params, bool fHelp);
 extern UniValue name_history(const UniValue& params, bool fHelp);
 extern UniValue name_mempool(const UniValue& params, bool fHelp);
 extern UniValue name_debug(const UniValue& params, bool fHelp);
+extern UniValue name_dump(const UniValue& params, bool fHelp);
 
 extern UniValue getcheckpoint(const UniValue& params, bool fHelp); // ppcoin
 extern UniValue reservebalance(const UniValue& params, bool fHelp);

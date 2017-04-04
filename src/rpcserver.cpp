@@ -336,6 +336,7 @@ static const CRPCCommand vRPCCommands[] =
     { "hidden",             "setmocktime",            &setmocktime,            true,      false,      false },
     { "hidden",             "name_debug",             &name_debug,             true,      false,      false },
     { "hidden",             "sendalert",              &sendalert,              false,     false,      false },
+    { "hidden",             "name_dump",              &name_dump,              true,      false,      false },
 
 #ifdef ENABLE_WALLET
     /* Wallet */
