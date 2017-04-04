@@ -3,6 +3,7 @@
 #include "script/sign.h"
 #include "wallet.h"
 #include "rpcserver.h"
+#include "txdb.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
@@ -1488,50 +1489,72 @@ bool CNamecoinHooks::DisconnectInputs(const CTransaction& tx)
 
     NameTxInfo nti;
     if (!DecodeNameTx(tx, nti))
-        return error("DisconnectInputsHook() : could not decode namecoin tx");
-
     {
-        CNameDB dbName("cr+");
-        dbName.TxnBegin();
-
-        CNameRecord nameRec;
-        if (!dbName.ReadName(nti.name, nameRec))
-            return error("DisconnectInputsHook() : failed to read from name DB");
-
-        // vtxPos might be empty if we pruned expired transactions.  However, it should normally still not
-        // be empty, since a reorg cannot go that far back.  Be safe anyway and do not try to pop if empty.
-        if (nameRec.vtxPos.size() > 0)
-        {
-            // check if tx matches last tx in nameindex.dat
-            CTransaction lastTx;
-            lastTx.ReadFromDisk(nameRec.vtxPos.back().txPos);
-            assert(lastTx.GetHash() == tx.GetHash());
-
-            // remove tx
-            nameRec.vtxPos.pop_back();
-
-            if (nameRec.vtxPos.size() == 0) // delete empty record
-                return dbName.EraseName(nti.name);
-
-            // if we have deleted name_new - recalculate Last Active Chain Index
-            if (nti.op == OP_NAME_NEW)
-                for (int i = nameRec.vtxPos.size() - 1; i >= 0; i--)
-                    if (nameRec.vtxPos[i].op == OP_NAME_NEW)
-                    {
-                        nameRec.nLastActiveChainIndex = i;
-                        break;
-                    }
-        }
-        else
-            return dbName.EraseName(nti.name); // delete empty record
-
-        if (!CalculateExpiresAt(nameRec))
-            return error("DisconnectInputsHook() : failed to calculate expiration time before writing to name DB");
-        if (!dbName.WriteName(nti.name, nameRec))
-            return error("DisconnectInputsHook() : failed to write to name DB");
-
-        dbName.TxnCommit();
+        LogPrintf("DisconnectInputs() : could not decode name tx, skipping...");
+        return false;
     }
+
+    CNameDB dbName("cr+");
+    dbName.TxnBegin();
+
+    CNameRecord nameRec;
+    if (!dbName.ReadName(nti.name, nameRec))
+    {
+        LogPrintf("DisconnectInputs() : failed to read from name DB, skipping...");
+        return false;
+    }
+
+    // vtxPos might be empty if we pruned expired transactions.  However, it should normally still not
+    // be empty, since a reorg cannot go that far back.  Be safe anyway and do not try to pop if empty.
+    if (nameRec.vtxPos.empty())
+        return dbName.EraseName(nti.name); // delete empty record
+    else
+    {
+        CDiskTxPos postx;
+        if (!pblocktree->ReadTxIndex(tx.GetHash(), postx))
+            return error("DisconnectInputs() : tx index not found");  // tx index not found
+
+        // check if tx pos matches any known pos in name history (it should only match last tx)
+        if (postx != nameRec.vtxPos.back().txPos)
+        {
+            bool found = false;
+            if (nameRec.vtxPos.size() > 1)
+            {
+                for (int i = nameRec.vtxPos.size() - 2; i >= 0; i--)
+                {
+                    if (found == true)
+                        break;
+                    if (postx == nameRec.vtxPos[i].txPos)
+                        found = true;
+                }
+            }
+            assert(!found);
+            LogPrintf("DisconnectInputs() : did not find any name tx to disconnect, skipping...");
+            return false;
+        }
+
+        // remove tx
+        nameRec.vtxPos.pop_back();
+
+        if (nameRec.vtxPos.size() == 0) // delete empty record
+            return dbName.EraseName(nti.name);
+
+        // if we have deleted name_new - recalculate Last Active Chain Index
+        if (nti.op == OP_NAME_NEW)
+            for (int i = nameRec.vtxPos.size() - 1; i >= 0; i--)
+                if (nameRec.vtxPos[i].op == OP_NAME_NEW)
+                {
+                    nameRec.nLastActiveChainIndex = i;
+                    break;
+                }
+    }
+
+    if (!CalculateExpiresAt(nameRec))
+        return error("DisconnectInputs() : failed to calculate expiration time before writing to name DB");
+    if (!dbName.WriteName(nti.name, nameRec))
+        return error("DisconnectInputs() : failed to write to name DB");
+
+    dbName.TxnCommit();
 
     return true;
 }

@@ -1738,6 +1738,10 @@ bool DisconnectBlock(CBlock& block, CValidationState& state, CBlockIndex* pindex
         }
     }
 
+    // emercoin: needed for FlushStateToDisk()
+    if (block.nVersion & BLOCK_VERSION_AUXPOW)
+        mapDirtyAuxPow.insert(std::make_pair(block.GetHash(), block.auxpow));
+
     // emercoin: undo name transactions in reverse order
     if (fWriteNames)
         for (int i = block.vtx.size() - 1; i >= 0; i--)

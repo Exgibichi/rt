@@ -146,9 +146,26 @@ bool CBlockTreeDB::WriteBatchSync(const std::vector<std::pair<int, const CBlockF
     }
     batch.Write('l', nLastFile);
     for (std::vector<const CBlockIndex*>::const_iterator it=blockinfo.begin(); it != blockinfo.end(); it++) {
-        const std::map<uint256, boost::shared_ptr<CAuxPow> >::const_iterator auxIt = auxpows.find((*it)->GetBlockHash());
-        boost::shared_ptr<CAuxPow> p = auxIt != auxpows.end() ? auxIt->second : boost::shared_ptr<CAuxPow>();
-        batch.Write(make_pair(make_pair('b', (*it)->GetBlockHash()), 'a'), CDiskBlockIndex(*it, p));
+
+        // emercoin: search for auxpow in memory, then try disk
+        boost::shared_ptr<CAuxPow> auxpow;
+        if ((*it)->nVersion & BLOCK_VERSION_AUXPOW)
+        {
+            const std::map<uint256, boost::shared_ptr<CAuxPow> >::const_iterator auxIt = auxpows.find((*it)->GetBlockHash());
+            if (auxIt != auxpows.end())
+                auxpow = auxIt->second;
+            else
+            {
+                CBlock block;
+                if (!ReadBlockFromDisk(block, *it))
+                    return error("%s : Failed to read block from disk", __func__);
+                auxpow = block.auxpow;
+            }
+        }
+        else
+            auxpow = boost::shared_ptr<CAuxPow>();
+
+        batch.Write(make_pair(make_pair('b', (*it)->GetBlockHash()), 'a'), CDiskBlockIndex(*it, auxpow));
         batch.Write(make_pair(make_pair('b', (*it)->GetBlockHash()), 'b'), **it);
     }
     return WriteBatch(batch, true);
