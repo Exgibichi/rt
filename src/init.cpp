@@ -10,6 +10,7 @@
 #include "init.h"
 
 #include "addrman.h"
+#include "alert.h"
 #include "amount.h"
 #include "checkpoints.h"
 #include "compat/sanity.h"
@@ -839,8 +840,32 @@ bool AppInit2(boost::thread_group& threadGroup)
         StartRPCThreads();
     }
 
-    // do not use hooks below this line
-    // hooks = InitHook();
+    // emercoin: allow user to set alert and checkpoint pubkeys
+    {
+        string ak = GetArg("-alertpubkey", "1");
+        if (ak == "1")
+            vAlertPubKey = ParseHex("04e14603d29d0a051df1392c6256bb271ff4a7357260f8e2b82350ad29e1a5063d4a8118fa4cc8a0175cb45776e720cf4ef02cc2b160f5ef0144c3bb37ba3eea58");
+        else if (ak == "0")
+        {
+            vAlertPubKey = vector<unsigned char>();
+            fAlerts = false;
+        }
+        else if (IsHex(ak))
+            vAlertPubKey = ParseHex(ak);
+
+        string ck = GetArg("-checkpointpubkey", "1");
+        if (ck == "1")
+        {
+            if (Params().NetworkIDString() == "main")
+                strMasterPubKey = "046fbfdd8aac1671681dfe257a65cb1a87056814955ae1faeefa20c158a66ad5514c77f858a417da79f56c69e97ece8c5363dbd41994db22435596f84a002736b0";
+            else if (Params().NetworkIDString() == "test")
+                strMasterPubKey = "041c32801975f33eb97da5ff06c6f5281afc7f68635c459d0c44d81370c3ef3f25805197b844f5bda6fabf43c4e39762ac753c8532a2ae18a30805f939415e5865";
+        }
+        else if (ck == "0")
+            strMasterPubKey = "";
+        else if (IsHex(ck))
+            strMasterPubKey = ck;
+    }
 
     int64_t nStart;
 

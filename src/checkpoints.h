@@ -15,6 +15,8 @@ class CBlockIndex;
 class CNode;
 class CSyncCheckpoint;
 
+extern std::string strMasterPubKey;
+
 /** 
  * Block-chain checkpoints are compiled-in sanity checks.
  * They are updated every release or three.

@@ -3652,14 +3652,14 @@ bool InitBlockIndex() {
     // ppcoin: if checkpoint master key changed must reset sync-checkpoint
     {
         string strPubKey = "";
-        if (!pblocktree->ReadCheckpointPubKey(strPubKey) || strPubKey != Params().SyncCheckpointPubKey())
+        if (!pblocktree->ReadCheckpointPubKey(strPubKey) || strPubKey != strMasterPubKey)
         {
             // write checkpoint master key to db
-            if (!pblocktree->WriteCheckpointPubKey(Params().SyncCheckpointPubKey()))
-                return error("LoadBlockIndex() : failed to write new checkpoint master key to db");
-            FlushStateToDisk();
             if (!CheckpointsSync::ResetSyncCheckpoint())
                 return error("LoadBlockIndex() : failed to reset sync-checkpoint");
+            if (!pblocktree->WriteCheckpointPubKey(strMasterPubKey))
+                return error("LoadBlockIndex() : failed to write new checkpoint master key to db");
+            FlushStateToDisk();
         }
     }
 

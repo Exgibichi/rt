@@ -16,6 +16,10 @@
 
 #include <boost/foreach.hpp>
 
+
+/** Synchronized checkpoint public key */
+std::string strMasterPubKey = "";
+
 namespace Checkpoints {
 
     /**
@@ -171,6 +175,8 @@ bool WriteSyncCheckpoint(const uint256& hashCheckpoint)
 
 bool AcceptPendingSyncCheckpoint()
 {
+    if (strMasterPubKey == "") return false;  // no public key == no checkpoints
+
     LOCK(cs_main);
     bool havePendingCheckpoint = hashPendingCheckpoint != 0 && mapBlockIndex.count(hashPendingCheckpoint);
     if (!havePendingCheckpoint)
@@ -252,9 +258,10 @@ uint256 AutoSelectSyncCheckpoint()
 // Check against synchronized checkpoint
 bool CheckSync(const CBlockIndex* pindexNew)
 {
+    if (strMasterPubKey == "") return true;  // no public key == no checkpoints
+
     LOCK(cs_main);
     assert(pindexNew != NULL);
-    if (Params().SyncCheckpointPubKey() == "") return true;  // no public key == no checkpoints
     if (pindexNew->nHeight == 0) return true;                // genesis cannot be checked against previous block
     const uint256& hashBlock = pindexNew->GetBlockHash();
     int nHeight = pindexNew->nHeight;
@@ -290,39 +297,10 @@ bool CheckSync(const CBlockIndex* pindexNew)
 bool ResetSyncCheckpoint()
 {
     LOCK(cs_main);
-    const uint256& hash = Checkpoints::GetLatestHardenedCheckpoint();
-    bool fHaveBlock = mapBlockIndex.count(hash) && (mapBlockIndex[hash]->nStatus & BLOCK_HAVE_DATA);
-    if (!fHaveBlock)
-    {
-        // checkpoint block not yet accepted
-        hashPendingCheckpoint = hash;
-        checkpointMessagePending.SetNull();
-        LogPrintf("ResetSyncCheckpoint: pending for sync-checkpoint %s\n", hashPendingCheckpoint.ToString());
-    }
-
-    const Checkpoints::MapCheckpoints& checkpoints = *Params().Checkpoints().mapCheckpoints;
-
-    BOOST_REVERSE_FOREACH(const Checkpoints::MapCheckpoints::value_type& i, checkpoints)
-    {
-        const uint256& hash = i.second;
-        if (mapBlockIndex.count(hash) && chainActive.Contains(mapBlockIndex[hash]))
-        {
-            if (!WriteSyncCheckpoint(hash))
-                return error("ResetSyncCheckpoint: failed to write sync checkpoint %s", hash.ToString());
-            LogPrintf("ResetSyncCheckpoint: sync-checkpoint reset to %s\n", hashSyncCheckpoint.ToString());
-            return true;
-        }
-    }
-
-    if (mapBlockIndex.empty())  //emercoin: this might happen during reindexing
-    {
-        if (!WriteSyncCheckpoint(Params().HashGenesisBlock()))
-            return error("ResetSyncCheckpoint: failed to write sync checkpoint %s", hash.ToString());
-        LogPrintf("ResetSyncCheckpoint: sync-checkpoint reset to %s\n", hashSyncCheckpoint.ToString());
-        return true;
-    }
-
-    return false;
+    if (!WriteSyncCheckpoint(Params().HashGenesisBlock()))
+        return error("ResetSyncCheckpoint: failed to write sync checkpoint %s", Params().HashGenesisBlock().ToString());
+    LogPrintf("ResetSyncCheckpoint: sync-checkpoint reset to %s\n", hashSyncCheckpoint.ToString());
+    return true;
 }
 
 bool SetCheckpointPrivKey(std::string strPrivKey)
@@ -383,7 +361,7 @@ bool SendSyncCheckpoint(uint256 hashCheckpoint)
 // Is the sync-checkpoint too old?
 bool IsSyncCheckpointTooOld(unsigned int nSeconds)
 {
-    if (Params().SyncCheckpointPubKey() == "") return false;  // no public key == no checkpoints
+    if (strMasterPubKey == "") return false;  // no public key == no checkpoints
 
     LOCK(cs_main);
     // sync-checkpoint should always be accepted block
@@ -405,8 +383,7 @@ std::string CSyncCheckpoint::strMasterPrivKey = "";
 // ppcoin: verify signature of sync-checkpoint message
 bool CSyncCheckpoint::CheckSignature()
 {
-
-    CPubKey key(ParseHex(Params().SyncCheckpointPubKey()));
+    CPubKey key(ParseHex(strMasterPubKey));
     if (!key.Verify(Hash(vchMsg.begin(), vchMsg.end()), vchSig))
         return error("CSyncCheckpoint::CheckSignature() : verify signature failed");
 
@@ -419,6 +396,8 @@ bool CSyncCheckpoint::CheckSignature()
 // ppcoin: process synchronized checkpoint
 bool CSyncCheckpoint::ProcessSyncCheckpoint()
 {
+    if (strMasterPubKey == "") return false;  // no public key == no checkpoints
+
     if (!CheckSignature())
         return false;
 

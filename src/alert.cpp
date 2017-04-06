@@ -27,6 +27,9 @@ using namespace std;
 map<uint256, CAlert> mapAlerts;
 CCriticalSection cs_mapAlerts;
 
+/** Raw pub key bytes for the broadcast alert signing key */
+vector<unsigned char> vAlertPubKey = vector<unsigned char>();
+
 void CUnsignedAlert::SetNull()
 {
     nVersion = 1;
@@ -147,7 +150,10 @@ bool CAlert::RelayTo(CNode* pnode) const
 
 bool CAlert::CheckSignature() const
 {
-    CPubKey key(Params().AlertKey());
+    if (vAlertPubKey.empty())
+        return false;
+
+    CPubKey key(vAlertPubKey);
     if (!key.Verify(Hash(vchMsg.begin(), vchMsg.end()), vchSig))
         return error("CAlert::CheckSignature() : verify signature failed");
 
