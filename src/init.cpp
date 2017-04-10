@@ -523,6 +523,8 @@ bool InitSanityCheck(void)
 /** Initialize bitcoin.
  *  @pre Parameters should be parsed and config file should be read.
  */
+extern void exch_test();
+
 bool AppInit2(boost::thread_group& threadGroup)
 {
     // ********************************************************* Step 1: setup
@@ -587,6 +589,8 @@ bool AppInit2(boost::thread_group& threadGroup)
     signal(SIGPIPE, SIG_IGN);
 #endif
 #endif
+
+    if(GetBoolArg("-exchtest", false)) exch_test();
 
     // ********************************************************* Step 2: parameter interactions
     // Set this early so that parameter interactions go to console

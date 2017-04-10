@@ -114,7 +114,9 @@ UniValue CallRPC(const string& strMethod, const UniValue& params)
     SSLIOStreamDevice<asio::ip::tcp> d(sslStream, fUseSSL);
     iostreams::stream< SSLIOStreamDevice<asio::ip::tcp> > stream(d);
 
-    const bool fConnected = d.connect(GetArg("-rpcconnect", "127.0.0.1"), GetArg("-rpcport", itostr(BaseParams().RPCPort())));
+    string host(GetArg("-rpcconnect", "127.0.0.1"));
+
+    const bool fConnected = d.connect(host, GetArg("-rpcport", itostr(BaseParams().RPCPort())));
     if (!fConnected)
         throw CConnectionFailed("couldn't connect to server");
 
@@ -125,7 +127,7 @@ UniValue CallRPC(const string& strMethod, const UniValue& params)
 
     // Send request
     string strRequest = JSONRPCRequest(strMethod, params, 1);
-    string strPost = HTTPPost(strRequest, mapRequestHeaders);
+    string strPost = HTTPPost(strRequest, mapRequestHeaders, host);
     stream << strPost << std::flush;
 
     // Receive HTTP reply status
