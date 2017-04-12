@@ -10,7 +10,7 @@ define(_EMERCOIN_VERSION_REVISION, 2)
 
 define(_CLIENT_VERSION_BUILD, 0)
 define(_CLIENT_VERSION_IS_RELEASE, true)
-define(_COPYRIGHT_YEAR, 2016)
+define(_COPYRIGHT_YEAR, 2017)
 AC_INIT([Emercoin Core],[_EMERCOIN_VERSION_MAJOR._EMERCOIN_VERSION_MINOR._EMERCOIN_VERSION_REVISION],[info@emercoin.com],[emercoin])
 AC_CONFIG_SRCDIR([src/main.cpp])
 AC_CONFIG_HEADERS([src/config/bitcoin-config.h])
