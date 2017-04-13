@@ -1708,7 +1708,7 @@ bool CNamecoinHooks::DumpToTextFile()
 
 bool CNameDB::DumpToTextFile()
 {
-    ofstream myfile ("name_dump.txt");
+    ofstream myfile((GetDataDir() / "name_dump.txt").string().c_str());
     if (!myfile.is_open())
         return false;
 
