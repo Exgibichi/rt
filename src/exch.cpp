@@ -33,6 +33,14 @@ const UniValue Exch::RawMarketInfo(const string &path) {
 } //  Exch::RawMarketInfo
 
 //-----------------------------------------------------
+// Returns extimated EMC to pay for specific pay_amount
+// Must e called after MarketInfo
+double Exch::EstimatedEMC(double pay_amount) const {
+  return (m_rate <= 0.0)?
+    m_rate : ceil(100 * (pay_amount + m_minerFee) / m_rate) / 100;
+}
+
+//-----------------------------------------------------
 // Connect to the server by https, fetch JSON and parse to UniValue
 // Throws exception if error
 UniValue Exch::httpsFetch(const char *get, const UniValue *post) {
@@ -57,7 +65,7 @@ UniValue Exch::httpsFetch(const char *get, const UniValue *post) {
     postBody = post->write(0, 0, 0) + '\n';
   } 
 
-printf("DBG: Exch::httpsFetch: Req: method=[%s] path=[%s] H=[%s]\n", reqType, get, Host().c_str());
+  LogPrint("exch", "DBG: Exch::httpsFetch: Req: method=[%s] path=[%s] H=[%s]\n", reqType, get, Host().c_str());
 
   // Send request
   stream << reqType << (get? get : "/") << " HTTP/1.1\r\n"
@@ -85,12 +93,12 @@ printf("DBG: Exch::httpsFetch: Req: method=[%s] path=[%s] H=[%s]\n", reqType, ge
   string strReply;
   ReadHTTPMessage(stream, mapHeaders, strReply, nProto, 4 * 1024);
 
-printf("DBG: Exch::httpsFetch: Server returned HTTP: %d\n", nStatus);
+  LogPrint("exch", "DBG: Exch::httpsFetch: Server returned HTTP: %d\n", nStatus);
 
   if(strReply.empty())
     throw runtime_error("No response from server");
 
-printf("DBG: Exch::httpsFetch: Reply from server: [%s]\n", strReply.c_str());
+  LogPrint("exch", "DBG: Exch::httpsFetch: Reply from server: [%s]\n", strReply.c_str());
 
   size_t json_beg = strReply.find('{');
   size_t json_end = strReply.rfind('}');
@@ -124,6 +132,18 @@ void Exch::CheckERR(const UniValue &reply) const {
     throw runtime_error(err.get_str().c_str());
 } // Exch::CheckERR
 
+//-----------------------------------------------------
+// Extract raw key from txkey
+// Return NULL if "Not my key" or invalid key
+const char *Exch::RawKey(const string &txkey) const {
+  const char *key = txkey.empty()? m_txKey.c_str() : txkey.c_str();
+  if(strncmp(key, Name().c_str(), Name().length()) != 0) 
+    return NULL; // Not my key
+  key += Name().length();
+  if(*key++ != ':')
+    return NULL; // Not my key
+  return key;
+} // Exch::RawKey
 
 //=====================================================
 
@@ -155,7 +175,7 @@ string ExchCoinReform::MarketInfo(const string &currency) {
   try {
     //const UniValue mi(RawMarketInfo("/marketinfo/ltc_" + currency));
     const UniValue mi(RawMarketInfo("/api/marketinfo/emc_" + currency + ".json"));
-    printf("DBG: ExchCoinReform::MarketInfo(%s|%s) returns <%s>\n\n", Host().c_str(), currency.c_str(), mi.write(0, 0, 0).c_str());
+    LogPrint("exch", "DBG: ExchCoinReform::MarketInfo(%s|%s) returns <%s>\n\n", Host().c_str(), currency.c_str(), mi.write(0, 0, 0).c_str());
     m_pair     = mi["pair"].get_str();
     m_rate     = atof(mi["rate"].get_str().c_str());
     m_limit    = atof(mi["limit"].get_str().c_str());
@@ -196,7 +216,7 @@ string ExchCoinReform::Send(const string &to, double amount) {
     Req.push_back(Pair("ref_id", "2f77783d"));
 
     UniValue Resp(httpsFetch("/api/sendamount", &Req));
-    printf("DBG: ExchCoinReform::Send(%s|%s) returns <%s>\n\n", Host().c_str(), m_pair.c_str(), Resp.write(0, 0, 0).c_str());
+    LogPrint("exch", "DBG: ExchCoinReform::Send(%s|%s) returns <%s>\n\n", Host().c_str(), m_pair.c_str(), Resp.write(0, 0, 0).c_str());
     m_rate     = atof(Resp["rate"].get_str().c_str());
     m_depAddr  = Resp["deposit"].get_str();			// Address to pay EMC
     m_outAddr  = Resp["withdrawal"].get_str();			// Address to pay from exchange
@@ -218,27 +238,41 @@ string ExchCoinReform::Send(const string &to, double amount) {
 // If key is empty, used the last key
 // Returns status (including err), or minus "-", if "not my" key
 string ExchCoinReform::TxStat(const string &txkey, UniValue &details) {
-  const char *key = txkey.empty()? m_txKey.c_str() : txkey.c_str();
-  do {
-    if(strncmp(key, Name().c_str(), Name().length()) != 0) 
-      break; // Not my key
+  const char *key = RawKey(txkey);
+  if(key == NULL)
+      return "-"; // Not my key
 
-    key += Name().length();
-    if(*key++ != ':')
-      break; // Not my key
-
-    char buf[200];
-    snprintf(buf, sizeof(buf), "/api/txstat/%s.json", key);
-    try {
-      details = httpsFetch(buf, NULL);
-      printf("DBG: ExchCoinReform::TxStat(%s|%s) returns <%s>\n\n", Host().c_str(), buf, details.write(0, 0, 0).c_str());
-      return details["status"].get_str();
-    } catch(std::exception &e) { // something wrong at HTTPS
-      return e.what();
-    }
-  } while(false);
-  return "-"; //  Not my key
+  char buf[400];
+  snprintf(buf, sizeof(buf), "/api/txstat/%s.json", key);
+  try {
+    details = httpsFetch(buf, NULL);
+    LogPrint("exch", "DBG: ExchCoinReform::TxStat(%s|%s) returns <%s>\n\n", Host().c_str(), buf, details.write(0, 0, 0).c_str());
+    return details["status"].get_str();
+  } catch(std::exception &e) { // something wrong at HTTPS
+    return e.what();
+  }
 } // ExchCoinReform::TxStat
+
+//-----------------------------------------------------
+// Cancel TX by txkey.
+// If key is empty, used the last key
+// Returns error text, or an empty string, if OK
+// Returns minus "-", if "not my" key
+string ExchCoinReform::Cancel(const string &txkey) {
+  const char *key = RawKey(txkey);
+  if(key == NULL)
+      return "-"; // Not my key
+
+  char buf[400];
+  snprintf(buf, sizeof(buf), "/api/cancel/%s.json", key);
+  try {
+    UniValue Resp(httpsFetch(buf, NULL));
+    LogPrint("exch", "DBG: ExchCoinReform::Cancel(%s|%s) returns <%s>\n\n", Host().c_str(), buf, Resp.write(0, 0, 0).c_str());
+    return "";
+  } catch(std::exception &e) { // something wrong at HTTPS
+    return e.what();
+  }
+} // ExchCoinReform::Cancel
 
 
 //=====================================================

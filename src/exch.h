@@ -30,6 +30,16 @@ class Exch {
   // Returns status (including err), or minus "-", if "not my" key
   virtual string TxStat(const string &txkey, UniValue &details) = 0;
 
+  // Cancel TX by txkey.
+  // If key is empty, used the last key
+  // Returns error text, or an empty string, if OK
+  // Returns minus "-", if "not my" key
+  virtual string Cancel(const string &txkey) = 0;
+
+  // Returns extimated EMC to pay for specific pay_amount
+  // Must e called after MarketInfo
+  double EstimatedEMC(double pay_amount) const;
+
   string m_retAddr; // Return EMC Addr
 
   // MarketInfo fills these params
@@ -61,6 +71,9 @@ class Exch {
   // message, if exists
   virtual void CheckERR(const UniValue &reply) const;
 
+  // Extract raw key from txkey
+  // Return NULL if "Not my key" or invalid key
+  const char *RawKey(const string &txkey) const;
 
 }; // class Exch
 
@@ -88,7 +101,13 @@ class ExchCoinReform : public Exch {
   // If key is empty, used the last key
   // Returns status (including err), or minus "-", if "not my" key
   virtual string TxStat(const string &txkey, UniValue &details);
- 
+
+  // Cancel TX by txkey.
+  // If key is empty, used the last key
+  // Returns error text, or an empty string, if OK
+  // Returns minus "-", if "not my" key
+  virtual string Cancel(const string &txkey);
+
 }; // class ExchCoinReform
 
 //-----------------------------------------------------
