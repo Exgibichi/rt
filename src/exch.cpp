@@ -34,11 +34,11 @@ const UniValue Exch::RawMarketInfo(const string &path) {
 
 //-----------------------------------------------------
 // Returns extimated EMC to pay for specific pay_amount
-// Must e called after MarketInfo
+// Must be called after MarketInfo
 double Exch::EstimatedEMC(double pay_amount) const {
   return (m_rate <= 0.0)?
-    m_rate : ceil(100 * (pay_amount + m_minerFee) / m_rate) / 100;
-}
+    m_rate : ceil(100.0 * (pay_amount + m_minerFee) / m_rate) / 100.0;
+} // Exch::EstimatedEMC
 
 //-----------------------------------------------------
 // Connect to the server by https, fetch JSON and parse to UniValue
@@ -315,6 +315,9 @@ void exch_test() {
       err = exch->TxStat("", Det);
       printf("exch_test:TxStat returned: [%s]\n", err.c_str());
       printf("exch_test:TxStat Details: <%s>\n\n", Det.write(0, 0, 0).c_str());
+
+      err = exch->Cancel("");
+      printf("exch_test:Cancel returned: [%s]\n", err.c_str());
 
   } while(0);
 

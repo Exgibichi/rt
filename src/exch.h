@@ -37,7 +37,7 @@ class Exch {
   virtual string Cancel(const string &txkey) = 0;
 
   // Returns extimated EMC to pay for specific pay_amount
-  // Must e called after MarketInfo
+  // Must be called after MarketInfo
   double EstimatedEMC(double pay_amount) const;
 
   string m_retAddr; // Return EMC Addr
