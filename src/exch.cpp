@@ -283,6 +283,28 @@ string ExchCoinReform::Cancel(const string &txkey) {
   }
 } // ExchCoinReform::Cancel
 
+//-----------------------------------------------------
+// Check time in secs, left in the contract, created by prev Send()
+// If key is empty, used the last key
+// Returns time or zero, if contract expired
+// Returns -1, if "not my" key
+int ExchCoinReform::Remain(const string &txkey) {
+  const char *key = RawKey(txkey);
+  if(key == NULL)
+      return -1; // Not my key
+
+  char buf[400];
+  snprintf(buf, sizeof(buf), "/api/timeremaining/%s.json", key);
+  try {
+    UniValue Resp(httpsFetch(buf, NULL));
+    LogPrint("exch", "DBG: ExchCoinReform::Cancel(%s|%s) returns <%s>\n\n", Host().c_str(), buf, Resp.write(0, 0, 0).c_str());
+    return Resp["seconds_remaining"].get_int();
+  } catch(std::exception &e) { // something wrong at HTTPS
+    return 0;
+  }
+} // ExchCoinReform::TimeLeft
+
+
 
 //=====================================================
 //
@@ -326,6 +348,8 @@ void exch_test() {
       err = exch->TxStat("", Det);
       printf("exch_test:TxStat returned: [%s]\n", err.c_str());
       printf("exch_test:TxStat Details: <%s>\n\n", Det.write(0, 0, 0).c_str());
+
+      printf("exch_test:Remain=%d\n", exch->Remain(""));
 
       err = exch->Cancel("");
       printf("exch_test:Cancel returned: [%s]\n", err.c_str());

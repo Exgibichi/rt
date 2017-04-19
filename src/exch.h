@@ -36,6 +36,13 @@ class Exch {
   // Returns minus "-", if "not my" key
   virtual string Cancel(const string &txkey) = 0;
 
+  // Check time in secs, remain in the contract, created by prev Send()
+  // If key is empty, used the last key
+  // Returns time or zero, if contract expired
+  // Returns -1, if "not my" key
+  virtual int Remain(const string &txkey) = 0;
+
+
   // Returns extimated EMC to pay for specific pay_amount
   // Must be called after MarketInfo
   double EstimatedEMC(double pay_amount) const;
@@ -107,6 +114,12 @@ class ExchCoinReform : public Exch {
   // Returns error text, or an empty string, if OK
   // Returns minus "-", if "not my" key
   virtual string Cancel(const string &txkey);
+
+  // Check time in secs, remain in the contract, created by prev Send()
+  // If key is empty, used the last key
+  // Returns time or zero, if contract expired
+  // Returns -1, if "not my" key
+  virtual int Remain(const string &txkey);
 
 }; // class ExchCoinReform
 
