@@ -7,20 +7,29 @@ using namespace boost;
 using namespace boost::asio;
 
 //-----------------------------------------------------
-ExchBox::ExchBox(const string &retAddr) {
+ExchBox::ExchBox() {}
+
+//-----------------------------------------------------
+void ExchBox::Reset(const string &retAddr) {
+  for(size_t i = 0; i < m_v_exch.size(); i++)
+    delete m_v_exch[i];
+  m_v_exch.clear();
   m_v_exch.push_back(new ExchCoinReform(retAddr));
-}
+} // ExchBox::Reset
 
 //-----------------------------------------------------
 ExchBox::~ExchBox() {
-  delete m_v_exch[0];
-}
+  for(size_t i = 0; i < m_v_exch.size(); i++)
+    delete m_v_exch[i];
+} // ExchBox::~ExchBox
 
+//-----------------------------------------------------
 //-----------------------------------------------------
 Exch::Exch(const string &retAddr)
 : m_retAddr(retAddr) {
   m_depAmo = m_outAmo = m_rate = m_limit = m_min = m_minerFee = 0.0;
 }
+
 //-----------------------------------------------------
 // Get input path within server, like: /api/marketinfo/emc_btc.json
 // Called from exchange-specific MarketInfo()
@@ -289,7 +298,8 @@ string ExchCoinReform::Cancel(const string &txkey) {
 //-----------------------------------------------------
 //=====================================================
 void exch_test() {
-  ExchBox  eBox("ESgQZ4oU5TN6BRK3DqZX3qDSrQjPwWHP7t");
+  ExchBox eBox;
+  eBox.Reset("ESgQZ4oU5TN6BRK3DqZX3qDSrQjPwWHP7t");
   do {
       Exch    *exch = eBox.m_v_exch[0];
       printf("exch_test()\nwork with exch=0, Name=%s URL=%s\n", exch->Name().c_str(), exch->Host().c_str());
@@ -298,7 +308,8 @@ void exch_test() {
       //string err(exch->MarketInfo("zzQ"));
       printf("exch_test:MarketInfo returned: [%s]\n", err.c_str());
       if(!err.empty()) break;
-      printf("exch_test:Values from exch: m_rate=%lf; m_limit=%lf; m_min=%lf; m_minerFee=%lf\n", exch->m_rate, exch->m_limit, exch->m_min, exch->m_minerFee);
+      printf("exch_test:Values from exch: m_rate=%lf; m_limit=%lf; m_min=%lf; m_minerFee=%lf\n", 
+	      exch->m_rate, exch->m_limit, exch->m_min, exch->m_minerFee);
 
       printf("\nexch_test:Tryint to send BTC\n");
       err = exch->Send("1Evqeh5pWphbWzmRAc4d3Wb82mAUBhWEVF", 0.001); // good addr

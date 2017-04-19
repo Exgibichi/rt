@@ -113,8 +113,9 @@ class ExchCoinReform : public Exch {
 //-----------------------------------------------------
 class ExchBox {
   public:
-  ExchBox(const string &retAddr);
+  ExchBox();
   ~ExchBox();
+  void Reset(const string &retAddr);
 
   vector<Exch*> m_v_exch;
 }; // class exchbox
