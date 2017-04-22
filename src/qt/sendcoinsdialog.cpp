@@ -324,6 +324,22 @@ void SendCoinsDialog::on_sendButton_clicked()
         return;
     }
 
+    // emercoin: add comment and comment-to
+    CWalletTx* wtx = currentTransaction.getTransaction();
+    foreach(const SendCoinsRecipient &rcp, recipients)
+    {
+        if (rcp.comment.size() > 0)
+            wtx->mapValue["comment"] += rcp.comment + "\n";
+        if (rcp.commentto.size() > 0)
+            wtx->mapValue["to"] += rcp.commentto + "\n";
+    }
+
+    // remove trailing newline
+    if (wtx->mapValue["comment"].size() > 0)
+        wtx->mapValue["comment"].erase(wtx->mapValue["comment"].end()-1);
+    if (wtx->mapValue["to"].size() > 0)
+        wtx->mapValue["to"].erase(wtx->mapValue["to"].end()-1);
+
     // now send the prepared transaction
     WalletModel::SendCoinsReturn sendStatus = model->sendCoins(currentTransaction);
     // process sendStatus and on error generate message shown to user
@@ -367,6 +383,7 @@ SendCoinsEntry *SendCoinsDialog::addEntry()
     ui->entries->addWidget(entry);
     connect(entry, SIGNAL(removeEntry(SendCoinsEntry*)), this, SLOT(removeEntry(SendCoinsEntry*)));
     connect(entry, SIGNAL(payAmountChanged()), this, SLOT(coinControlUpdateLabels()));
+    connect(entry, SIGNAL(sendNow()), this, SLOT(on_sendButton_clicked()));
 
     updateTabsAndLabels();
 
