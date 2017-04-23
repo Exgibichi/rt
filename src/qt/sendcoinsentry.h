@@ -76,6 +76,7 @@ private:
     Ui::SendCoinsEntry *ui;
     WalletModel *model;
     ExchBox eBox;
+    QString qsExchInfo;
 
 
     bool updateLabel(const QString &address);

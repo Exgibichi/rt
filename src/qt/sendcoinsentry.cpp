@@ -46,6 +46,11 @@ SendCoinsEntry::SendCoinsEntry(QWidget *parent) :
 
     ui->payTo->setValidator(0);  // emercoin: disable validator so that we can type names
     ui->payAmountExch->setValidator( new QDoubleValidator(0, 1e20, 8, this) );
+    qsExchInfo = "<html><head/><body><p><span style=\" font-weight:600;\">"+
+            tr("WARNING: You're using external service! Emercoin is not responsible for functionality and correct behavior of this service.")+"</span><br/>"+
+            tr("Usage: Enter amount, currency type, address and then press Request Payment and select desired exchange service.")+"<br/>"+
+            tr("After creating transaction you can view details by double clicking that transaction in transaction list tab.")+"</p></body></html>";
+    ui->infoExchLabel->setText(qsExchInfo);
     ui->exchWidget->setVisible(false);
 }
 
@@ -322,19 +327,19 @@ void SendCoinsEntry::on_requestPaymentButton_clicked()
     dPay = ui->payAmountExch->text().toDouble(&ok);
     if (!ok)
     {
-        QMessageBox::warning(this, "Incorrect pay amount.", "Please enter valid and positive number as pay amount.");
+        QMessageBox::warning(this, tr("Incorrect pay amount."), tr("Please enter valid and positive number as pay amount."));
         return;
     }
 
     if (ui->payTypeExch->text().isEmpty())
     {
-        QMessageBox::warning(this, "Empty currency name.", "Please enter currency short name (like BTC).");
+        QMessageBox::warning(this, tr("Empty currency name."), tr("Please enter currency short name (like BTC)."));
         return;
     }
 
     if (ui->payToExch->text().isEmpty())
     {
-        QMessageBox::warning(this, "Empty address.", "Please enter valid "+ui->payTypeExch->text().toLower()+" address");
+        QMessageBox::warning(this, tr("Empty address."), tr("Please enter valid %1 address").arg(ui->payTypeExch->text().toLower()));
         return;
     }
 
@@ -356,22 +361,19 @@ void SendCoinsEntry::on_requestPaymentButton_clicked()
 
     ui->exchComboBox->clear();
     if (validExist)
-        ui->exchComboBox->addItem("Select exchange here:");
+        ui->exchComboBox->addItem(tr("Select exchange here:"));
     else
-        ui->exchComboBox->addItem("No exchange can make your request: try different currency/amount/address.");
+        ui->exchComboBox->addItem(tr("No exchange can make your request: try different currency/amount/address."));
 
     // http://stackoverflow.com/a/21740341/1199550
-    BOOST_FOREACH(const PAIRTYPE(double, PAIRTYPE(Exch *, bool)) &p, mapExch)
+    foreach (const PAIRTYPE(double, PAIRTYPE(Exch *, bool)) &p, mapExch)
     {
         QString qsEntry;
         bool valid = p.second.second;
         if (valid)
             qsEntry = QString::number(p.first)+"emc ["+QString::fromStdString(p.second.first->Host())+"]";
         else
-            qsEntry = ui->payTypeExch->text()+" out of bounds"+
-              ": min="+QString::number(p.second.first->m_min)+
-              ", max="+QString::number(p.second.first->m_limit)+
-              " ["+QString::fromStdString(p.second.first->Host())+"]";
+            qsEntry = tr("%1 out of bounds: min=%2, max=%3 [%4]").arg(ui->payTypeExch->text()).arg(p.second.first->m_min).arg(p.second.first->m_limit).arg(QString::fromStdString(p.second.first->Host()));
         ui->exchComboBox->addItem(qsEntry, qVariantFromValue((void *) p.second.first));
 
         // disable added item if not valid
@@ -409,7 +411,7 @@ void SendCoinsEntry::on_exchComboBox_currentIndexChanged(int index)
     dPay = ui->payAmountExch->text().toDouble(&ok);
     if (!ok)
     {
-        QMessageBox::warning(this, "Incorrect pay amount.", "Please enter valid and positive number as pay amount.");
+        QMessageBox::warning(this, tr("Incorrect pay amount."), tr("Please enter valid and positive number as pay amount."));
         return;
     }
 
@@ -419,12 +421,12 @@ void SendCoinsEntry::on_exchComboBox_currentIndexChanged(int index)
 
     // remove previous request and clear info label
     exch->Cancel("");
-    ui->infoExchLabel->setText("Info: enter amount, currency type, address and then press Request Payment and select desired exchange service.");
+    ui->infoExchLabel->setText(qsExchInfo);
 
     string err = exch->Send(ui->payToExch->text().toStdString(), dPay);
     if (!err.empty())
     {
-        ui->infoExchLabel->setText("Error: Send request to "+qsHost+" failed with error:\n"+QString::fromStdString(err));
+        ui->infoExchLabel->setText(tr("Error: Send request to %1 failed with error:\n%2").arg(qsHost, QString::fromStdString(err)));
         return;
     }
     LogPrintf("Exchange.Send() : m_depAddr=%s, m_outAddr=%s m_depAmo=%lf m_outAmo=%lf m_txKey=%s\n",
@@ -432,8 +434,7 @@ void SendCoinsEntry::on_exchComboBox_currentIndexChanged(int index)
 
     if (exch->m_outAddr != ui->payToExch->text().toStdString())
     {
-        ui->infoExchLabel->setText("Error: Send request to "+qsHost+" failed with error:\n"+
-                                   "Address returned from exchange does not match requested address");
+        ui->infoExchLabel->setText(tr("Error: Send request to %1 failed with error:\nAddress returned from exchange does not match requested address").arg(qsHost));
         exch->Cancel(exch->m_txKey);
         return;
     }
@@ -441,7 +442,7 @@ void SendCoinsEntry::on_exchComboBox_currentIndexChanged(int index)
     int ttl = exch->Remain(exch->m_txKey);
     if (ttl <= 0)
     {
-        ui->infoExchLabel->setText("Error: contract time is expired for"+qsHost);
+        ui->infoExchLabel->setText(tr("Error: contract time is expired for %1").arg(qsHost));
         return;
     }
 
