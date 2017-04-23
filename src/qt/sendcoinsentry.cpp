@@ -371,9 +371,9 @@ void SendCoinsEntry::on_requestPaymentButton_clicked()
         QString qsEntry;
         bool valid = p.second.second;
         if (valid)
-            qsEntry = QString::number(p.first)+"emc ["+QString::fromStdString(p.second.first->Host())+"]";
+            qsEntry = QString::number(p.first)+"emc ["+QString::fromStdString(p.second.first->Name())+"]";
         else
-            qsEntry = tr("%1 out of bounds: min=%2, max=%3 [%4]").arg(ui->payTypeExch->text()).arg(p.second.first->m_min).arg(p.second.first->m_limit).arg(QString::fromStdString(p.second.first->Host()));
+            qsEntry = tr("%1 out of bounds: min=%2, max=%3 [%4]").arg(ui->payTypeExch->text()).arg(p.second.first->m_min).arg(p.second.first->m_limit).arg(QString::fromStdString(p.second.first->Name()));
         ui->exchComboBox->addItem(qsEntry, qVariantFromValue((void *) p.second.first));
 
         // disable added item if not valid
@@ -417,7 +417,7 @@ void SendCoinsEntry::on_exchComboBox_currentIndexChanged(int index)
 
     QVariant data = ui->exchComboBox->itemData(index);
     Exch *exch = (Exch *) data.value<void *>();
-    QString qsHost = QString::fromStdString(exch->Host());
+    QString qsHost = QString::fromStdString(exch->Name());
 
     // remove previous request and clear info label
     exch->Cancel("");
@@ -464,7 +464,7 @@ void SendCoinsEntry::on_exchComboBox_currentIndexChanged(int index)
         ui->payAmount->setDisplayUnit(BitcoinUnits::BTC);
         ui->payAmount->setString(QString::number(exch->m_depAmo));
         this->comment = exch->m_txKey;
-        this->commentto = exch->Host();
+        this->commentto = exch->Name();
         emit sendNow();
         ui->infoExchLabel->setText(tr("Contract id: %1, Time to complete: %2 minutes").arg(QString::fromStdString(exch->m_txKey), QString::number(ttl/60)));
     }
@@ -474,7 +474,7 @@ void SendCoinsEntry::on_exchComboBox_currentIndexChanged(int index)
         ui->payAmount->setDisplayUnit(BitcoinUnits::BTC);
         ui->payAmount->setString(QString::number(exch->m_depAmo));
         this->comment = exch->m_txKey;
-        this->commentto = exch->Host();
+        this->commentto = exch->Name();
         ui->infoExchLabel->setText(tr("Contract id: %1, Time to complete: %2 minutes").arg(QString::fromStdString(exch->m_txKey), QString::number(ttl/60)));
     }
     else if (msgBox.clickedButton() == pButtonCancel)
