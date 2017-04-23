@@ -48,7 +48,7 @@ SendCoinsEntry::SendCoinsEntry(QWidget *parent) :
     ui->payAmountExch->setValidator( new QDoubleValidator(0, 1e20, 8, this) );
     qsExchInfo = "<html><head/><body><p><span style=\" font-weight:600;\">"+
             tr("WARNING: You're using external service! Emercoin is not responsible for functionality and correct behavior of this service.")+"</span><br/>"+
-            tr("Usage: Enter amount, currency type, address and then press Request Payment and select desired exchange service.")+"<br/>"+
+            tr("Usage: Enter amount, currency type, address, press Request Payment and select desired exchange service.")+"<br/>"+
             tr("After creating transaction you can view details by double clicking that transaction in transaction list tab.")+"</p></body></html>";
     ui->infoExchLabel->setText(qsExchInfo);
     ui->exchWidget->setVisible(false);
