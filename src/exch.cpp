@@ -277,7 +277,8 @@ string ExchCoinReform::Cancel(const string &txkey) {
   try {
     UniValue Resp(httpsFetch(buf, NULL));
     LogPrint("exch", "DBG: ExchCoinReform::Cancel(%s|%s) returns <%s>\n\n", Host().c_str(), buf, Resp.write(0, 0, 0).c_str());
-    return "";
+    m_txKey.erase(); // Preserve from double Cancel
+    return m_txKey;
   } catch(std::exception &e) { // something wrong at HTTPS
     return e.what();
   }
@@ -320,6 +321,7 @@ int ExchCoinReform::Remain(const string &txkey) {
 //-----------------------------------------------------
 //=====================================================
 void exch_test() {
+#if 0
   ExchBox eBox;
   eBox.Reset("ESgQZ4oU5TN6BRK3DqZX3qDSrQjPwWHP7t");
   do {
@@ -358,6 +360,7 @@ void exch_test() {
 
   printf("exch_test:Quit from test\n");
   exit(0);
+#endif
 }
 
 //-----------------------------------------------------
