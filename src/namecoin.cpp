@@ -112,7 +112,7 @@ bool CalculateExpiresAt(CNameRecord& nameRec)
 
         NameTxInfo nti;
         if (!DecodeNameTx(tx, nti))
-            return error("CalculateExpiresAt() : %s is not namecoin tx, this should never happen", tx.GetHash().GetHex());
+            return error("CalculateExpiresAt() : %s is not name tx, this should never happen", tx.GetHash().GetHex());
 
         sum += nti.nRentalDays * 175; //days to blocks. 175 is average number of blocks per day
     }
@@ -649,7 +649,7 @@ UniValue name_history (const UniValue& params, bool fHelp)
 
         NameTxInfo nti;
         if (!DecodeNameTx(tx, nti, true))
-            throw JSONRPCError(RPC_DATABASE_ERROR, "failed to decode namecoin transaction");
+            throw JSONRPCError(RPC_DATABASE_ERROR, "failed to decode name transaction");
 
         UniValue obj(UniValue::VOBJ);
         obj.push_back(Pair("txid",             tx.GetHash().ToString()));
@@ -710,7 +710,7 @@ UniValue name_mempool (const UniValue& params, bool fHelp)
             CTransaction tx = mempool.mapTx[hash].GetTx();
             NameTxInfo nti;
             if (!DecodeNameTx(tx, nti, true))
-                throw JSONRPCError(RPC_DATABASE_ERROR, "failed to decode namecoin transaction");
+                throw JSONRPCError(RPC_DATABASE_ERROR, "failed to decode name transaction");
 
             UniValue obj(UniValue::VOBJ);
             obj.push_back(Pair("name",             sName));
@@ -1374,7 +1374,7 @@ bool CNamecoinHooks::CheckInputs(const CTransaction& tx, const CBlockIndex* pind
     if (!DecodeNameTx(tx, nti))
     {
         if (pindexBlock->nHeight > RELEASE_HEIGHT)
-            return error("CheckInputsHook() : could not decode namecoin tx %s in block %d", tx.GetHash().GetHex(), pindexBlock->nHeight);
+            return error("CheckInputsHook() : could not decode name tx %s in block %d", tx.GetHash().GetHex(), pindexBlock->nHeight);
         return false;
     }
 
