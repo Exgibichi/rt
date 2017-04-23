@@ -292,6 +292,9 @@
              <property name="toolTip">
               <string>The address to send the payment to</string>
              </property>
+             <property name="placeholderText">
+              <string>enter external address here</string>
+             </property>
             </widget>
            </item>
            <item>
