@@ -341,7 +341,7 @@ void exch_test() {
       printf("m_depAddr=%s, m_outAddr=%s m_depAmo=%lf m_outAmo=%lf m_txKey=%s\n",
 	      exch->m_depAddr.c_str(), exch->m_outAddr.c_str(), exch->m_depAmo, exch->m_outAmo, exch->m_txKey.c_str());
 
-      sleep(1);
+      MilliSleep(1000);
 
       printf("\nexch_test:Checking TX status\n");
       UniValue Det(UniValue::VOBJ);

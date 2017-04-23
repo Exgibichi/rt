@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>915</width>
-    <height>271</height>
+    <height>273</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -375,7 +375,7 @@
        <item row="2" column="0">
         <widget class="QLabel" name="infoExchLabel">
          <property name="text">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enter amount, currency type, address and then press Request Payment and select desired exchange service.&lt;/p&gt;&lt;p&gt;After creating transaction you can view details by double clicking that transaction in transaction list tab.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WARNING: You're using external service! Emercoin is not responsible for functionality and correct behavior of this service.&lt;/span&gt;&lt;br/&gt;Enter amount, currency type, address and then press Request Payment and select desired exchange service.&lt;br/&gt;After creating transaction you can view details by double clicking that transaction in transaction list tab.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
         </widget>
        </item>
