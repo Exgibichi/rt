@@ -1991,6 +1991,18 @@
         <source>Memo:</source>
         <translation>Примечание:</translation>
     </message>
+    <message>
+        <source>WARNING: You're using external service! Emercoin is not responsible for functionality and correct behavior of this service.</source>
+        <translation>ВНИМАНИЕ: Вы  используете внешний сервис! Емеркоин не несет ответственность за его функциональность и правильную работу.</translation>
+    </message>
+    <message>
+        <source>Usage: Enter amount, currency type and address. Press Request Payment and select desired exchange service.</source>
+        <translation>Использование: Введите колличество, тип монет и адрес. Нажмите Request Payment и выберите нужный обменик.</translation>
+    </message>
+    <message>
+        <source>After creating transaction you can view details by double clicking that transaction in transaction list tab.</source>
+        <translation>После создания транзакции вы можете посмотреть детали сделки кликая 2 раза на транзакцию в списке транзакций.</translation>
+    </message>
 </context>
 <context>
     <name>ShutdownWindow</name>
