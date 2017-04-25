@@ -231,6 +231,9 @@
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
+             <property name="toolTip">
+              <string>Amount of currency</string>
+             </property>
              <property name="alignment">
               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
              </property>
@@ -255,6 +258,9 @@
                <width>45</width>
                <height>16777215</height>
               </size>
+             </property>
+             <property name="toolTip">
+              <string>Currency short name (i.e. BTC)</string>
              </property>
              <property name="text">
               <string>BTC</string>
@@ -289,8 +295,11 @@
            </property>
            <item>
             <widget class="QLineEdit" name="payToExch">
+             <property name="toolTip">
+              <string>Enter external address here</string>
+             </property>
              <property name="placeholderText">
-              <string>enter external address here</string>
+              <string>Enter external address here</string>
              </property>
             </widget>
            </item>
@@ -367,6 +376,9 @@
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="toolTip">
+            <string>Exchange selection</string>
            </property>
           </widget>
          </item>

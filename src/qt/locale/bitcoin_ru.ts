@@ -2100,8 +2100,8 @@
         <translation>На</translation>
     </message>
     <message>
-        <source>enter external address here</source>
-        <translation>введите здесь внешний адрес</translation>
+        <source>Enter external address here</source>
+        <translation>Введите здесь внешний адрес</translation>
     </message>
     <message>
         <source>Exchange:</source>
