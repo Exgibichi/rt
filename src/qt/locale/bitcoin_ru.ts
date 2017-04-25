@@ -2111,6 +2111,22 @@
         <source>Pay to other cryptocurrencies:</source>
         <translation>Платеж на другие криптовалюты:</translation>
     </message>
+    <message>
+        <source>Amount of currency</source>
+        <translation>Количество валюты</translation>
+    </message>
+    <message>
+        <source>Currency short name (i.e. BTC)</source>
+        <translation>Короткое название валюты (напр. BTC)</translation>
+    </message>
+    <message>
+        <source>Exchange selection</source>
+        <translation>Выбор обменника</translation>
+    </message>
+    <message>
+        <source>This is a payment to external cryptocurrencies</source>
+        <translation>Это платеж на внешние криптовалюты</translation>
+    </message>
 </context>
 <context>
     <name>ShutdownWindow</name>

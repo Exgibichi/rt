@@ -200,7 +200,7 @@
     <item row="5" column="0" colspan="2">
      <widget class="QWidget" name="exchWidget" native="true">
       <property name="toolTip">
-       <string>This is payment to external cryptocurrencies</string>
+       <string>This is a payment to external cryptocurrencies</string>
       </property>
       <layout class="QGridLayout" name="gridLayout">
        <item row="0" column="0">
