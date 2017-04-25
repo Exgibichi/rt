@@ -3968,7 +3968,7 @@ string GetWarnings(string strFor)
     if (CheckpointsSync::hashInvalidCheckpoint != 0)
     {
         nPriority = 3000;
-        strStatusBar = strRPC = "WARNING: Invalid checkpoint found! Displayed transactions may not be correct! You may need to upgrade, or notify developers of the issue.";
+        strStatusBar = "WARNING: Invalid checkpoint found! Displayed transactions may not be correct! You may need to upgrade, or notify developers of the issue.";
     }
 
     // Alerts
