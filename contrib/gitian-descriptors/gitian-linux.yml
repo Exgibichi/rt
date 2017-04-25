@@ -34,6 +34,7 @@ script: |
   export TAR_OPTIONS="--mtime="$REFERENCE_DATE\\\ $REFERENCE_TIME""
   export TZ="UTC"
   export BUILD_DIR=`pwd`
+  export USE_LINUX_STATIC_QT5=1
   mkdir -p ${WRAP_DIR}
   if test -n "$GBUILD_CACHE_ENABLED"; then
     export SOURCES_PATH=${GBUILD_COMMON_CACHE}
