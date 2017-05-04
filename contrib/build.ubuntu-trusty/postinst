@@ -4,7 +4,7 @@ getent passwd emc >/dev/null || {
   groupadd -r emc && useradd -r -m -d /var/lib/emc -k /dev/null -s /bin/false -g emc emc
 }
 
-chown -R emc.emc /var/lib/emc/.emercoin
+chown -R emc.emc /var/lib/emc
 chown emc.root /usr/bin/emercoin-cli
 chmod 4750 /usr/bin/emercoin-cli
 
@@ -48,6 +48,7 @@ rpcsslprivatekeyfile=/etc/ssl/emc/emercoin.key
 rpcsslciphers=HIGH:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4:!SSLv2
 EOF
 
+chown -R emc.emc /var/lib/emc/.emercoin
 chmod 600 /var/lib/emc/.emercoin/emercoin.conf
 mkdir -p /etc/emercoin
 ln -s /var/lib/emc/.emercoin/emercoin.conf /etc/emercoin/emercoin.conf
