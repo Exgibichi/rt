@@ -5,7 +5,7 @@ set -e
 
 case "$1" in
   configure)
-    sed -i -e "s/\(^rpcpassword=MySuperPassword\)\(.*\)/rpcpassword=$(pwgen 64 1)/" /var/lib/emc/.emercoin/emercoin.conf
+    sed -i -e "s/\(^rpcpassword=MySuperPassword\)\(.*\)/rpcpassword=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)/" /var/lib/emc/.emercoin/emercoin.conf
     chmod 600 /var/lib/emc/.emercoin/emercoin.conf
     chown -R emc.emc /var/lib/emc/.emercoin /usr/bin/emercoin-cli
     chmod u+s /usr/bin/emercoin-cli
