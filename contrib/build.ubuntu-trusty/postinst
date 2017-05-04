@@ -1,7 +1,8 @@
 #!/bin/bash
 
-chown -R emc.emc /var/lib/emc/.emercoin /usr/bin/emercoin-cli
-chmod u+s /usr/bin/emercoin-cli
+chown -R emc.emc /var/lib/emc/.emercoin
+chown emc.root /usr/bin/emercoin-cli
+chmod 4750 /usr/bin/emercoin-cli
 
 getent passwd emc >/dev/null || {
   groupadd -r emc && useradd -r -m -d /var/lib/emc -k /dev/null -s /bin/false -g emc emc
@@ -33,7 +34,7 @@ EOF
 mkdir -p /var/lib/emc/.emercoin
 cat<<EOF >/var/lib/emc/.emercoin/emercoin.conf
 rpcuser=emccoinrpc
-rpcpassword=`$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)`
+rpcpassword=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
 listen=1
 server=1
 rpcallowip=127.0.0.1

@@ -70,7 +70,7 @@ systemctl status emercoind >/dev/null && systemctl restart emercoind || exit 0
 %attr(700,emc,emc) %dir /var/lib/emc
 %attr(700,emc,emc) %dir /var/lib/emc/.emercoin
 %attr(600,emc,emc) %config(noreplace) /var/lib/emc/.emercoin/emercoin.conf
-%attr(4755,emc,emc) %{_bindir}/emercoin-cli
+%attr(4750,emc,root) %{_bindir}/emercoin-cli
 %defattr(-,root,root)
 %config(noreplace) /etc/logrotate.d/emercoind
 %{_bindir}/emercoind
