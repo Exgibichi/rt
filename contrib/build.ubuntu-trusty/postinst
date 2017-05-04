@@ -1,12 +1,12 @@
 #!/bin/bash
 
-chown -R emc.emc /var/lib/emc/.emercoin
-chown emc.root /usr/bin/emercoin-cli
-chmod 4750 /usr/bin/emercoin-cli
-
 getent passwd emc >/dev/null || {
   groupadd -r emc && useradd -r -m -d /var/lib/emc -k /dev/null -s /bin/false -g emc emc
 }
+
+chown -R emc.emc /var/lib/emc/.emercoin
+chown emc.root /usr/bin/emercoin-cli
+chmod 4750 /usr/bin/emercoin-cli
 
 mkdir -p /etc/ssl/emc
 [ ! -f /etc/ssl/emc/emercoin.key ] || [ ! -f /etc/ssl/emc/emercoin.crt ] && openssl req -nodes -x509 -newkey rsa:4096 -keyout /etc/ssl/emc/emercoin.key -out /etc/ssl/emc/emercoin.crt -days 3560 -subj /C=US/ST=Oregon/L=Portland/O=IT/CN=emercoin.emc
