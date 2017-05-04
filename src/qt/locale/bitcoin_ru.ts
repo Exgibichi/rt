@@ -1991,6 +1991,142 @@
         <source>Memo:</source>
         <translation>Примечание:</translation>
     </message>
+    <message>
+        <source>WARNING: You're using external service! Emercoin is not responsible for functionality and correct behavior of this service.</source>
+        <translation>ВНИМАНИЕ: Вы  используете внешний сервис! Емеркоин не несет ответственность за его функциональность и правильную работу.</translation>
+    </message>
+    <message>
+        <source>Usage: Enter amount, currency type and address. Press Request Payment and select desired exchange service.</source>
+        <translation>Использование: Введите количество, тип монет и адрес. Нажмите Запросить Платеж и выберите нужный обменник.</translation>
+    </message>
+    <message>
+        <source>After creating transaction you can view details by double clicking that transaction in transaction list tab.</source>
+        <translation>После создания транзакции вы можете посмотреть детали сделки кликая 2 раза на транзакцию в списке транзакций.</translation>
+    </message>
+    <message>
+        <source>Incorrect pay amount.</source>
+        <translation>Количество платежа неправильно.</translation>
+    </message>
+    <message>
+        <source>Please enter valid positive number as pay amount.</source>
+        <translation>Пожалуйста, введите правильное число больше нуля в качестве количества платежа.</translation>
+    </message>
+    <message>
+        <source>Empty currency name.</source>
+        <translation>Пустое название валюты.</translation>
+    </message>
+    <message>
+        <source>Please enter currency short name (like BTC).</source>
+        <translation>Пожалуйста, введите короткое название валюты (как BTC).</translation>
+    </message>
+    <message>
+        <source>Empty address.</source>
+        <translation>Пустой адрес.</translation>
+    </message>
+    <message>
+        <source>Please enter valid %1 address.</source>
+        <translation>Пожалуйста, введите правильный %1 адрес.</translation>
+    </message>
+    <message>
+        <source>Select exchange here:</source>
+        <translation>Выберите обменник:</translation>
+    </message>
+    <message>
+        <source>No exchange can make your request: try different currency/amount/address.</source>
+        <translation>Подходящий обменник не найден: попробуйте другую валюту/количество/адрес</translation>
+    </message>
+    <message>
+        <source>%1 out of bounds: min=%2, max=%3 [%4]</source>
+        <translation>%1 за пределами: мин=%2, макс=%3 [%4]</translation>
+    </message>
+    <message>
+        <source>Error: Send request to %1 failed:\n%</source>
+        <translation>Ошибка: Send запрос на %1 не сработал:\n%</translation>
+    </message>
+    <message>
+        <source>Error: Send request to %1 failed:\nAddress returned from exchange does not match requested address</source>
+        <translation>Ошибка: Send запрос на %1 не сработал:\Адрес возвращеный с обменника не равен запрошенному адресу</translation>
+    </message>
+    <message>
+        <source>Error: payment time is expired for %1</source>
+        <translation>Ошибка: время платежа закончилось для %1</translation>
+    </message>
+    <message>
+        <source>Payment confirmation.</source>
+        <translation>Подтверждение платежа.</translation>
+    </message>
+    <message>
+        <source>%1 will send %2%3 to %4\n</source>
+        <translation>%1 отправит %2%3 на %4\n</translation>
+    </message>
+    <message>
+        <source>You will need to send %1emc to %2\n</source>
+        <translation>Вы должны отправить %1emc на %2\n</translation>
+    </message>
+    <message>
+        <source>Payment id: %1\n</source>
+        <translation>Идентификатор платежа: %1\n</translation>
+    </message>
+    <message>
+        <source>Time to complete: %1 minutes</source>
+        <translation>Время на завершение: %1 минут</translation>
+    </message>
+    <message>
+        <source>Send Now</source>
+        <translation>Отправить</translation>
+    </message>
+    <message>
+        <source>Copy to GUI</source>
+        <translation>Скопировать в GUI</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Отменить</translation>
+    </message>
+    <message>
+        <source>Payment id: %1, Time to complete: %2 minutes</source>
+        <translation>Идентификатор платежа: %1, Время на завершение: %2 minutes</translation>
+    </message>
+    <message>
+        <source>Request Payment</source>
+        <translation>Запросить Платеж</translation>
+    </message>
+    <message>
+        <source>Pay</source>
+        <translation>Заплатить</translation>
+    </message>
+    <message>
+        <source>To</source>
+        <translation>На</translation>
+    </message>
+    <message>
+        <source>Enter external address here</source>
+        <translation>Введите здесь внешний адрес</translation>
+    </message>
+    <message>
+        <source>Exchange:</source>
+        <translation>Обменник:</translation>
+    </message>
+    <message>
+        <source>Pay to other cryptocurrencies:</source>
+        <translation>Платеж на другие криптовалюты:</translation>
+    </message>
+    <message>
+        <source>Amount of currency</source>
+        <translation>Количество валюты</translation>
+    </message>
+    <message>
+        <source>Currency short name (i.e. BTC)</source>
+        <translation>Короткое название валюты (напр. BTC)</translation>
+    </message>
+    <message>
+        <source>Exchange selection</source>
+        <translation>Выбор обменника</translation>
+    </message>
+    <message>
+        <source>This is a payment to external cryptocurrencies</source>
+        <translation>Это платеж на внешние криптовалюты</translation>
+    </message>
 </context>
 <context>
     <name>ShutdownWindow</name>

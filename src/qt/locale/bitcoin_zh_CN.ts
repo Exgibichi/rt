@@ -2140,6 +2140,18 @@ Address: %4
         <source>Memo:</source>
         <translation>便条：</translation>
     </message>
+    <message>
+        <source>WARNING: You're using external service! Emercoin is not responsible for functionality and correct behavior of this service.</source>
+        <translation>警告：您正在使用外部服务！ Emercoin对此服务的功能和正确行为概不负责。</translation>
+    </message>
+    <message>
+        <source>Usage: Enter amount, currency type and address. Press Request Payment and select desired exchange service.</source>
+        <translation>使用方法：输入金额、货币类型、钱包地址，请按要求付款并选择所需的兑换服务。</translation>
+    </message>
+    <message>
+        <source>After creating transaction you can view details by double clicking that transaction in transaction list tab.</source>
+        <translation>在创建交易后，您可以通过在交易清单选项卡中，双击该交易来查看详细信息。</translation>
+    </message>
 </context>
 <context>
     <name>ShutdownWindow</name>
