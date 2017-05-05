@@ -4,8 +4,7 @@ getent passwd emc >/dev/null || {
   groupadd -r emc && useradd -r -m -d /var/lib/emc -k /dev/null -s /bin/false -g emc emc
 }
 
-chown -R emc.emc /var/lib/emc
-chown emc.root /usr/bin/emercoin-cli
+chown -R emc.emc /var/lib/emc /usr/bin/emercoin-cli
 chmod 4750 /usr/bin/emercoin-cli
 
 mkdir -p /etc/ssl/emc
