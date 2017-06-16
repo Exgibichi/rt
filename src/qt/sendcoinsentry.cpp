@@ -1,6 +1,6 @@
-// Copyright (c) 2011-2013 The Bitcoin developers
-// Distributed under the GPL3 software license, see the accompanying
-// file COPYING or http://www.gnu.org/licenses/gpl.html.
+// Copyright (c) 2011-2016 The Bitcoin Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "sendcoinsentry.h"
 #include "ui_sendcoinsentry.h"
@@ -9,6 +9,7 @@
 #include "addresstablemodel.h"
 #include "guiutil.h"
 #include "optionsmodel.h"
+#include "platformstyle.h"
 #include "walletmodel.h"
 #include "../namecoin.h"
 #include "bitcoinunits.h"
@@ -17,18 +18,24 @@
 #include <QApplication>
 #include <QClipboard>
 
-SendCoinsEntry::SendCoinsEntry(QWidget *parent) :
+SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *parent) :
     QStackedWidget(parent),
     ui(new Ui::SendCoinsEntry),
-    model(0)
+    model(0),
+    platformStyle(_platformStyle)
 {
     ui->setupUi(this);
 
+    ui->addressBookButton->setIcon(platformStyle->SingleColorIcon(":/icons/address-book"));
+    ui->pasteButton->setIcon(platformStyle->SingleColorIcon(":/icons/editpaste"));
+    ui->deleteButton->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
+    ui->deleteButton_is->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
+    ui->deleteButton_s->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
+
     setCurrentWidget(ui->SendCoins);
 
-#ifdef Q_OS_MAC
-    ui->payToLayout->setSpacing(4);
-#endif
+    if (platformStyle->getUseExtraSpacing())
+        ui->payToLayout->setSpacing(4);
 #if QT_VERSION >= 0x040700
     ui->addAsLabel->setPlaceholderText(tr("Enter a label for this address to add it to your address book"));
 #endif
@@ -36,10 +43,11 @@ SendCoinsEntry::SendCoinsEntry(QWidget *parent) :
     // normal bitcoin address field
     GUIUtil::setupAddressWidget(ui->payTo, this);
     // just a label for displaying bitcoin address(es)
-    ui->payTo_is->setFont(GUIUtil::bitcoinAddressFont());
+    ui->payTo_is->setFont(GUIUtil::fixedPitchFont());
 
     // Connect signals
     connect(ui->payAmount, SIGNAL(valueChanged()), this, SIGNAL(payAmountChanged()));
+    connect(ui->checkboxSubtractFeeFromAmount, SIGNAL(toggled(bool)), this, SIGNAL(subtractFeeFromAmountChanged()));
     connect(ui->deleteButton, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_is, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_s, SIGNAL(clicked()), this, SLOT(deleteClicked()));
@@ -69,7 +77,7 @@ void SendCoinsEntry::on_addressBookButton_clicked()
 {
     if(!model)
         return;
-    AddressBookPage dlg(AddressBookPage::ForSelection, AddressBookPage::SendingTab, this);
+    AddressBookPage dlg(platformStyle, AddressBookPage::ForSelection, AddressBookPage::SendingTab, this);
     dlg.setModel(model->getAddressTableModel());
     if(dlg.exec())
     {
@@ -83,12 +91,12 @@ void SendCoinsEntry::on_payTo_textChanged(const QString &address)
     updateLabel(address);
 }
 
-void SendCoinsEntry::setModel(WalletModel *model)
+void SendCoinsEntry::setModel(WalletModel *_model)
 {
-    this->model = model;
+    this->model = _model;
 
-    if (model && model->getOptionsModel())
-        connect(model->getOptionsModel(), SIGNAL(displayUnitChanged(int)), this, SLOT(updateDisplayUnit()));
+    if (_model && _model->getOptionsModel())
+        connect(_model->getOptionsModel(), SIGNAL(displayUnitChanged(int)), this, SLOT(updateDisplayUnit()));
 
     clear();
 
@@ -114,14 +122,15 @@ void SendCoinsEntry::clear()
     ui->payTo->clear();
     ui->addAsLabel->clear();
     ui->payAmount->clear();
+    ui->checkboxSubtractFeeFromAmount->setCheckState(Qt::Unchecked);
     ui->messageTextLabel->clear();
     ui->messageTextLabel->hide();
     ui->messageLabel->hide();
-    // clear UI elements for insecure payment request
+    // clear UI elements for unauthenticated payment request
     ui->payTo_is->clear();
     ui->memoTextLabel_is->clear();
     ui->payAmount_is->clear();
-    // clear UI elements for secure payment request
+    // clear UI elements for authenticated payment request
     ui->payTo_s->clear();
     ui->memoTextLabel_s->clear();
     ui->payAmount_s->clear();
@@ -132,7 +141,7 @@ void SendCoinsEntry::clear()
 
 void SendCoinsEntry::deleteClicked()
 {
-    emit removeEntry(this);
+    Q_EMIT removeEntry(this);
 }
 
 bool SendCoinsEntry::validate()
@@ -185,6 +194,7 @@ SendCoinsRecipient SendCoinsEntry::getValue()
     recipient.label = ui->addAsLabel->text();
     recipient.amount = ui->payAmount->value();
     recipient.message = ui->messageTextLabel->text();
+    recipient.fSubtractFeeFromAmount = (ui->checkboxSubtractFeeFromAmount->checkState() == Qt::Checked);
     recipient.comment = this->comment;
     recipient.commentto = this->commentto;
 
@@ -196,7 +206,8 @@ QWidget *SendCoinsEntry::setupTabChain(QWidget *prev)
     QWidget::setTabOrder(prev, ui->payTo);
     QWidget::setTabOrder(ui->payTo, ui->addAsLabel);
     QWidget *w = ui->payAmount->setupTabChain(ui->addAsLabel);
-    QWidget::setTabOrder(w, ui->addressBookButton);
+    QWidget::setTabOrder(w, ui->checkboxSubtractFeeFromAmount);
+    QWidget::setTabOrder(ui->checkboxSubtractFeeFromAmount, ui->addressBookButton);
     QWidget::setTabOrder(ui->addressBookButton, ui->pasteButton);
     QWidget::setTabOrder(ui->pasteButton, ui->deleteButton);
     return ui->deleteButton;
@@ -208,21 +219,21 @@ void SendCoinsEntry::setValue(const SendCoinsRecipient &value)
 
     if (recipient.paymentRequest.IsInitialized()) // payment request
     {
-        if (recipient.authenticatedMerchant.isEmpty()) // insecure
+        if (recipient.authenticatedMerchant.isEmpty()) // unauthenticated
         {
             ui->payTo_is->setText(recipient.address);
             ui->memoTextLabel_is->setText(recipient.message);
             ui->payAmount_is->setValue(recipient.amount);
             ui->payAmount_is->setReadOnly(true);
-            setCurrentWidget(ui->SendCoins_InsecurePaymentRequest);
+            setCurrentWidget(ui->SendCoins_UnauthenticatedPaymentRequest);
         }
-        else // secure
+        else // authenticated
         {
             ui->payTo_s->setText(recipient.authenticatedMerchant);
             ui->memoTextLabel_s->setText(recipient.message);
             ui->payAmount_s->setValue(recipient.amount);
             ui->payAmount_s->setReadOnly(true);
-            setCurrentWidget(ui->SendCoins_SecurePaymentRequest);
+            setCurrentWidget(ui->SendCoins_AuthenticatedPaymentRequest);
         }
     }
     else // normal payment
@@ -234,7 +245,7 @@ void SendCoinsEntry::setValue(const SendCoinsRecipient &value)
 
         ui->addAsLabel->clear();
         ui->payTo->setText(recipient.address); // this may set a label from addressbook
-        if (!recipient.label.isEmpty()) // if a label had been set from the addressbook, dont overwrite with an empty label
+        if (!recipient.label.isEmpty()) // if a label had been set from the addressbook, don't overwrite with an empty label
             ui->addAsLabel->setText(recipient.label);
         ui->payAmount->setValue(recipient.amount);
     }
@@ -346,7 +357,7 @@ void SendCoinsEntry::on_requestPaymentButton_clicked()
     // loop over exchanges to populate combobox
     multimap<double, pair<Exch *, bool> > mapExch;   // double: emc per 1 btc
     bool validExist = false;
-    foreach (Exch* exch, eBox.m_v_exch)
+    for (Exch* exch : eBox.m_v_exch)
     {
         string err(exch->MarketInfo(ui->payTypeExch->text().toStdString()));
         if (!err.empty())
@@ -366,7 +377,7 @@ void SendCoinsEntry::on_requestPaymentButton_clicked()
         ui->exchComboBox->addItem(tr("No exchange can make your request: try different currency/amount/address."));
 
     // http://stackoverflow.com/a/21740341/1199550
-    foreach (const PAIRTYPE(double, PAIRTYPE(Exch *, bool)) &p, mapExch)
+    for (const auto& p : mapExch)
     {
         QString qsEntry;
         bool valid = p.second.second;
@@ -467,7 +478,7 @@ void SendCoinsEntry::on_exchComboBox_currentIndexChanged(int index)
         this->commentto = exch->Name();
         ui->infoExchLabel->setText(tr("Payment id: %1, Time to complete: %2 minutes").arg(QString::fromStdString(exch->m_txKey), QString::number(ttl/60)));
         if (msgBox.clickedButton() == pButtonSend)
-            emit sendNow();
+            Q_EMIT sendNow();
     }
     else if (msgBox.clickedButton() == pButtonCancel)
     {

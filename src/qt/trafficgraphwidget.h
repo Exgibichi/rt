@@ -1,6 +1,6 @@
-// Copyright (c) 2011-2013 The Bitcoin developers
-// Distributed under the GPL3 software license, see the accompanying
-// file COPYING or http://www.gnu.org/licenses/gpl.html.
+// Copyright (c) 2011-2015 The Bitcoin Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_QT_TRAFFICGRAPHWIDGET_H
 #define BITCOIN_QT_TRAFFICGRAPHWIDGET_H
@@ -27,7 +27,7 @@ public:
 protected:
     void paintEvent(QPaintEvent *);
 
-public slots:
+public Q_SLOTS:
     void updateRates();
     void setGraphRangeMins(int mins);
     void clear();

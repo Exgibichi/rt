@@ -1,6 +1,6 @@
-// Copyright (c) 2011-2013 The Bitcoin developers
-// Distributed under the GPL3 software license, see the accompanying
-// file COPYING or http://www.gnu.org/licenses/gpl.html.
+// Copyright (c) 2011-2015 The Bitcoin Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_QT_SENDCOINSENTRY_H
 #define BITCOIN_QT_SENDCOINSENTRY_H
@@ -11,6 +11,7 @@
 #include <QStackedWidget>
 
 class WalletModel;
+class PlatformStyle;
 
 namespace Ui {
     class SendCoinsEntry;
@@ -29,7 +30,7 @@ public:
     string comment;
     string commentto;
 
-    explicit SendCoinsEntry(QWidget *parent = 0);
+    explicit SendCoinsEntry(const PlatformStyle *platformStyle, QWidget *parent = 0);
     ~SendCoinsEntry();
 
     void setModel(WalletModel *model);
@@ -49,35 +50,35 @@ public:
 
     void setFocus();
 
-public slots:
+public Q_SLOTS:
     void clear();
 
-signals:
+Q_SIGNALS:
     void removeEntry(SendCoinsEntry *entry);
     void payAmountChanged();
+    void subtractFeeFromAmountChanged();
     void sendNow();
 
-private slots:
+private Q_SLOTS:
     void deleteClicked();
     void on_payTo_textChanged(const QString &address);
     void on_addressBookButton_clicked();
     void on_pasteButton_clicked();
     void updateDisplayUnit();
+    // emercoin GUI slots
     void on_payTo_editingFinished();
     void on_checkBoxExch_toggled(bool checked);
     void on_requestPaymentButton_clicked();
-
     void on_payAmountExch_editingFinished();
-
     void on_exchComboBox_currentIndexChanged(int index);
 
 private:
     SendCoinsRecipient recipient;
     Ui::SendCoinsEntry *ui;
     WalletModel *model;
+    const PlatformStyle *platformStyle;
     ExchBox eBox;
     QString qsExchInfo;
-
 
     bool updateLabel(const QString &address);
 };

@@ -1,7 +1,7 @@
-//#include <string>
-//#include <vector>
+#include <string>
+#include <vector>
 
-#include "rpcprotocol.h"
+class UniValue;
 
 using namespace std;
 

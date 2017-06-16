@@ -11,8 +11,6 @@ class WalletModel;
 class NameTableModel;
 
 QT_BEGIN_NAMESPACE
-class QTableView;
-class QItemSelection;
 class QMenu;
 class QModelIndex;
 QT_END_NAMESPACE
@@ -56,14 +54,14 @@ private:
     NameFilterProxyModel *proxyModel;
     QMenu *contextMenu;
 
-public slots:
+public Q_SLOTS:
     void exportClicked();
 
     void changedNameFilter(const QString &filter);
     void changedValueFilter(const QString &filter);
     void changedAddressFilter(const QString &filter);
 
-private slots:
+private Q_SLOTS:
     void on_submitNameButton_clicked();
 
     bool eventFilter(QObject *object, QEvent *event);
@@ -85,7 +83,7 @@ private slots:
     void on_importValueButton_clicked();
     void on_registerValue_textChanged();
 
-signals:
+Q_SIGNALS:
     void doubleClicked(const QModelIndex&);
 };
 

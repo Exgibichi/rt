@@ -1,6 +1,9 @@
-#include <exch.h>
-#include "clientversion.h"
+#include "exch.h"
+#include "univalue.h"
 #include "util.h"
+
+#include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 
 using namespace std;
 using namespace boost;
@@ -53,83 +56,84 @@ double Exch::EstimatedEMC(double pay_amount) const {
 // Connect to the server by https, fetch JSON and parse to UniValue
 // Throws exception if error
 UniValue Exch::httpsFetch(const char *get, const UniValue *post) {
-  // Connect to exchange
-  asio::io_service io_service;
-  ssl::context context(io_service, ssl::context::sslv23);
-  context.set_options(ssl::context::no_sslv2 | ssl::context::no_sslv3);
-  asio::ssl::stream<asio::ip::tcp::socket> sslStream(io_service, context);
-  SSL_set_tlsext_host_name(sslStream.native_handle(), Host().c_str());
-  SSLIOStreamDevice<asio::ip::tcp> d(sslStream, true); // use SSL
-  iostreams::stream< SSLIOStreamDevice<asio::ip::tcp> > stream(d);
 
-  if(!d.connect(Host(), "443"))
-    throw runtime_error("Couldn't connect to server");
+//emc uncomment and fix this
+//  // Connect to exchange
+//  asio::io_service io_service;
+//  ssl::context context(io_service, ssl::context::sslv23);
+//  context.set_options(ssl::context::no_sslv2 | ssl::context::no_sslv3);
+//  asio::ssl::stream<asio::ip::tcp::socket> sslStream(io_service, context);
+//  SSL_set_tlsext_host_name(sslStream.native_handle(), Host().c_str());
+//  SSLIOStreamDevice<asio::ip::tcp> d(sslStream, true); // use SSL
+//  iostreams::stream< SSLIOStreamDevice<asio::ip::tcp> > stream(d);
 
-  string postBody;
-  const char *reqType = "GET ";
+//  if(!d.connect(Host(), "443"))
+//    throw runtime_error("Couldn't connect to server");
 
-  if(post != NULL) {
-    // This is POST request - prepare postBody
-    reqType = "POST ";
-    postBody = post->write(0, 0, 0) + '\n';
-  } 
+//  string postBody;
+//  const char *reqType = "GET ";
 
-  LogPrint("exch", "DBG: Exch::httpsFetch: Req: method=[%s] path=[%s] H=[%s]\n", reqType, get, Host().c_str());
+//  if(post != NULL) {
+//    // This is POST request - prepare postBody
+//    reqType = "POST ";
+//    postBody = post->write(0, 0, 0) + '\n';
+//  }
 
-  // Send request
-  stream << reqType << (get? get : "/") << " HTTP/1.1\r\n"
-         << "Host: " << Host() << "\r\n"
-         << "User-Agent: emercoin-json-rpc/" << FormatFullVersion() << "\r\n";
+//  LogPrint("exch", "DBG: Exch::httpsFetch: Req: method=[%s] path=[%s] H=[%s]\n", reqType, get, Host().c_str());
 
-  if(postBody.size()) {
-    stream << "Content-Type: application/json\r\n"
-           << "Content-Length: " << postBody.size() << "\r\n";
-  }
+//  // Send request
+//  stream << reqType << (get? get : "/") << " HTTP/1.1\r\n"
+//         << "Host: " << Host() << "\r\n"
+//         << "User-Agent: emercoin-json-rpc/" << FormatFullVersion() << "\r\n";
 
-  stream << "Connection: close\r\n"
-         << "Accept: application/json\r\n\r\n" 
-	 << postBody << std::flush;
+//  if(postBody.size()) {
+//    stream << "Content-Type: application/json\r\n"
+//           << "Content-Length: " << postBody.size() << "\r\n";
+//  }
 
-  // Receive HTTP reply status
-  int nProto = 0;
-  int nStatus = ReadHTTPStatus(stream, nProto);
+//  stream << "Connection: close\r\n"
+//         << "Accept: application/json\r\n\r\n"
+//	 << postBody << std::flush;
 
-  if(nStatus >= 400)
-    throw runtime_error(strprintf("Server returned HTTP error %d", nStatus));
+//  // Receive HTTP reply status
+//  int nProto = 0;
+//  int nStatus = ReadHTTPStatus(stream, nProto);
 
-  // Receive HTTP reply message headers and body
-  map<string, string> mapHeaders;
-  string strReply;
-  ReadHTTPMessage(stream, mapHeaders, strReply, nProto, 4 * 1024);
+//  if(nStatus >= 400)
+//    throw runtime_error(strprintf("Server returned HTTP error %d", nStatus));
 
-  LogPrint("exch", "DBG: Exch::httpsFetch: Server returned HTTP: %d\n", nStatus);
+//  // Receive HTTP reply message headers and body
+//  map<string, string> mapHeaders;
+//  string strReply;
+//  ReadHTTPMessage(stream, mapHeaders, strReply, nProto, 4 * 1024);
 
-  if(strReply.empty())
-    throw runtime_error("No response from server");
+//  LogPrint("exch", "DBG: Exch::httpsFetch: Server returned HTTP: %d\n", nStatus);
 
-  LogPrint("exch", "DBG: Exch::httpsFetch: Reply from server: [%s]\n", strReply.c_str());
+//  if(strReply.empty())
+//    throw runtime_error("No response from server");
 
-  size_t json_beg = strReply.find('{');
-  size_t json_end = strReply.rfind('}');
-  if(json_beg == string::npos || json_end == string::npos)
-    throw runtime_error("Reply is not JSON");
+//  LogPrint("exch", "DBG: Exch::httpsFetch: Reply from server: [%s]\n", strReply.c_str());
 
-   // Parse reply
-  UniValue valReply(UniValue::VSTR);
+//  size_t json_beg = strReply.find('{');
+//  size_t json_end = strReply.rfind('}');
+//  if(json_beg == string::npos || json_end == string::npos)
+//    throw runtime_error("Reply is not JSON");
 
-  if(!valReply.read(strReply.substr(json_beg, json_end - json_beg + 1), 0))
-    throw runtime_error("Couldn't parse reply from server");
+//   // Parse reply
+//  UniValue valReply(UniValue::VSTR);
 
-  const UniValue& reply = valReply.get_obj();
+//  if(!valReply.read(strReply.substr(json_beg, json_end - json_beg + 1), 0))
+//    throw runtime_error("Couldn't parse reply from server");
 
-  if(reply.empty())
-    throw runtime_error("Empty JSON reply");
+//  const UniValue& reply = valReply.get_obj();
 
-  // Check for error message in the reply
-  CheckERR(reply);
+//  if(reply.empty())
+//    throw runtime_error("Empty JSON reply");
 
-  return reply;
+//  // Check for error message in the reply
+//  CheckERR(reply);
 
+//  return reply;
 } // UniValue Exch::httpsFetch
 
 //-----------------------------------------------------

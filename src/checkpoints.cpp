@@ -1,16 +1,17 @@
-// Copyright (c) 2009-2014 The Bitcoin developers
-// Distributed under the GPL3 software license, see the accompanying
-// file COPYING or http://www.gnu.org/licenses/gpl.html.
+// Copyright (c) 2009-2016 The Bitcoin Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "checkpoints.h"
 
+#include "chain.h"
 #include "chainparams.h"
-#include "key.h"
-#include "main.h"
-#include "pubkey.h"
-#include "timedata.h"
 #include "txdb.h"
+#include "validation.h"
 #include "uint256.h"
+#include "util.h"
+#include "netmessagemaker.h"
+#include "key.h"
 
 #include <stdint.h>
 
@@ -22,77 +23,9 @@ std::string strMasterPubKey = "";
 
 namespace Checkpoints {
 
-    /**
-     * How many times we expect transactions after the last checkpoint to
-     * be slower. This number is a compromise, as it can't be accurate for
-     * every system. When reindexing from a fast disk with a slow CPU, it
-     * can be up to 20, while when downloading from a slow network with a
-     * fast multicore CPU, it won't be much higher than 1.
-     */
-    static const double SIGCHECK_VERIFICATION_FACTOR = 5.0;
-
-    bool fEnabled = true;
-
-    bool CheckBlock(int nHeight, const uint256& hash)
+    CBlockIndex* GetLastCheckpoint(const CCheckpointData& data)
     {
-        if (!fEnabled)
-            return true;
-
-        const MapCheckpoints& checkpoints = *Params().Checkpoints().mapCheckpoints;
-
-        MapCheckpoints::const_iterator i = checkpoints.find(nHeight);
-        if (i == checkpoints.end()) return true;
-        return hash == i->second;
-    }
-
-    //! Guess how far we are in the verification process at the given block index
-    double GuessVerificationProgress(CBlockIndex *pindex, bool fSigchecks) {
-        if (pindex==NULL)
-            return 0.0;
-
-        int64_t nNow = time(NULL);
-
-        double fSigcheckVerificationFactor = fSigchecks ? SIGCHECK_VERIFICATION_FACTOR : 1.0;
-        double fWorkBefore = 0.0; // Amount of work done before pindex
-        double fWorkAfter = 0.0;  // Amount of work left after pindex (estimated)
-        // Work is defined as: 1.0 per transaction before the last checkpoint, and
-        // fSigcheckVerificationFactor per transaction after.
-
-        const CCheckpointData &data = Params().Checkpoints();
-
-        if (pindex->nChainTx <= data.nTransactionsLastCheckpoint) {
-            double nCheapBefore = pindex->nChainTx;
-            double nCheapAfter = data.nTransactionsLastCheckpoint - pindex->nChainTx;
-            double nExpensiveAfter = (nNow - data.nTimeLastCheckpoint)/86400.0*data.fTransactionsPerDay;
-            fWorkBefore = nCheapBefore;
-            fWorkAfter = nCheapAfter + nExpensiveAfter*fSigcheckVerificationFactor;
-        } else {
-            double nCheapBefore = data.nTransactionsLastCheckpoint;
-            double nExpensiveBefore = pindex->nChainTx - data.nTransactionsLastCheckpoint;
-            double nExpensiveAfter = (nNow - pindex->GetBlockTime())/86400.0*data.fTransactionsPerDay;
-            fWorkBefore = nCheapBefore + nExpensiveBefore*fSigcheckVerificationFactor;
-            fWorkAfter = nExpensiveAfter*fSigcheckVerificationFactor;
-        }
-
-        return fWorkBefore / (fWorkBefore + fWorkAfter);
-    }
-
-    int GetTotalBlocksEstimate()
-    {
-        if (!fEnabled)
-            return 0;
-
-        const MapCheckpoints& checkpoints = *Params().Checkpoints().mapCheckpoints;
-
-        return checkpoints.rbegin()->first;
-    }
-
-    CBlockIndex* GetLastCheckpoint()
-    {
-        if (!fEnabled)
-            return NULL;
-
-        const MapCheckpoints& checkpoints = *Params().Checkpoints().mapCheckpoints;
+        const MapCheckpoints& checkpoints = data.mapCheckpoints;
 
         BOOST_REVERSE_FOREACH(const MapCheckpoints::value_type& i, checkpoints)
         {
@@ -104,12 +37,6 @@ namespace Checkpoints {
         return NULL;
     }
 
-    uint256 GetLatestHardenedCheckpoint()
-    {
-        const MapCheckpoints& checkpoints = *Params().Checkpoints().mapCheckpoints;
-        return (checkpoints.rbegin()->second);
-    }
-
 } // namespace Checkpoints
 
 
@@ -117,11 +44,11 @@ namespace Checkpoints {
 namespace CheckpointsSync {
 
 // ppcoin: synchronized checkpoint (centrally broadcasted)
-uint256 hashSyncCheckpoint = 0;
-uint256 hashPendingCheckpoint = 0;
+uint256 hashSyncCheckpoint = uint256();
+uint256 hashPendingCheckpoint = uint256();
 CSyncCheckpoint checkpointMessage;
 CSyncCheckpoint checkpointMessagePending;
-uint256 hashInvalidCheckpoint = 0;
+uint256 hashInvalidCheckpoint = uint256();
 
 // ppcoin: only descendant of current sync-checkpoint is allowed
 bool ValidateSyncCheckpoint(uint256 hashCheckpoint)
@@ -178,13 +105,13 @@ bool AcceptPendingSyncCheckpoint()
     if (strMasterPubKey == "") return false;  // no public key == no checkpoints
 
     LOCK(cs_main);
-    bool havePendingCheckpoint = hashPendingCheckpoint != 0 && mapBlockIndex.count(hashPendingCheckpoint);
+    bool havePendingCheckpoint = hashPendingCheckpoint != uint256() && mapBlockIndex.count(hashPendingCheckpoint);
     if (!havePendingCheckpoint)
         return false;
 
     if (!ValidateSyncCheckpoint(hashPendingCheckpoint))
     {
-        hashPendingCheckpoint = 0;
+        hashPendingCheckpoint = uint256();
         checkpointMessagePending.SetNull();
         return false;
     }
@@ -198,16 +125,15 @@ bool AcceptPendingSyncCheckpoint()
 
     if (!WriteSyncCheckpoint(hashPendingCheckpoint))
         return error("AcceptPendingSyncCheckpoint(): failed to write sync checkpoint %s", hashPendingCheckpoint.ToString());
-    hashPendingCheckpoint = 0;
+    hashPendingCheckpoint = uint256();
     checkpointMessage = checkpointMessagePending;
     checkpointMessagePending.SetNull();
     LogPrintf("AcceptPendingSyncCheckpoint : sync-checkpoint at %s\n", hashSyncCheckpoint.ToString());
     // relay the checkpoint
     if (!checkpointMessage.IsNull())
-    {
-        BOOST_FOREACH(CNode* pnode, vNodes)
+        g_connman->ForEachNode([](CNode* pnode) {
             checkpointMessage.RelayTo(pnode);
-    }
+        });
     return true;
 }
 
@@ -241,7 +167,7 @@ uint256 AutoSelectSyncCheckpoint()
     // Preserve analyze current printer node from public block hash
     uint256 hx = Hash(CSyncCheckpoint::strMasterPrivKey.begin(), CSyncCheckpoint::strMasterPrivKey.end(), h.GetDataPtr(), h.GetDataPtr() + 256 / 32);
 
-    return (hx.GetDataPtr()[0] % s_slots == s_node_no) ? rc->GetBlockHash() : 0;
+    return (hx.GetDataPtr()[0] % s_slots == s_node_no) ? rc->GetBlockHash() : uint256();
 #if 0
     // Proof-of-work blocks are immediately checkpointed
     // to defend against 51% attack which rejects other miners block
@@ -297,8 +223,8 @@ bool CheckSync(const CBlockIndex* pindexNew)
 bool ResetSyncCheckpoint()
 {
     LOCK(cs_main);
-    if (!WriteSyncCheckpoint(Params().HashGenesisBlock()))
-        return error("ResetSyncCheckpoint: failed to write sync checkpoint %s", Params().HashGenesisBlock().ToString());
+    if (!WriteSyncCheckpoint(Params().GetConsensus().hashGenesisBlock))
+        return error("ResetSyncCheckpoint: failed to write sync checkpoint %s", Params().GetConsensus().hashGenesisBlock.ToString());
     LogPrintf("ResetSyncCheckpoint: sync-checkpoint reset to %s\n", hashSyncCheckpoint.ToString());
     return true;
 }
@@ -307,7 +233,7 @@ bool SetCheckpointPrivKey(std::string strPrivKey)
 {
     // Test signing a sync-checkpoint with genesis block
     CSyncCheckpoint checkpoint;
-    checkpoint.hashCheckpoint = Params().HashGenesisBlock();
+    checkpoint.hashCheckpoint = Params().GetConsensus().hashGenesisBlock;
     CDataStream sMsg(SER_NETWORK, PROTOCOL_VERSION);
     sMsg << (CUnsignedSyncCheckpoint)checkpoint;
     checkpoint.vchMsg = std::vector<unsigned char>(sMsg.begin(), sMsg.end());
@@ -326,7 +252,10 @@ bool SetCheckpointPrivKey(std::string strPrivKey)
 
 bool SendSyncCheckpoint(uint256 hashCheckpoint)
 {
-    if (hashCheckpoint == 0)
+    if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0)
+        return true; // no one to send to
+
+    if (hashCheckpoint == uint256())
         return true; // don't send dummy checkpoint
 
     CSyncCheckpoint checkpoint;
@@ -350,11 +279,9 @@ bool SendSyncCheckpoint(uint256 hashCheckpoint)
     }
 
     // Relay checkpoint
-    {
-        LOCK(cs_vNodes);
-        BOOST_FOREACH(CNode* pnode, vNodes)
-            checkpoint.RelayTo(pnode);
-    }
+    g_connman->ForEachNode([&checkpoint](CNode* pnode) {
+        checkpoint.RelayTo(pnode);
+    });
     return true;
 }
 
@@ -425,7 +352,7 @@ bool CSyncCheckpoint::ProcessSyncCheckpoint()
     if (!CheckpointsSync::WriteSyncCheckpoint(hashCheckpoint))
         return error("ProcessSyncCheckpoint(): failed to write sync checkpoint %s", hashCheckpoint.ToString());
     CheckpointsSync::checkpointMessage = *this;
-    CheckpointsSync::hashPendingCheckpoint = 0;
+    CheckpointsSync::hashPendingCheckpoint = uint256();
     CheckpointsSync::checkpointMessagePending.SetNull();
     LogPrintf("ProcessSyncCheckpoint: sync-checkpoint at height=%d hash=%s\n", mapBlockIndex[hashCheckpoint]->nHeight, hashCheckpoint.ToString());
     return true;
@@ -456,7 +383,8 @@ bool CSyncCheckpoint::RelayTo(CNode *pnode) const
     if (pnode->hashCheckpointKnown != hashCheckpoint)
     {
         pnode->hashCheckpointKnown = hashCheckpoint;
-        pnode->PushMessage("checkpoint", *this);
+        //pnode->PushMessage("checkpoint", *this);
+        g_connman->PushMessage(pnode, CNetMsgMaker(pnode->GetSendVersion()).Make("checkpoint", *this));
         return true;
     }
     return false;

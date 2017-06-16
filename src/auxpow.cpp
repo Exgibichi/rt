@@ -2,45 +2,39 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file license.txt or http://www.opensource.org/licenses/mit-license.php.
 #include "auxpow.h"
+#include "base58.h"
+#include "consensus/merkle.h"
 #include "init.h"
 #include "primitives/block.h"
-#include "chainparams.h"
 #include "util.h"
-#include "base58.h"
+
 
 using namespace std;
 using namespace boost;
 
 unsigned char pchMergedMiningHeader[] = { 0xfa, 0xbe, 'm', 'm' } ;
 
-void RemoveMergedMiningHeader(vector<unsigned char>& vchAux)
-{
-    if (vchAux.begin() != std::search(vchAux.begin(), vchAux.end(), UBEGIN(pchMergedMiningHeader), UEND(pchMergedMiningHeader)))
-        throw runtime_error("merged mining aux too short");
-    vchAux.erase(vchAux.begin(), vchAux.begin() + sizeof(pchMergedMiningHeader));
-}
-
-bool CAuxPow::Check(uint256 hashAuxBlock, int nChainID)
+bool CAuxPow::Check(uint256 hashAuxBlock, int nChainID, const Consensus::Params& params)
 {
     if (nIndex != 0)
         return error("AuxPow is not a generate");
 
-    if (!Params().AllowMinDifficultyBlocks() && parentBlockHeader.GetChainID() == nChainID)
+    if (!params.fPowAllowMinDifficultyBlocks && parentBlockHeader.GetChainID() == nChainID)
         return error("Aux POW parent has our chain ID");
 
     if (vChainMerkleBranch.size() > 30)
         return error("Aux POW chain merkle branch too long");
 
     // Check that the chain merkle root is in the coinbase
-    uint256 nRootHash = CBlock::CheckMerkleBranch(hashAuxBlock, vChainMerkleBranch, nChainIndex);
+    uint256 nRootHash = ComputeMerkleRootFromBranch(hashAuxBlock, vChainMerkleBranch, nChainIndex);
     vector<unsigned char> vchRootHash(nRootHash.begin(), nRootHash.end());
     std::reverse(vchRootHash.begin(), vchRootHash.end()); // correct endian
 
     // Check that we are in the parent block merkle tree
-    if (CBlock::CheckMerkleBranch(GetBtcHash(), vMerkleBranch, nIndex) != parentBlockHeader.hashMerkleRoot)
+    if (ComputeMerkleRootFromBranch(tx->GetBtcHash(), vMerkleBranch, nIndex) != parentBlockHeader.hashMerkleRoot)
         return error("Aux POW merkle root incorrect");
 
-    const CScript script = vin[0].scriptSig;
+    const CScript script = tx->vin[0].scriptSig;
 
     // Check that the same work is not submitted twice to our chain.
     //

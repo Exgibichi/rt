@@ -4,19 +4,15 @@
 #ifndef BITCOIN_AUXPOW_H
 #define BITCOIN_AUXPOW_H
 
-#include "wallet.h"
+#include "consensus/params.h"
+#include "primitives/block.h"
+#include "wallet/wallet.h"
 
 
 class CAuxPow : public CMerkleTx
 {
 public:
-    CAuxPow(const CTransaction& txIn) : CMerkleTx(txIn)
-    {
-    }
-
-    CAuxPow() :CMerkleTx()
-    {
-    }
+    CAuxPow() : CMerkleTx() {}
 
     // Merkle branch with root vchAux
     // root must be present inside the coinbase
@@ -28,7 +24,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+    inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(*(CMerkleTx*)this);
         READWRITE(vChainMerkleBranch);
         READWRITE(nChainIndex);
@@ -37,7 +33,7 @@ public:
         READWRITE(parentBlockHeader);
     }
 
-    bool Check(uint256 hashAuxBlock, int nChainID);
+    bool Check(uint256 hashAuxBlock, int nChainID, const Consensus::Params &params);
 
     uint256 GetParentBlockHash()
     {
@@ -45,35 +41,25 @@ public:
     }
 };
 
-template<typename Stream> void SerReadWrite(Stream& s, boost::shared_ptr<CAuxPow>& pobj, int nType, int nVersion, CSerActionSerialize ser_action)
+template<typename Stream> void SerReadWrite(Stream& s, std::shared_ptr<CAuxPow>& pobj, CSerActionSerialize ser_action)
 {
-    if (nVersion & BLOCK_VERSION_AUXPOW) {
-        ::Serialize(s, *pobj, nType, nVersion);
-    }
+    ::Serialize(s, *pobj);
 }
 
-template<typename Stream> void SerReadWrite(Stream& s, boost::shared_ptr<CAuxPow>& pobj, int nType, int nVersion, CSerActionUnserialize ser_action)
+template<typename Stream> void SerReadWrite(Stream& s, std::shared_ptr<CAuxPow>& pobj, CSerActionUnserialize ser_action)
 {
-    if (nVersion & BLOCK_VERSION_AUXPOW) {
-        pobj.reset(new CAuxPow());
-        ::Unserialize(s, *pobj, nType, nVersion);
-    } else
-        pobj.reset();
+    pobj.reset(new CAuxPow());
+    ::Unserialize(s, *pobj);
 }
 
+template void SerReadWrite<CAutoFile>(CAutoFile& s, std::shared_ptr<CAuxPow>& pobj, CSerActionSerialize ser_action);
+template void SerReadWrite<CVectorWriter>(CVectorWriter& s, std::shared_ptr<CAuxPow>& pobj, CSerActionSerialize ser_action);
+template void SerReadWrite<CHashWriter>(CHashWriter& s, std::shared_ptr<CAuxPow>& pobj, CSerActionSerialize ser_action);
+template void SerReadWrite<CDataStream>(CDataStream& s, std::shared_ptr<CAuxPow>& pobj, CSerActionSerialize ser_action);
+template void SerReadWrite<CSizeComputer>(CSizeComputer& s, std::shared_ptr<CAuxPow>& pobj, CSerActionSerialize ser_action);
 
-class CSizeComputer;
-class CDataStream;
-class CAutoFile;
-
-template void SerReadWrite<CSizeComputer>(CSizeComputer& s, boost::shared_ptr<CAuxPow>& pobj, int nType, int nVersion, CSerActionSerialize ser_action);
-template void SerReadWrite<CDataStream>(CDataStream& s, boost::shared_ptr<CAuxPow>& pobj, int nType, int nVersion, CSerActionSerialize ser_action);
-template void SerReadWrite<CAutoFile>(CAutoFile& s, boost::shared_ptr<CAuxPow>& pobj, int nType, int nVersion, CSerActionSerialize ser_action);
-
-//template void SerReadWrite<CSizeComputer>(CSizeComputer& s, boost::shared_ptr<CAuxPow>& pobj, int nType, int nVersion, CSerActionUnserialize ser_action);
-template void SerReadWrite<CDataStream>(CDataStream& s, boost::shared_ptr<CAuxPow>& pobj, int nType, int nVersion, CSerActionUnserialize ser_action);
-template void SerReadWrite<CAutoFile>(CAutoFile& s, boost::shared_ptr<CAuxPow>& pobj, int nType, int nVersion, CSerActionUnserialize ser_action);
-
-extern void RemoveMergedMiningHeader(std::vector<unsigned char>& vchAux);
+template void SerReadWrite<CAutoFile>(CAutoFile& s, std::shared_ptr<CAuxPow>& pobj, CSerActionUnserialize ser_action);
+template void SerReadWrite<CBufferedFile>(CBufferedFile& s, std::shared_ptr<CAuxPow>& pobj, CSerActionUnserialize ser_action);
+template void SerReadWrite<CDataStream>(CDataStream& s, std::shared_ptr<CAuxPow>& pobj, CSerActionUnserialize ser_action);
 
 #endif

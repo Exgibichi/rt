@@ -3,7 +3,7 @@
 <plist version="0.9">
 <dict>
   <key>LSMinimumSystemVersion</key>
-  <string>10.6.0</string>
+  <string>10.8.0</string>
 
   <key>LSArchitecturePriority</key>
   <array>
@@ -17,19 +17,25 @@
   <string>APPL</string>
 
   <key>CFBundleGetInfoString</key>
-  <string>@CLIENT_VERSION_MAJOR@.@CLIENT_VERSION_MINOR@.@CLIENT_VERSION_REVISION@, Copyright © 2013-@COPYRIGHT_YEAR@ The Emercoin Core developers</string>
+  <string>@EMERCOIN_VERSION_MAJOR@.@EMERCOIN_VERSION_MINOR@.@EMERCOIN_VERSION_REVISION@, Copyright © 2009-@COPYRIGHT_YEAR@ @COPYRIGHT_HOLDERS_FINAL@</string>
 
   <key>CFBundleShortVersionString</key>
-  <string>@CLIENT_VERSION_MAJOR@.@CLIENT_VERSION_MINOR@.@CLIENT_VERSION_REVISION@</string>
+  <string>@EMERCOIN_VERSION_MAJOR@.@EMERCOIN_VERSION_MINOR@.@EMERCOIN_VERSION_REVISION@</string>
 
   <key>CFBundleVersion</key>
-  <string>@CLIENT_VERSION_MAJOR@.@CLIENT_VERSION_MINOR@.@CLIENT_VERSION_REVISION@</string>
+  <string>@EMERCOIN_VERSION_MAJOR@.@EMERCOIN_VERSION_MINOR@.@EMERCOIN_VERSION_REVISION@</string>
 
   <key>CFBundleSignature</key>
   <string>????</string>
 
   <key>CFBundleExecutable</key>
   <string>Emercoin-Qt</string>
+  
+  <key>CFBundleName</key>
+  <string>Emercoin-Qt</string>
+
+  <key>LSHasLocalizedDisplayName</key>
+  <true/>
 
   <key>CFBundleIdentifier</key>
   <string>com.emercoin.Emercoin-Qt</string>

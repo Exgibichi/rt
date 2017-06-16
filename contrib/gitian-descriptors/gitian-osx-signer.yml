@@ -5,13 +5,12 @@ suites:
 architectures:
 - "amd64"
 packages:
-- "libc6:i386"
 - "faketime"
-reference_datetime: "2016-01-01 00:00:00"
-remotes: []
+remotes:
+- "url": "https://github.com/bitcoin-core/bitcoin-detached-sigs.git"
+  "dir": "signature"
 files:
-- "emercoin-osx-unsigned.tar.gz"
-- "signature.tar.gz"
+- "bitcoin-osx-unsigned.tar.gz"
 script: |
   WRAP_DIR=$HOME/wrapped
   mkdir -p ${WRAP_DIR}
@@ -28,10 +27,11 @@ script: |
     chmod +x ${WRAP_DIR}/${prog}
   done
 
-  UNSIGNED=emercoin-osx-unsigned.tar.gz
-  SIGNED=emercoin-osx-signed.dmg
+  UNSIGNED=bitcoin-osx-unsigned.tar.gz
+  SIGNED=bitcoin-osx-signed.dmg
 
   tar -xf ${UNSIGNED}
-  ./detached-sig-apply.sh ${UNSIGNED} signature.tar.gz
-  ${WRAP_DIR}/genisoimage -no-cache-inodes -D -l -probe -V "Emercoin-Qt" -no-pad -r -apple -o uncompressed.dmg signed-app
+  OSX_VOLNAME="$(cat osx_volname)"
+  ./detached-sig-apply.sh ${UNSIGNED} signature/osx
+  ${WRAP_DIR}/genisoimage -no-cache-inodes -D -l -probe -V "${OSX_VOLNAME}" -no-pad -r -dir-mode 0755 -apple -o uncompressed.dmg signed-app
   ${WRAP_DIR}/dmg dmg uncompressed.dmg ${OUTDIR}/${SIGNED}

@@ -9,7 +9,6 @@ class CWallet;
 class WalletModel;
 
 #include <vector>
-#include "uint256.h"
 
 /**
    Qt model for "Manage Names" page.
@@ -53,7 +52,7 @@ private:
     /** Notify listeners that data changed. */
     void emitDataChanged(int index);
 
-public slots:
+public Q_SLOTS:
     void updateEntry(const QString &name, const QString &value, const QString &address, int nHeight, int status, int *outNewRowIndex = NULL);
     void update(bool forced = false);
 

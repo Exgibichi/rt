@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2013 The Bitcoin developers
+// Copyright (c) 2011-2015 The Bitcoin Core developers
 // Distributed under the GPL3 software license, see the accompanying
 // file COPYING or http://www.gnu.org/licenses/gpl.html.
 
@@ -40,7 +40,7 @@ public:
     QString getAddress() const;
     void setAddress(const QString &address);
 
-public slots:
+public Q_SLOTS:
     void accept();
 
 private:

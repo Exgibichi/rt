@@ -1,11 +1,14 @@
 #ifndef NAMECOIN_H
 #define NAMECOIN_H
 
-#include "db.h"
-#include "base58.h"
 #include "hooks.h"
-#include "main.h"
-#include "rpcprotocol.h"
+#include "rpc/protocol.h"
+#include "wallet/db.h"
+#include "txdb.h"
+#include "script/interpreter.h"
+
+class CBitcoinAddress;
+class CKeyStore;
 
 static const unsigned int NAMEINDEX_CHAIN_SIZE = 1000;
 static const int RELEASE_HEIGHT = 1<<16;
@@ -26,7 +29,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+    inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(txPos);
         READWRITE(nHeight);
         READWRITE(op);
@@ -53,7 +56,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+    inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(vtxPos);
         READWRITE(nExpiresAt);
         READWRITE(nLastActiveChainIndex);
@@ -95,7 +98,7 @@ public:
 
 extern std::map<CNameVal, std::set<uint256> > mapNamePending;
 
-int IndexOfNameOutput(const CTransaction& tx);
+int IndexOfNameOutput(const CTransactionRef &tx);
 bool GetNameCurrentAddress(const CNameVal& name, CBitcoinAddress& address, std::string& error);
 std::string stringFromNameVal(const CNameVal& nameVal);
 CNameVal nameValFromString(const std::string& str);
@@ -103,7 +106,7 @@ std::string stringFromOp(int op);
 
 CAmount GetNameOpFee(const CBlockIndex* pindexBlock, const int nRentalDays, int op, const CNameVal& name, const CNameVal& value);
 
-bool DecodeNameTx(const CTransaction& tx, NameTxInfo& nti, bool checkAddressAndIfIsMine = false);
+bool DecodeNameTx(const CTransactionRef& tx, NameTxInfo& nti, bool checkAddressAndIfIsMine = false);
 void GetNameList(const CNameVal& nameUniq, std::map<CNameVal, NameTxInfo> &mapNames, std::map<CNameVal, NameTxInfo> &mapPending);
 bool GetNameValue(const CNameVal& name, CNameVal& value);
 bool SignNameSignature(const CKeyStore& keystore, const CTransaction& txFrom, CMutableTransaction& txTo, unsigned int nIn, int nHashType=SIGHASH_ALL);

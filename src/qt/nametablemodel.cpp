@@ -1,10 +1,11 @@
 #include "nametablemodel.h"
 
+#include "validation.h"
+#include "namecoin.h"
 #include "guiutil.h"
 #include "walletmodel.h"
-#include "guiconstants.h"
-#include "../wallet.h"
-#include "../namecoin.h"
+#include "ui_interface.h"
+
 
 #include <vector>
 
@@ -255,7 +256,7 @@ QVariant NameTableModel::data(const QModelIndex &index, int role) const
     case Qt::FontRole: {
         QFont font;
         if (index.column() == Address)
-            font = GUIUtil::bitcoinAddressFont();
+            font = GUIUtil::fixedPitchFont();
         return font;
     }
     case Qt::BackgroundRole:
@@ -329,5 +330,5 @@ void NameTableModel::updateEntry(const QString &name, const QString &value, cons
 
 void NameTableModel::emitDataChanged(int idx)
 {
-    emit dataChanged(index(idx, 0), index(idx, columns.length()-1));
+    Q_EMIT dataChanged(index(idx, 0), index(idx, columns.length()-1));
 }

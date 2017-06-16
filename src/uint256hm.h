@@ -123,7 +123,7 @@ private:
 
   // Return pointer to the found cell, or to an empty cell
   Data *Lookup(const uint256 &key) const {
-      const uint32_t *p = ((base_uint<256>*)&key)->GetDataPtr();
+      const uint32_t *p = ((base_blob<256>*)&key)->GetDataPtr();
       // Lowest part left; if changed, need modify indexes
       uint32_t pos  = p[0];
       uint32_t step = (p[1] ^ (p[2] + m_randseed)) | 1; // odd step
@@ -131,7 +131,7 @@ private:
       do {
 	pos = (pos + step) & m_mask;
 	rc = m_data + pos;
-      } while((pos >= 0x7ffffffe) || (rc->next != -1 && memcmp(p, ((base_uint<256>*)&(rc->key))->GetDataPtr(), 256 / 8)));
+      } while((pos >= 0x7ffffffe) || (rc->next != -1 && memcmp(p, ((base_blob<256>*)&(rc->key))->GetDataPtr(), 256 / 8)));
       return rc;
   } // Lookup
 

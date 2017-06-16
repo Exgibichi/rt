@@ -1,12 +1,13 @@
-// Copyright (c) 2011-2014 The Bitcoin developers
-// Distributed under the GPL3 software license, see the accompanying
-// file COPYING or http://www.gnu.org/licenses/gpl.html.
+// Copyright (c) 2011-2016 The Bitcoin Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_QT_SPLASHSCREEN_H
 #define BITCOIN_QT_SPLASHSCREEN_H
 
 #include <QSplashScreen>
 
+class CWallet;
 class NetworkStyle;
 
 /** Class for the splashscreen with information of the running client.
@@ -27,7 +28,7 @@ protected:
     void paintEvent(QPaintEvent *event);
     void closeEvent(QCloseEvent *event);
 
-public slots:
+public Q_SLOTS:
     /** Slot to call finish() method as it's not defined as slot */
     void slotFinish(QWidget *mainWin);
 
@@ -39,11 +40,15 @@ private:
     void subscribeToCoreSignals();
     /** Disconnect core signals to splash screen */
     void unsubscribeFromCoreSignals();
+    /** Connect wallet signals to splash screen */
+    void ConnectWallet(CWallet*);
 
     QPixmap pixmap;
     QString curMessage;
     QColor curColor;
     int curAlignment;
+
+    QList<CWallet*> connectedWallets;
 };
 
 #endif // BITCOIN_QT_SPLASHSCREEN_H

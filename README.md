@@ -6,7 +6,7 @@ http://emercoin.com/
 What is Emercoin?
 ----------------
 
-Emercoin is an experimental new digital currency that enables instant payments to
+Emercoin is an experimental digital currency that enables instant payments to
 anyone, anywhere in the world and enables of storing information as key/value pairs
 in blockchain. Emercoin uses peer-to-peer technology to operate
 with no central authority: managing transactions and issuing money are carried
@@ -23,7 +23,7 @@ License
 Emercoin Core is released under the terms of the GPL3 license. See [COPYING](COPYING) for more
 information or see http://www.gnu.org/licenses/gpl.html.
 
-Development process
+Development Process
 -------------------
 
 Developers work in their own trees, then submit pull requests when they think
@@ -47,14 +47,16 @@ lots of money.
 
 ### Automated Testing
 
-Developers are strongly encouraged to write unit tests for new code, and to
-submit new unit tests for old code. Unit tests can be compiled and run (assuming they weren't disabled in configure) with: `make check`
+Developers are strongly encouraged to write [unit tests](src/test/README.md) for new code, and to
+submit new unit tests for old code. Unit tests can be compiled and run
+(assuming they weren't disabled in configure) with: `make check`. Further details on running
 
 ### Manual Quality Assurance (QA) Testing
 
-Large changes should have a test plan, and should be tested by somebody other
-than the developer who wrote the code.
-See https://github.com/bitcoin/QA/ for how to create a test plan.
+Changes should be tested by somebody other than the developer who wrote the
+code. This is especially important for large or high-risk changes. It is useful
+to add a test plan to the pull request description if testing the changes is
+not straightforward.
 
 Development tips and tricks
 ---------------------------

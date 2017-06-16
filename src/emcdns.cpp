@@ -38,7 +38,10 @@
 #include "namecoin.h"
 #include "util.h"
 #include "emcdns.h"
-#include "hooks.h"
+#include "random.h"
+#include "validation.h"
+#include "base58.h"
+#include "netbase.h"
 
 /*---------------------------------------------------*/
 
@@ -1057,14 +1060,14 @@ bool EmcDns::CheckEnumSig(const char *q_str, char *sig_str) {
       do {
         NameTxInfo nti;
         CNameRecord nameRec;
-        CTransaction tx;
+        CTransactionRef tx;
         LOCK(cs_main);
         CNameDB dbName("r");
         if(!dbName.ReadName(CNameVal(it->first.c_str(), it->first.c_str() + it->first.size()), nameRec))
 	  break; // failed to read from name DB
         if(nameRec.vtxPos.size() < 1)
 	  break; // no result returned
-        if(!tx.ReadFromDisk(nameRec.vtxPos.back().txPos))
+        if(!GetTransaction(nameRec.vtxPos.back().txPos, tx))
           break; // failed to read from from disk
         if(!DecodeNameTx(tx, nti, true))
           break; // failed to decode name

@@ -1,12 +1,12 @@
 Description
 ------------
 
-This directory contains data-driven tests for various aspects of Emercoin.
+This directory contains data-driven tests for various aspects of Bitcoin.
 
 License
 --------
 
-The data files in this directory are distributed under the GPL3 software
+The data files in this directory are distributed under the MIT software
 license, see the accompanying file COPYING or
-http://www.gnu.org/licenses/gpl.html.
+http://www.opensource.org/licenses/mit-license.php.
 

@@ -1,6 +1,6 @@
-// Copyright (c) 2009-2014 The Bitcoin developers
-// Distributed under the GPL3 software license, see the accompanying
-// file COPYING or http://www.gnu.org/licenses/gpl.html.
+// Copyright (c) 2009-2016 The Bitcoin Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_CLIENTVERSION_H
 #define BITCOIN_CLIENTVERSION_H
@@ -15,8 +15,8 @@
 
 //! These need to be macros, as clientversion.cpp's and bitcoin*-res.rc's voodoo requires it
 #define CLIENT_VERSION_MAJOR 0
-#define CLIENT_VERSION_MINOR 10
-#define CLIENT_VERSION_REVISION 4
+#define CLIENT_VERSION_MINOR 14
+#define CLIENT_VERSION_REVISION 1
 
 #define EMERCOIN_VERSION_MAJOR 0
 #define EMERCOIN_VERSION_MINOR 6
@@ -43,7 +43,7 @@
 #define DO_STRINGIZE(X) #X
 
 //! Copyright string used in Windows .rc files
-#define COPYRIGHT_STR "2013-" STRINGIZE(COPYRIGHT_YEAR) " The Emercoin Core Developers"
+#define COPYRIGHT_STR "2013-" STRINGIZE(COPYRIGHT_YEAR) " " COPYRIGHT_HOLDERS_FINAL
 
 /**
  * bitcoind-res.rc includes this file, but it cannot cope with real c++ code.
@@ -71,7 +71,6 @@ static const int EMERCOIN_VERSION =
 
 extern const std::string CLIENT_NAME;
 extern const std::string CLIENT_BUILD;
-extern const std::string CLIENT_DATE;
 
 
 std::string FormatFullVersion();

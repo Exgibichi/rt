@@ -1,18 +1,14 @@
 #include "managenamespage.h"
 #include "ui_managenamespage.h"
 
-#include "walletmodel.h"
 #include "nametablemodel.h"
-#include "../namecoin.h"
-#include "csvmodelwriter.h"
+#include "walletmodel.h"
 #include "guiutil.h"
-#include "../base58.h"
-#include "../main.h"
-#include "../wallet.h"
-#include "guiconstants.h"
+#include "namecoin.h"
 #include "ui_interface.h"
+#include "validation.h"
+#include "csvmodelwriter.h"
 
-#include <QSortFilterProxyModel>
 #include <QMessageBox>
 #include <QMenu>
 #include <QScrollBar>
@@ -389,10 +385,7 @@ bool ManageNamesPage::eventFilter(QObject *object, QEvent *event)
 
 void ManageNamesPage::selectionChanged()
 {
-    // Set button states based on selected tab and selection
-//    QTableView *table = ui->tableView;
-//    if(!table->selectionModel())
-//        return;
+
 }
 
 void ManageNamesPage::contextualMenu(const QPoint &point)

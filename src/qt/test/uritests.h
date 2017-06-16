@@ -1,6 +1,6 @@
-// Copyright (c) 2009-2014 The Bitcoin developers
-// Distributed under the GPL3 software license, see the accompanying
-// file COPYING or http://www.gnu.org/licenses/gpl.html.
+// Copyright (c) 2009-2015 The Bitcoin Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_QT_TEST_URITESTS_H
 #define BITCOIN_QT_TEST_URITESTS_H
@@ -12,7 +12,7 @@ class URITests : public QObject
 {
     Q_OBJECT
 
-private slots:
+private Q_SLOTS:
     void uriTests();
 };
 

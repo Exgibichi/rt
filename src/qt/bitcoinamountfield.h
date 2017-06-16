@@ -1,6 +1,6 @@
-// Copyright (c) 2011-2013 The Bitcoin developers
-// Distributed under the GPL3 software license, see the accompanying
-// file COPYING or http://www.gnu.org/licenses/gpl.html.
+// Copyright (c) 2011-2015 The Bitcoin Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_QT_BITCOINAMOUNTFIELD_H
 #define BITCOIN_QT_BITCOINAMOUNTFIELD_H
@@ -59,7 +59,7 @@ public:
     // emercoin: need for exchange code:
     void setString (QString input);
 
-signals:
+Q_SIGNALS:
     void valueChanged();
 
 protected:
@@ -70,7 +70,7 @@ private:
     AmountSpinBox *amount;
     QValueComboBox *unit;
 
-private slots:
+private Q_SLOTS:
     void unitChanged(int idx);
 
 };
