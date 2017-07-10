@@ -274,6 +274,11 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s >> tx.nVersion;
+
+    // emercoin: do not read/write nTime in case of auxPow tx
+    if (!(s.GetType() & SER_BTC_TX))
+        s >> tx.nTime;
+
     unsigned char flags = 0;
     tx.vin.clear();
     tx.vout.clear();
