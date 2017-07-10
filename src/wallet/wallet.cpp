@@ -2778,9 +2778,10 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
                         vector<CTxOut>::iterator position = txNew.vout.begin()+nChangePosInOut;
                         txNew.vout.insert(position, newTxOut);
                     }
-                }
-                else
+                } else {
                     reservekey.ReturnKey();
+                    nChangePosInOut = -1;
+                }
 
                 // Fill vin
                 //
