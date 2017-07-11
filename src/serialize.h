@@ -150,7 +150,6 @@ enum
     // modifiers
     SER_POSMARKER       = (1 << 18),  // emercoin: for sending block headers with PoS marker, to allow headers-first syncronization
     SER_BTC_TX          = (1 << 19),  // emercoin: for merged mining, to read tx without nTime.
-    SER_AUXMERKLETX     = (1 << 20),  // emercoin: for merged mining, to read merkle tx with vMerkleBranch
 };
 
 #define READWRITE(obj)      (::SerReadWrite(s, (obj), ser_action))
