@@ -124,7 +124,7 @@ EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
     if(!inet_pton(AF_INET, bind_ip, &m_address.sin_addr.s_addr)) 
       m_address.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    if(bind(m_sockfd, (struct sockaddr *) &m_address,
+    if(::bind(m_sockfd, (struct sockaddr *) &m_address,
                      sizeof (struct sockaddr_in)) < 0) {
       char buf[80];
       sprintf(buf, "EmcDns::EmcDns: Cannot bind to port %u", port_no);
@@ -402,7 +402,7 @@ void EmcDns::HandlePacket() {
     }
 
     if(m_status) {
-      if(m_status = IsInitialBlockDownload()) {
+      if((m_status = IsInitialBlockDownload()) != 0) {
         m_hdr->Bits |= 2; // Server failure - not available valid nameindex DB yet
         break;
       } else {
@@ -951,7 +951,7 @@ void EmcDns::Answer_ENUM(const char *q_str) {
   // Tokenize lines in the NVS-value.
   // There can be prefixes SIG=, TTL=, E2U
   while(char *tok = strsep(&str_val, "\n\r"))
-    switch(*(uint32_t*)tok & 0xffffff | 0x202020) {
+    switch((*(uint32_t*)tok & 0xffffff) | 0x202020) {
 	case ENC3('e', '2', 'u'):
 	  e2u[e2uN++] = tok;
 	  continue;
@@ -1086,7 +1086,7 @@ bool EmcDns::CheckEnumSig(const char *q_str, char *sig_str) {
 	// SRL=5|srl:hello-%02x
 	ver.mask = VERMASK_NOSRL;
         while(char *tok = strsep(&str_val, "\n\r"))
-	  if((*(uint32_t*)tok & 0xffffff | 0x202020) == ENC3('s', 'r', 'l') && (tok = strchr(tok + 3, '='))) {
+	  if(((*(uint32_t*)tok & 0xffffff) | 0x202020) == ENC3('s', 'r', 'l') && (tok = strchr(tok + 3, '='))) {
 	    unsigned nbits = atoi(++tok);
             if(nbits > 30) nbits = 30;
 	    tok = strchr(tok, '|');

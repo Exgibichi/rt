@@ -37,7 +37,7 @@ struct DNSHeader {
   uint16_t ARCount;
 
   inline void Transcode() {
-    for(uint16_t *p = &msgID; p <= &ARCount; p++)
+    for(uint16_t *p = (uint16_t*)(void*)&msgID; p <= (uint16_t*)(void*)&ARCount; p++)
       *p = ntohs(*p);
   }
 } __attribute__((packed)); // struct DNSHeader
