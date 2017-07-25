@@ -174,8 +174,25 @@ bool ComputeNextStakeModifier(const CBlockIndex* pindexCurrent, uint64_t& nStake
         pindex = pindex->pprev;
     }
     int nHeightFirstCandidate = pindex ? (pindex->nHeight + 1) : 0;
-    reverse(vSortedByTimestamp.begin(), vSortedByTimestamp.end());
-    sort(vSortedByTimestamp.begin(), vSortedByTimestamp.end());
+
+    // Shuffle before sort
+    for(int i = vSortedByTimestamp.size() - 1; i > 1; --i)
+	std::swap(vSortedByTimestamp[i], vSortedByTimestamp[GetRand(i)]);
+
+    sort(vSortedByTimestamp.begin(), vSortedByTimestamp.end(), [] (const pair<int64_t, uint256> &a, const pair<int64_t, uint256> &b) {
+	if(a.first != b.first)
+	  return a.first < b.first;
+	// Timestamp equals - compare block hashes
+	const uint32_t *pa = a.second.GetDataPtr();
+	const uint32_t *pb = b.second.GetDataPtr();
+	int cnt = 256 / 32;
+	do {
+	  --cnt;
+	  if(pa[cnt] != pb[cnt])
+	    return pa[cnt] < pb[cnt];
+	} while(cnt);
+        return false; // Elements are equal
+    });
 
     // Select 64 blocks from candidate blocks to generate stake modifier
     uint64_t nStakeModifierNew = 0;
