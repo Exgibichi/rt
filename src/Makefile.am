@@ -227,6 +227,7 @@ libbitcoin_server_a_SOURCES = \
   emcdns.cpp \
   stun.cpp \
   exch.cpp \
+  https-cli.cpp \
   $(BITCOIN_CORE_H)
 
 if ENABLE_ZMQ
@@ -394,7 +395,7 @@ emercoind_LDADD = \
   $(LIBMEMENV) \
   $(LIBSECP256K1)
 
-emercoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
+emercoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_OPENSSL_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
 
 # bitcoin-cli binary #
 emercoin_cli_SOURCES = bitcoin-cli.cpp

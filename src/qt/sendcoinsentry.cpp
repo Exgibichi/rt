@@ -359,7 +359,7 @@ void SendCoinsEntry::on_requestPaymentButton_clicked()
     bool validExist = false;
     for (Exch* exch : eBox.m_v_exch)
     {
-        string err(exch->MarketInfo(ui->payTypeExch->text().toStdString()));
+        string err(exch->MarketInfo(ui->payTypeExch->text().toStdString(), dPay));
         if (!err.empty())
             continue;
 

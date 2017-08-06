@@ -6,6 +6,13 @@ class UniValue;
 using namespace std;
 
 //-----------------------------------------------------
+// https request using libevent. Body in the https-cli.cpp
+// ATTN: Function is NOT REENTERABLE
+// Returns HTTP status code if OK, or -1 if error
+// Ret contains server answer (if OK), orr error text (-1)
+int HttpsLE(const char *host, const char *get, const char *post, std::string *ret);
+
+//-----------------------------------------------------
 class Exch {
   public:
   Exch(const string &retAddr); 
@@ -17,7 +24,7 @@ class Exch {
   // Get currency for exchnagge to, like btc, ltc, etc
   // Fill MarketInfo from exchange.
   // Returns the empty string if OK, or error message, if error
-  virtual string MarketInfo(const string &currency) = 0;
+  virtual string MarketInfo(const string &currency, double amount) = 0;
 
   // Create SEND exchange channel for 
   // Send "amount" in external currecny "to" address
@@ -97,7 +104,7 @@ class ExchCoinReform : public Exch {
   // Get currency for exchnagge to, like btc, ltc, etc
   // Fill MarketInfo from exchange.
   // Returns the empty string if OK, or error message, if error
-  virtual string MarketInfo(const string &currency);
+  virtual string MarketInfo(const string &currency, double amount);
 
   // Creatse SEND exchange channel for 
   // Send "amount" in external currecny "to" address

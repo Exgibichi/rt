@@ -55,86 +55,134 @@ double Exch::EstimatedEMC(double pay_amount) const {
 //-----------------------------------------------------
 // Connect to the server by https, fetch JSON and parse to UniValue
 // Throws exception if error
+// This version uses https-cli module, based on libevent
+UniValue Exch::httpsFetch(const char *get, const UniValue *post) {
+  string strReply;
+  string postBody;
+  const char *post_txt = NULL;
+
+  if(post != NULL) {
+    // This is POST request - prepare postBody
+    postBody = post->write(0, 0, 0) + '\n';
+    post_txt = postBody.c_str();
+  }
+
+  int rc = HttpsLE(Host().c_str(), get, post_txt, &strReply);
+
+  if(rc < 0)
+    throw runtime_error(strReply.c_str());
+
+  LogPrint("exch", "DBG: Exch::httpsFetch: Server returned HTTP: %d\n", rc);
+
+  if(strReply.empty())
+    throw runtime_error("Response from server is empty");
+
+  LogPrint("exch", "DBG: Exch::httpsFetch: Reply from server: [%s]\n", strReply.c_str());
+
+  size_t json_beg = strReply.find('{');
+  size_t json_end = strReply.rfind('}');
+  if(json_beg == string::npos || json_end == string::npos)
+    throw runtime_error("Reply is not JSON");
+
+   // Parse reply
+  UniValue valReply(UniValue::VSTR);
+
+  if(!valReply.read(strReply.substr(json_beg, json_end - json_beg + 1), 0))
+    throw runtime_error("Couldn't parse reply from server");
+
+  const UniValue& reply = valReply.get_obj();
+
+  if(reply.empty())
+    throw runtime_error("Empty JSON reply");
+
+  // Check for error message in the reply
+  CheckERR(reply);
+
+  return reply;
+
+} // Exch::httpsFetch
+
+#if 0
 UniValue Exch::httpsFetch(const char *get, const UniValue *post) {
 
-//emc uncomment and fix this
-//  // Connect to exchange
-//  asio::io_service io_service;
-//  ssl::context context(io_service, ssl::context::sslv23);
-//  context.set_options(ssl::context::no_sslv2 | ssl::context::no_sslv3);
-//  asio::ssl::stream<asio::ip::tcp::socket> sslStream(io_service, context);
-//  SSL_set_tlsext_host_name(sslStream.native_handle(), Host().c_str());
-//  SSLIOStreamDevice<asio::ip::tcp> d(sslStream, true); // use SSL
-//  iostreams::stream< SSLIOStreamDevice<asio::ip::tcp> > stream(d);
+  // Connect to exchange
+  asio::io_service io_service;
+  ssl::context context(io_service, ssl::context::sslv23);
+  context.set_options(ssl::context::no_sslv2 | ssl::context::no_sslv3);
+  asio::ssl::stream<asio::ip::tcp::socket> sslStream(io_service, context);
+  SSL_set_tlsext_host_name(sslStream.native_handle(), Host().c_str());
+  SSLIOStreamDevice<asio::ip::tcp> d(sslStream, true); // use SSL
+  iostreams::stream< SSLIOStreamDevice<asio::ip::tcp> > stream(d);
 
-//  if(!d.connect(Host(), "443"))
-//    throw runtime_error("Couldn't connect to server");
+  if(!d.connect(Host(), "443"))
+    throw runtime_error("Couldn't connect to server");
 
-//  string postBody;
-//  const char *reqType = "GET ";
+  string postBody;
+  const char *reqType = "GET ";
 
-//  if(post != NULL) {
-//    // This is POST request - prepare postBody
-//    reqType = "POST ";
-//    postBody = post->write(0, 0, 0) + '\n';
-//  }
+  if(post != NULL) {
+    // This is POST request - prepare postBody
+    reqType = "POST ";
+    postBody = post->write(0, 0, 0) + '\n';
+  }
 
-//  LogPrint("exch", "DBG: Exch::httpsFetch: Req: method=[%s] path=[%s] H=[%s]\n", reqType, get, Host().c_str());
+  LogPrint("exch", "DBG: Exch::httpsFetch: Req: method=[%s] path=[%s] H=[%s]\n", reqType, get, Host().c_str());
 
-//  // Send request
-//  stream << reqType << (get? get : "/") << " HTTP/1.1\r\n"
-//         << "Host: " << Host() << "\r\n"
-//         << "User-Agent: emercoin-json-rpc/" << FormatFullVersion() << "\r\n";
+  // Send request
+  stream << reqType << (get? get : "/") << " HTTP/1.1\r\n"
+         << "Host: " << Host() << "\r\n"
+         << "User-Agent: emercoin-json-rpc/" << FormatFullVersion() << "\r\n";
 
-//  if(postBody.size()) {
-//    stream << "Content-Type: application/json\r\n"
-//           << "Content-Length: " << postBody.size() << "\r\n";
-//  }
+  if(postBody.size()) {
+    stream << "Content-Type: application/json\r\n"
+           << "Content-Length: " << postBody.size() << "\r\n";
+  }
 
-//  stream << "Connection: close\r\n"
-//         << "Accept: application/json\r\n\r\n"
-//	 << postBody << std::flush;
+  stream << "Connection: close\r\n"
+         << "Accept: application/json\r\n\r\n"
+	 << postBody << std::flush;
 
-//  // Receive HTTP reply status
-//  int nProto = 0;
-//  int nStatus = ReadHTTPStatus(stream, nProto);
+  // Receive HTTP reply status
+  int nProto = 0;
+  int nStatus = ReadHTTPStatus(stream, nProto);
 
-//  if(nStatus >= 400)
-//    throw runtime_error(strprintf("Server returned HTTP error %d", nStatus));
+  if(nStatus >= 400)
+    throw runtime_error(strprintf("Server returned HTTP error %d", nStatus));
 
-//  // Receive HTTP reply message headers and body
-//  map<string, string> mapHeaders;
-//  string strReply;
-//  ReadHTTPMessage(stream, mapHeaders, strReply, nProto, 4 * 1024);
+  // Receive HTTP reply message headers and body
+  map<string, string> mapHeaders;
+  string strReply;
+  ReadHTTPMessage(stream, mapHeaders, strReply, nProto, 4 * 1024);
 
-//  LogPrint("exch", "DBG: Exch::httpsFetch: Server returned HTTP: %d\n", nStatus);
+  LogPrint("exch", "DBG: Exch::httpsFetch: Server returned HTTP: %d\n", nStatus);
 
-//  if(strReply.empty())
-//    throw runtime_error("No response from server");
+  if(strReply.empty())
+    throw runtime_error("No response from server");
 
-//  LogPrint("exch", "DBG: Exch::httpsFetch: Reply from server: [%s]\n", strReply.c_str());
+  LogPrint("exch", "DBG: Exch::httpsFetch: Reply from server: [%s]\n", strReply.c_str());
 
-//  size_t json_beg = strReply.find('{');
-//  size_t json_end = strReply.rfind('}');
-//  if(json_beg == string::npos || json_end == string::npos)
-//    throw runtime_error("Reply is not JSON");
+  size_t json_beg = strReply.find('{');
+  size_t json_end = strReply.rfind('}');
+  if(json_beg == string::npos || json_end == string::npos)
+    throw runtime_error("Reply is not JSON");
 
-//   // Parse reply
-//  UniValue valReply(UniValue::VSTR);
+   // Parse reply
+  UniValue valReply(UniValue::VSTR);
 
-//  if(!valReply.read(strReply.substr(json_beg, json_end - json_beg + 1), 0))
-//    throw runtime_error("Couldn't parse reply from server");
+  if(!valReply.read(strReply.substr(json_beg, json_end - json_beg + 1), 0))
+    throw runtime_error("Couldn't parse reply from server");
 
-//  const UniValue& reply = valReply.get_obj();
+  const UniValue& reply = valReply.get_obj();
 
-//  if(reply.empty())
-//    throw runtime_error("Empty JSON reply");
+  if(reply.empty())
+    throw runtime_error("Empty JSON reply");
 
-//  // Check for error message in the reply
-//  CheckERR(reply);
+  // Check for error message in the reply
+  CheckERR(reply);
 
-//  return reply;
+  return reply;
 } // UniValue Exch::httpsFetch
+#endif
 
 //-----------------------------------------------------
 // Check JSON-answer for "error" key, and throw error
@@ -184,10 +232,10 @@ const string& ExchCoinReform::Host() const {
 // Get currency for exchnagge to, like btc, ltc, etc
 // Fill MarketInfo from exchange.
 // Returns empty string if OK, or error message, if error
-string ExchCoinReform::MarketInfo(const string &currency) {
+string ExchCoinReform::MarketInfo(const string &currency, double amount) {
   try {
-    //const UniValue mi(RawMarketInfo("/marketinfo/ltc_" + currency));
-    const UniValue mi(RawMarketInfo("/api/marketinfo/emc_" + currency + ".json"));
+    const UniValue mi(RawMarketInfo("/api/marketinfo/ltc_" + currency + ".json"));
+    //const UniValue mi(RawMarketInfo("/api/marketinfo/emc_" + currency + ".json"));
     LogPrint("exch", "DBG: ExchCoinReform::MarketInfo(%s|%s) returns <%s>\n\n", Host().c_str(), currency.c_str(), mi.write(0, 0, 0).c_str());
     m_pair     = mi["pair"].get_str();
     m_rate     = atof(mi["rate"].get_str().c_str());
@@ -326,19 +374,22 @@ int ExchCoinReform::Remain(const string &txkey) {
 //-----------------------------------------------------
 //=====================================================
 void exch_test() {
-#if 0
+#if 1
   ExchBox eBox;
   eBox.Reset("ESgQZ4oU5TN6BRK3DqZX3qDSrQjPwWHP7t");
   do {
       Exch    *exch = eBox.m_v_exch[0];
       printf("exch_test()\nwork with exch=0, Name=%s URL=%s\n", exch->Name().c_str(), exch->Host().c_str());
 
-      string err(exch->MarketInfo("btc"));
+
+      string err(exch->MarketInfo("btc", 0.0));
       //string err(exch->MarketInfo("zzQ"));
       printf("exch_test:MarketInfo returned: [%s]\n", err.c_str());
       if(!err.empty()) break;
       printf("exch_test:Values from exch: m_rate=%lf; m_limit=%lf; m_min=%lf; m_minerFee=%lf\n", 
 	      exch->m_rate, exch->m_limit, exch->m_min, exch->m_minerFee);
+
+      exit(0);
 
       printf("\nexch_test:Tryint to send BTC\n");
       err = exch->Send("1Evqeh5pWphbWzmRAc4d3Wb82mAUBhWEVF", 0.001); // good addr
