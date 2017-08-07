@@ -279,6 +279,7 @@ crypto_libbitcoin_crypto_a_SOURCES = \
 libbitcoin_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libbitcoin_consensus_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_consensus_a_SOURCES = \
+  script/timedata_dummy.cpp \
   amount.h \
   arith_uint256.cpp \
   arith_uint256.h \
