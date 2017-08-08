@@ -530,11 +530,14 @@ static int StunRequest(const char *host, uint16_t port, struct sockaddr_in *mapp
 } // StunRequest
 
 /*---------------------------------------------------------------------*/
-// Input: two random values (pos, step) for generate uniuqe way over server
-// list
-// Output: populate struct struct mapped
+// Input: random value to generate the pair (pos, step) for pseudorandom 
+// traversal over the server list
+// Output: 
+//  - mapped: populate struct struct mapped (ipV4 only)
+//  - srv: set pointer to server name, which return successful answer
 // Retval:
 // bits 0-7 = STUN tokens set, 8-32 = attempt number
+// Negative return - unable to figure out IP address
 int GetExternalIPbySTUN(uint64_t rnd, struct sockaddr_in *mapped, const char **srv) {
   randfiller    = rnd;
   uint16_t pos  = rnd;
