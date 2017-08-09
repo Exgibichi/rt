@@ -1709,9 +1709,8 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 #ifdef ENABLE_WALLET
     if (pwalletMain)
         pwalletMain->postInitProcess(threadGroup);
-//emc enable PoS minting when have better understanding of the code
-//    if (GetBoolArg("-stakegen", true))
-//        MintStake(threadGroup, pwalletMain);
+    if (GetBoolArg("-stakegen", true))
+        MintStake(threadGroup, pwalletMain);
 #endif
 
     // init emcdns. WARNING: this should be done after hooks initialization

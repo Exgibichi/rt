@@ -685,3 +685,145 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
 }
+
+#ifdef ENABLE_WALLET
+static bool ProcessBlockFound(const CBlock* pblock)
+{
+    LogPrintf("%s\n", pblock->ToString());
+    LogPrintf("generated %s\n", FormatMoney(pblock->vtx[0]->vout[0].nValue));
+
+    // Found a solution
+    {
+        LOCK(cs_main);
+        if (pblock->hashPrevBlock != chainActive.Tip()->GetBlockHash())
+            return error("BitcoinMiner: generated block is stale");
+    }
+
+    // Inform about the new block
+    GetMainSignals().BlockFound(pblock->GetHash());
+
+    // Process this block the same as if we had received it from another node
+    std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
+    if (!ProcessNewBlock(Params(), shared_pblock, true, NULL))
+        return error("ProcessNewBlock, block not accepted");
+
+    return true;
+}
+
+void PoSMiner(CWallet *pwallet)
+{
+    LogPrintf("CPUMiner started for proof-of-stake\n");
+    RenameThread("emercoin-stake-minter");
+
+    unsigned int nExtraNonce = 0;
+
+    boost::shared_ptr<CReserveScript> coinbaseScript;
+    GetMainSignals().ScriptForMining(coinbaseScript);
+
+    // Compute timeout for pos as sqrt(numUTXO)
+    unsigned int pos_timio;
+    {
+        std::vector<COutput> vCoins;
+        pwallet->AvailableCoins(vCoins, false);
+        pos_timio = GetArg("-staketimio", 500) + 30 * sqrt(vCoins.size());
+        LogPrintf("Set proof-of-stake timeout: %ums for %u UTXOs\n", pos_timio, vCoins.size());
+    }
+
+    std::string strMintMessage = _("Info: Minting suspended due to locked wallet.");
+
+    try {
+        // Throw an error if no script was provided.  This can happen
+        // due to some internal error but also if the keypool is empty.
+        // In the latter case, already the pointer is NULL.
+        if (!coinbaseScript || coinbaseScript->reserveScript.empty())
+            throw std::runtime_error("No coinbase script available (mining requires a wallet)");
+
+        while (true) {
+            if (Params().MiningRequiresPeers()) {
+                // Busy-wait for the network to come online so we don't waste time mining
+                // on an obsolete chain. In regtest mode we expect to fly solo.
+                do {
+                    bool fIsConnected = g_connman ? g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) : false;
+                    if (fIsConnected && !IsInitialBlockDownload())
+                        break;
+                    MilliSleep(5000);
+                } while (true);
+            }
+
+            while (pwallet->IsLocked())
+            {
+                strMintWarning = strMintMessage;
+                MilliSleep(5000);
+            }
+            strMintWarning = "";
+
+            //
+            // Create new block
+            //
+            CBlockIndex* pindexPrev = chainActive.Tip();
+
+            std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, true, pwalletMain));
+            if (!pblocktemplate.get())
+            {
+                LogPrintf("Error in EmercoinMiner: Keypool ran out, please call keypoolrefill before restarting the mining thread\n");
+                return;
+            }
+            CBlock *pblock = &pblocktemplate->block;
+            IncrementExtraNonce(pblock, pindexPrev, nExtraNonce);
+
+            // ppcoin: if proof-of-stake block found then process block
+            if (pblock->IsProofOfStake())
+            {
+                if (!SignBlock(*pblock, *pwallet))
+                {
+                    strMintWarning = strMintMessage;
+                    continue;
+                }
+                strMintWarning = "";
+                LogPrintf("CPUMiner : proof-of-stake block found %s\n", pblock->GetHash().ToString());
+                ProcessBlockFound(pblock);
+                // Rest for ~3 minutes after successful block to preserve close quick
+                MilliSleep(60 * 1000 + GetRand(4 * 60 * 1000));
+            }
+            MilliSleep(pos_timio);
+
+            continue;
+        }
+    }
+    catch (boost::thread_interrupted)
+    {
+        LogPrintf("EmercoinMiner terminated\n");
+    return;
+        // throw;
+    }
+    catch (const std::runtime_error &e)
+    {
+        LogPrintf("EmercoinMiner runtime error: %s\n", e.what());
+        return;
+    }
+}
+
+// ppcoin: stake minter thread
+void static ThreadStakeMinter(void* parg)
+{
+    LogPrintf("ThreadStakeMinter started\n");
+    CWallet* pwallet = (CWallet*)parg;
+    try
+    {
+        PoSMiner(pwallet);
+    }
+    catch (std::exception& e) {
+        PrintExceptionContinue(&e, "ThreadStakeMinter()");
+    } catch (...) {
+        PrintExceptionContinue(NULL, "ThreadStakeMinter()");
+    }
+    LogPrintf("ThreadStakeMinter exiting\n");
+}
+
+// ppcoin: stake minter
+void MintStake(boost::thread_group& threadGroup, CWallet* pwallet)
+{
+    // ppcoin: mint proof-of-stake blocks in the background
+    threadGroup.create_thread(boost::bind(&ThreadStakeMinter, pwallet));
+}
+#endif // ENABLE_WALLET
