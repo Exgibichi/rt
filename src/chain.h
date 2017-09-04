@@ -194,7 +194,7 @@ public:
     unsigned int nStatus;
 
     //! block header
-    int nVersion;
+    int nVersion;     // emercoin: it might contain merged mining information in higher bits. Use GetBlockVersion() to ignore it.
     uint256 hashMerkleRoot;
     unsigned int nTime;
     unsigned int nBits;
@@ -420,6 +420,11 @@ public:
     //! Efficiently find an ancestor of this block.
     CBlockIndex* GetAncestor(int height);
     const CBlockIndex* GetAncestor(int height) const;
+
+    int32_t GetBlockVersion() const
+    {
+        return nVersion & 0xff;
+    }
 };
 
 arith_uint256 GetBlockTrust(const CBlockIndex& block);

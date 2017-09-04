@@ -237,7 +237,8 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             for (int i = 0; i < details.outputs_size(); i++)
             {
                 const payments::Output& out = details.outputs(i);
-                if (out.amount() <= MIN_TXOUT_AMOUNT) continue;
+                if (out.amount() < MIN_TXOUT_AMOUNT)
+                    continue;
                 subtotal += out.amount();
                 const unsigned char* scriptStr = (const unsigned char*)out.script().data();
                 CScript scriptPubKey(scriptStr, scriptStr+out.script().size());

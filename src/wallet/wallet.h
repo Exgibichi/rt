@@ -433,7 +433,6 @@ public:
     bool InMempool() const;
     bool IsTrusted() const;
 
-    int64_t GetTxTime() const;
     int GetRequestCount() const;
 
     bool RelayWalletTransaction(CConnman* connman);

@@ -139,12 +139,12 @@ bool NameActive(const CNameVal& name, int currentBlockHeight = -1)
 // Returns minimum name operation fee rounded down to cents. Should be used during|before transaction creation.
 // If you wish to calculate if fee is enough - use IsNameFeeEnough() function.
 // Generaly:  GetNameOpFee() > IsNameFeeEnough().
-CAmount GetNameOpFee(const CBlockIndex* pindexBlock, const int nRentalDays, int op, const CNameVal& name, const CNameVal& value)
+CAmount GetNameOpFee(const CBlockIndex* pindex, const int nRentalDays, int op, const CNameVal& name, const CNameVal& value)
 {
     if (op == OP_NAME_DELETE)
         return MIN_TX_FEE;
 
-    const CBlockIndex* lastPoW = GetLastBlockIndex(pindexBlock, false);
+    const CBlockIndex* lastPoW = GetLastBlockIndex(pindex, false);
 
     CAmount txMinFee = nRentalDays * lastPoW->nMint / (365 * 100); // 1% PoW per 365 days
 
@@ -157,6 +157,10 @@ CAmount GetNameOpFee(const CBlockIndex* pindexBlock, const int nRentalDays, int 
     // Round up to CENT
     txMinFee += CENT - 1;
     txMinFee = (txMinFee / CENT) * CENT;
+
+    // reduce fee by 100 in 0.6.3emc
+    if (pindex->nHeight >= Params().GetConsensus().MinFeeHeight)
+        txMinFee = txMinFee / 100;
 
     // Fee should be at least MIN_TX_FEE
     txMinFee = max(txMinFee, MIN_TX_FEE);

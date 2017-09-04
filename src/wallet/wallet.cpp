@@ -1416,12 +1416,6 @@ bool CWallet::IsHDEnabled()
     return !hdChain.masterKeyID.IsNull();
 }
 
-int64_t CWalletTx::GetTxTime() const
-{
-    int64_t n = nTimeSmart;
-    return n ? n : nTimeReceived;
-}
-
 int CWalletTx::GetRequestCount() const
 {
     // Returns -1 if it wasn't being tracked
@@ -2292,14 +2286,14 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
     }
 
   // If possible, solve subset sum by dynamic programming
-  // Adeed by maxihatop
+  // Adeed by olegarch
 
-  // Maximap DP array size
+  // Maximap DP array size. Default=256MB (12,800EMC)
   static uint32_t nMaxDP = 0;
   if(nMaxDP == 0)
-      nMaxDP = GetArg("-maxdp", 8 * 1024 * 1024);
+      nMaxDP = GetArg("-maxdp", 128 * 1024 * 1024);
 
-  uint16_t *dp;        // dynamic programming array
+  uint16_t *dp;        // Dynamic programming array
   uint32_t dp_tgt = nTargetValue / MIN_TXOUT_AMOUNT;
   if(dp_tgt < nMaxDP && (dp = (uint16_t*)calloc(dp_tgt + 1, sizeof(uint16_t))) != NULL) {
     dp[0] = 1; // Zero CENTs can be reached anyway
@@ -3155,8 +3149,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     {
         uint64_t nCoinAge;
         CCoinsViewCache view(pcoinsTip);
-        CValidationState state;
-        if (!GetCoinAge(txNew, state, view, nCoinAge))
+        if (!GetCoinAge(txNew, view, nCoinAge))
             return error("CreateCoinStake : failed to calculate coin age");
         nCredit += GetProofOfStakeReward(nCoinAge);
     }

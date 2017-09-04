@@ -85,7 +85,7 @@ bool CheckBlockProofOfWork(const CBlockHeader *pblock, const Consensus::Params& 
     // As no version earlier than the 0.10 client a) has version 5+ blocks and b)
     //	has auxpow, anything that isn't a version 5+ block can be checked normally.
 
-    if (pblock->nVersion > 4)
+    if (pblock->GetBlockVersion() > 4)
     {
         if (!params.fPowAllowMinDifficultyBlocks && (pblock->nVersion & BLOCK_VERSION_AUXPOW && pblock->GetChainID() != AUXPOW_CHAIN_ID))
             return error("CheckBlockProofOfWork() : block does not have our chain ID");

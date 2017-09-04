@@ -1,7 +1,7 @@
 Emercoin Core integration/staging tree
 =====================================
 
-http://emercoin.com/
+https://emercoin.com/
 
 What is Emercoin?
 ----------------
@@ -15,13 +15,13 @@ Proof-of-Work and Auxilary-Proof-of-Work mechanisms. Emercoin Core is the name o
 open source software which enables the use of this currency.
 
 For more information, as well as an immediately useable, binary version of
-the Emercoin Core software, see http://emercoin.com/.
+the Emercoin Core software, see [here](http://emercoin.com/).
 
 License
 -------
 
 Emercoin Core is released under the terms of the GPL3 license. See [COPYING](COPYING) for more
-information or see http://www.gnu.org/licenses/gpl.html.
+information or the [GNU site](http://www.gnu.org/licenses/gpl.html).
 
 Development Process
 -------------------

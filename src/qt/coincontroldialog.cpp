@@ -717,8 +717,8 @@ void CoinControlDialog::updateView()
             itemOutput->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong)out.tx->tx->vout[out.i].nValue)); // padding so that sorting works correctly
 
             // date
-            itemOutput->setText(COLUMN_DATE, GUIUtil::dateTimeStr(out.tx->GetTxTime()));
-            itemOutput->setData(COLUMN_DATE, Qt::UserRole, QVariant((qlonglong)out.tx->GetTxTime()));
+            itemOutput->setText(COLUMN_DATE, GUIUtil::dateTimeStr(out.tx->nTime));
+            itemOutput->setData(COLUMN_DATE, Qt::UserRole, QVariant((qlonglong)out.tx->nTime));
 
             // confirmations
             itemOutput->setText(COLUMN_CONFIRMATIONS, QString::number(out.nDepth));

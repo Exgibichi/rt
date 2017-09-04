@@ -590,7 +590,7 @@ void DumpMempool();
 bool LoadMempool();
 
 // ppcoin:
-bool GetCoinAge(const CTransaction& tx, CValidationState &state, const CCoinsViewCache &view, uint64_t& nCoinAge);
+bool GetCoinAge(const CTransaction& tx, const CCoinsViewCache &view, uint64_t& nCoinAge);
 bool SignBlock(CBlock& block, const CKeyStore& keystore);
 bool CheckBlockSignature(const CBlock& block);
 

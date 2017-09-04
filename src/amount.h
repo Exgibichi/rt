@@ -17,7 +17,7 @@ typedef int64_t CAmount;
 static const CAmount COIN    = 1000000;
 static const CAmount CENT    = 10000;
 static const CAmount SUBCENT = 100;
-static const CAmount MIN_TX_FEE = CENT;
+static const CAmount MIN_TX_FEE = SUBCENT;
 
 extern const std::string CURRENCY_UNIT;
 

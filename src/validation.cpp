@@ -1509,7 +1509,7 @@ bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoins
     {
         // ppcoin: coin stake tx earns reward instead of paying fee
         uint64_t nCoinAge;
-        if (!GetCoinAge(tx, state, inputs, nCoinAge))
+        if (!GetCoinAge(tx, inputs, nCoinAge))
             return error("CheckInputs() : %s unable to get coin age for coinstake", tx.GetHash().ToString());
         int64_t nStakeReward = tx.GetValueOut() - nValueIn;
         if (nStakeReward > GetProofOfStakeReward(nCoinAge) - tx.GetMinFee() + MIN_TX_FEE)
@@ -2001,9 +2001,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     // Now that the whole chain is irreversibly beyond that time it is applied to all blocks except the
     // two in the chain that violate it. This prevents exploiting the issue against nodes during their
     // initial block download.
-    bool fEnforceBIP30 = (!pindex->phashBlock) || // Enforce on CreateNewBlock invocations which don't have a hash.
-                          !((pindex->nHeight==91842 && pindex->GetBlockHash() == uint256S("0x00000000000a4d0a398161ffc163c503763b1f4360639393e0e4c8e300e0caec")) ||
-                           (pindex->nHeight==91880 && pindex->GetBlockHash() == uint256S("0x00000000000743f190a18c5577a3c2d2a1f610ae9601ac046a38084ccb7cd721")));
+    bool fEnforceBIP30 = !pindex->phashBlock; // Enforce on CreateNewBlock invocations which don't have a hash.
 
     // Once BIP34 activated it was not possible to create new duplicate coinbases and thus other than starting
     // with the 2 existing duplicate coinbase pairs, not possible to create overwriting txs.  But by the
@@ -2384,7 +2382,7 @@ void static UpdateTip(CBlockIndex *pindexNew, const CChainParams& chainParams) {
             int32_t nExpectedVersion = ComputeBlockVersion(pindex->pprev, chainParams.GetConsensus());
             if (pindex->nVersion > VERSIONBITS_LAST_OLD_BLOCK_VERSION && (pindex->nVersion & ~nExpectedVersion) != 0)
             //emc need to merge this if:
-            // if (pindex->nVersion > CBlock::CURRENT_VERSION &&
+            // if (pindex->GetBlockVersion() > CBlock::CURRENT_VERSION &&
             //    (pindex->nVersion & ~BLOCK_VERSION_AUXPOW) != (CBlockHeader::CURRENT_VERSION | (AUXPOW_CHAIN_ID * BLOCK_VERSION_CHAIN_START)))
                 ++nUpgraded;
             pindex = pindex->pprev;
@@ -3291,32 +3289,18 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
     // Reject outdated version blocks when 95% (75% on testnet) of the network has upgraded:
     // check for version 2, 3 and 4 upgrades
     //emc set these values
-    if((block.nVersion < 2 && nHeight >= consensusParams.BIP34Height) ||
-       (block.nVersion < 3 && nHeight >= consensusParams.BIP66Height) ||
-       (block.nVersion < 4 && nHeight >= consensusParams.BIP65Height))
+    if((block.GetBlockVersion() < 2 && nHeight >= consensusParams.BIP34Height) ||
+       (block.GetBlockVersion() < 3 && nHeight >= consensusParams.BIP66Height) ||
+       (block.GetBlockVersion() < 4 && nHeight >= consensusParams.BIP65Height) ||
+       (block.GetBlockVersion() < 5 && nHeight >= consensusParams.MMHeight) ||
+       (block.GetBlockVersion() < 6 && nHeight >= consensusParams.MinFeeHeight))
             return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
                                  strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
-    // emercoin: reject pre-merged mining blocks and check if auxpow is allowed
-    // note: both checks must execute in this order
-    //emc redo this
-//    {
-//        // Reject block.nVersion=4 blocks when 95% (75% on testnet) of the network has upgraded:
-//        if (block.nVersion < 5 && CBlockIndex::IsSuperMajority(5, pindexPrev, Params().RejectBlockOutdatedMajority()))
-//        {
-//            return state.Invalid(error("%s : rejected nVersion=4 block", __func__),
-//                                 REJECT_OBSOLETE, "bad-version");
-//        }
-
-//        // Check if auxpow is allowed
-//        static bool fAllowAuxPow = false;
-//        if (!fAllowAuxPow && CBlockIndex::IsSuperMajority(5, pindexPrev, Params().RejectBlockOutdatedMajority()))
-//            fAllowAuxPow = true;
-
-//        if (block.auxpow.get() != NULL && !fAllowAuxPow)
-//            return state.DoS(100, error("%s : premature auxpow block", __func__),
-//                             REJECT_INVALID, "time-too-new");
-//    }
+    // Check if auxpow is allowed
+    if (block.auxpow.get() != NULL && nHeight < consensusParams.MMHeight)
+        return state.DoS(100, error("%s : premature auxpow block", __func__),
+                         REJECT_INVALID, "time-too-new");
 
     return true;
 }
@@ -4728,7 +4712,7 @@ public:
 // guaranteed to be in main chain by sync-checkpoint. This rule is
 // introduced to help nodes establish a consistent view of the coin
 // age (trust score) of competing branches.
-bool GetCoinAge(const CTransaction& tx, CValidationState &state, const CCoinsViewCache &view, uint64_t& nCoinAge)
+bool GetCoinAge(const CTransaction& tx, const CCoinsViewCache &view, uint64_t& nCoinAge)
 {
     arith_uint256 bnCentSecond = 0;  // coin age in the unit of cent-seconds
     nCoinAge = 0;
