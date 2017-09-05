@@ -1,0 +1,7 @@
+contrib/debian/emc usr/bin
+contrib/debian/emercoin.conf var/lib/emc/.emercoin
+contrib/debian/emercoind.service lib/systemd/system
+contrib/debian/emercoind.logrotate etc/logrotate.d
+usr/local/bin/emercoind usr/bin
+usr/local/bin/emercoin-cli usr/bin
+usr/local/bin/emercoin-tx usr/bin

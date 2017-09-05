@@ -12,14 +12,11 @@ case "$1" in
     mkdir -p /etc/emercoin
     ln -sf /var/lib/emc/.emercoin/emercoin.conf /etc/emercoin/emercoin.conf || true
     ln -sf /etc/ssl/emc /etc/emercoin/certs || true
-    systemctl daemon-reload
     [ -f /var/tmp/emercoin-install.flag ] && {
       rm -f /var/tmp/emercoin-install.flag
-      systemctl enable emercoind
+      update-rc.d emercoind defaults
     }
-    systemctl status emercoind >/dev/null 2>&1 && systemctl restart emercoind || {
-      systemctl is-enabled emercoind >/dev/null 2>&1 && systemctl start emercoind || true
-    }
+    service emercoind status >/dev/null && service emercoind restart >/dev/null
   ;;
 esac
 

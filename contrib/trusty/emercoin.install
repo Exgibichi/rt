@@ -1,0 +1,7 @@
+contrib/trusty/emc usr/bin
+contrib/trusty/emercoin.conf var/lib/emc/.emercoin
+contrib/trusty/emercoind etc/init.d
+contrib/trusty/emercoind.logrotate etc/logrotate.d
+usr/local/bin/emercoind usr/bin
+usr/local/bin/emercoin-cli usr/bin
+usr/local/bin/emercoin-tx usr/bin

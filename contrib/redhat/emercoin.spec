@@ -1,12 +1,12 @@
 Name:           emercoin
-Version:        0.7.0
-Release:        1%{dist}
+Version:        0.6.3
+Release:        1%{?dist}
 Summary:        Emercoin Wallet
 Group:          Applications/Internet
 Vendor:         Emercoin
 License:        GPLv3
-URL:            http://www.emercoin.com
-Source0:        %{name}.tar.gz
+URL:            https://www.emercoin.com
+Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 BuildRequires:  autoconf automake libtool gcc-c++ openssl-devel >= 1:1.0.2d libdb4-devel libdb4-cxx-devel miniupnpc-devel boost-devel boost-static
 Requires:       openssl >= 1:1.0.2d libdb4 libdb4-cxx miniupnpc logrotate
@@ -15,7 +15,7 @@ Requires:       openssl >= 1:1.0.2d libdb4 libdb4-cxx miniupnpc logrotate
 Emercoin Wallet
 
 %prep
-%setup -q -n emercoin
+%setup -q
 
 %build
 ./autogen.sh
@@ -25,12 +25,12 @@ make
 %install
 %{__rm} -rf $RPM_BUILD_ROOT
 %{__mkdir} -p $RPM_BUILD_ROOT%{_bindir} $RPM_BUILD_ROOT/etc/emercoin $RPM_BUILD_ROOT/etc/ssl/emc $RPM_BUILD_ROOT/var/lib/emc/.emercoin $RPM_BUILD_ROOT/usr/lib/systemd/system $RPM_BUILD_ROOT/etc/logrotate.d
-%{__mv} -f bin/emc $RPM_BUILD_ROOT%{_bindir}
 %{__install} -m 755 src/emercoind $RPM_BUILD_ROOT%{_bindir}
 %{__install} -m 755 src/emercoin-cli $RPM_BUILD_ROOT%{_bindir}
-%{__install} -m 600 contrib/build.el7/emercoin.conf $RPM_BUILD_ROOT/var/lib/emc/.emercoin
-%{__install} -m 644 contrib/build.el7/emercoind.service $RPM_BUILD_ROOT/usr/lib/systemd/system
-%{__install} -m 644 contrib/build.el7/emercoind.logrotate $RPM_BUILD_ROOT/etc/logrotate.d/emercoind
+%{__install} -m 600 contrib/redhat/emercoin.conf $RPM_BUILD_ROOT/var/lib/emc/.emercoin
+%{__install} -m 644 contrib/redhat/emercoind.service $RPM_BUILD_ROOT/usr/lib/systemd/system
+%{__install} -m 644 contrib/redhat/emercoind.logrotate $RPM_BUILD_ROOT/etc/logrotate.d/emercoind
+%{__mv} -f contrib/redhat/emc $RPM_BUILD_ROOT%{_bindir}
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
@@ -78,5 +78,5 @@ systemctl status emercoind >/dev/null && systemctl restart emercoind || exit 0
 /usr/lib/systemd/system/emercoind.service
 
 %changelog
-* Tue Jun 21 2016 Sergii Vakula <sv@emercoin.com> 0.3.7
-- No changelog available here. Please refer to https://github.com/emercoin/emercoin/releases
+* Thu Aug 31 2017 Aspanta Limited <info@aspanta.com> 0.6.3
+- There is no changelog available. Please refer to the CHANGELOG file or visit the website.
