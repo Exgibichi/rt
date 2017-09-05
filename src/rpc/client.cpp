@@ -136,6 +136,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "reservebalance", 1 },
 
     // emercoin:
+    //emc add missing 3rd field
     { "name_new", 2 },
     { "name_update", 2 },
     { "name_filter", 1 },
