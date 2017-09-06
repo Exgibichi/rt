@@ -19,6 +19,8 @@
 #include "utilstrencodings.h"
 #include "version.h"
 
+#include "checkpoints.h"
+
 #include <boost/foreach.hpp>
 
 #include <univalue.h>
@@ -602,6 +604,36 @@ UniValue setnetworkactive(const JSONRPCRequest& request)
     return g_connman->GetNetworkActive();
 }
 
+// ppcoin: get information of sync-checkpoint
+UniValue getcheckpoint(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 0)
+        throw runtime_error(
+            "getcheckpoint\n"
+            "Show info of synchronized checkpoint.\n");
+
+    UniValue result(UniValue::VOBJ);
+    CBlockIndex* pindexCheckpoint;
+
+    result.push_back(Pair("synccheckpoint", CheckpointsSync::hashSyncCheckpoint.ToString()));
+    pindexCheckpoint = mapBlockIndex[CheckpointsSync::hashSyncCheckpoint];
+    result.push_back(Pair("height", pindexCheckpoint->nHeight));
+    result.push_back(Pair("timestamp", DateTimeStrFormat(pindexCheckpoint->GetBlockTime())));
+
+    if (mapBlockIndex.count(CheckpointsSync::hashPendingCheckpoint))
+    {
+        result.push_back(Pair("pendingsynccheckpoint", CheckpointsSync::hashPendingCheckpoint.ToString()));
+        CBlockIndex* pindexPendingCheckpoint = mapBlockIndex[CheckpointsSync::hashPendingCheckpoint];
+        result.push_back(Pair("pendingheight", pindexPendingCheckpoint->nHeight));
+        result.push_back(Pair("pendingtimestamp", DateTimeStrFormat(pindexPendingCheckpoint->GetBlockTime())));
+    }
+
+    if (IsArgSet("-checkpointkey"))
+        result.push_back(Pair("checkpointmaster", true));
+
+    return result;
+}
+
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         okSafeMode
   //  --------------------- ------------------------  -----------------------  ----------
@@ -617,6 +649,9 @@ static const CRPCCommand commands[] =
     { "network",            "listbanned",             &listbanned,             true,  {} },
     { "network",            "clearbanned",            &clearbanned,            true,  {} },
     { "network",            "setnetworkactive",       &setnetworkactive,       true,  {"state"} },
+
+    // emercoin command
+    { "network",            "getcheckpoint",          &getcheckpoint,          true,  {} },
 };
 
 void RegisterNetRPCCommands(CRPCTable &t)

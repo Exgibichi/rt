@@ -306,9 +306,9 @@ bool GetLastTxOfName(CNameDB& dbName, const CNameVal& name, CTransactionRef& tx)
 }
 
 
-UniValue sendtoname(const UniValue& params, bool fHelp)
+UniValue sendtoname(const JSONRPCRequest& request)
 {
-    if (fHelp || params.size() < 2 || params.size() > 4)
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 4)
         throw runtime_error(
             "sendtoname <name> <amount> [comment] [comment-to]\n"
             "<amount> is a real and is rounded to the nearest 0.01"
@@ -317,15 +317,15 @@ UniValue sendtoname(const UniValue& params, bool fHelp)
     if (IsInitialBlockDownload())
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
 
-    CNameVal name = nameValFromValue(params[0]);
-    CAmount nAmount = AmountFromValue(params[1]);
+    CNameVal name = nameValFromValue(request.params[0]);
+    CAmount nAmount = AmountFromValue(request.params[1]);
 
     // Wallet comments
     CWalletTx wtx;
-    if (params.size() > 2 && !params[2].isNull() && !params[2].get_str().empty())
-        wtx.mapValue["comment"] = params[2].get_str();
-    if (params.size() > 3 && !params[3].isNull() && !params[3].get_str().empty())
-        wtx.mapValue["to"]      = params[3].get_str();
+    if (request.params.size() > 2 && !request.params[2].isNull() && !request.params[2].get_str().empty())
+        wtx.mapValue["comment"] = request.params[2].get_str();
+    if (request.params.size() > 3 && !request.params[3].isNull() && !request.params[3].get_str().empty())
+        wtx.mapValue["to"]      = request.params[3].get_str();
 
     string error;
     CBitcoinAddress address;
@@ -381,9 +381,9 @@ bool CNamecoinHooks::RemoveNameScriptPrefix(const CScript& scriptIn, CScript& sc
     return ::RemoveNameScriptPrefix(scriptIn, scriptOut);
 }
 
-UniValue name_list(const UniValue& params, bool fHelp)
+UniValue name_list(const JSONRPCRequest& request)
 {
-    if (fHelp || params.size() > 2)
+    if (request.fHelp || request.params.size() > 2)
         throw runtime_error(
                 "name_list [name] [valuetype]\n"
                 "list my own names.\n"
@@ -395,8 +395,8 @@ UniValue name_list(const UniValue& params, bool fHelp)
     if (IsInitialBlockDownload())
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
 
-    CNameVal nameUniq = params.size() > 0 ? nameValFromValue(params[0]) : CNameVal();
-    string outputType = params.size() > 1 ? params[1].get_str() : "";
+    CNameVal nameUniq = request.params.size() > 0 ? nameValFromValue(request.params[0]) : CNameVal();
+    string outputType = request.params.size() > 1 ? request.params[1].get_str() : "";
 
     map<CNameVal, NameTxInfo> mapNames, mapPending;
     GetNameList(nameUniq, mapNames, mapPending);
@@ -492,9 +492,9 @@ void GetNameList(const CNameVal& nameUniq, std::map<CNameVal, NameTxInfo> &mapNa
     }
 }
 
-UniValue name_debug(const UniValue& params, bool fHelp)
+UniValue name_debug(const JSONRPCRequest& request)
 {
-    if (fHelp || params.size() < 1)
+    if (request.fHelp || request.params.size() != 0)
         throw runtime_error(
             "name_debug\n"
             "Dump pending transactions id in the debug file.\n");
@@ -521,9 +521,9 @@ UniValue name_debug(const UniValue& params, bool fHelp)
     return true;
 }
 
-UniValue name_show(const UniValue& params, bool fHelp)
+UniValue name_show(const JSONRPCRequest& request)
 {
-    if (fHelp || params.size() < 1 || params.size() > 3)
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 3)
         throw runtime_error(
             "name_show <name> [valuetype] [filepath]\n"
             "Show values of a name.\n"
@@ -537,8 +537,8 @@ UniValue name_show(const UniValue& params, bool fHelp)
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
 
     UniValue oName(UniValue::VOBJ);
-    CNameVal name = nameValFromValue(params[0]);
-    string outputType = params.size() > 1 ? params[1].get_str() : "";
+    CNameVal name = nameValFromValue(request.params[0]);
+    string outputType = request.params.size() > 1 ? request.params[1].get_str() : "";
     string sName = stringFromNameVal(name);
     NameTxInfo nti;
     {
@@ -572,9 +572,9 @@ UniValue name_show(const UniValue& params, bool fHelp)
                 oName.push_back(Pair("expired", true));
     }
 
-    if (params.size() > 2)
+    if (request.params.size() > 2)
     {
-        string filepath = params[2].get_str();
+        string filepath = request.params[2].get_str();
         ofstream file;
         file.open(filepath.c_str(), ios::out | ios::binary | ios::trunc);
         if (!file.is_open())
@@ -587,9 +587,9 @@ UniValue name_show(const UniValue& params, bool fHelp)
     return oName;
 }
 
-UniValue name_history (const UniValue& params, bool fHelp)
+UniValue name_history(const JSONRPCRequest& request)
 {
-    if (fHelp || params.size() < 1 || params.size() > 3)
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 3)
         throw std::runtime_error (
             "name_history <name> [fullhistory] [valuetype]\n"
             "\nLook up the current and all past data for the given name.\n"
@@ -618,9 +618,9 @@ UniValue name_history (const UniValue& params, bool fHelp)
     if (IsInitialBlockDownload())
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
 
-    CNameVal name = nameValFromValue(params[0]);
-    bool fFullHistory = params.size() > 1 ? params[1].get_bool() : false;
-    string outputType = params.size() > 2 ? params[2].get_str() : "";
+    CNameVal name = nameValFromValue(request.params[0]);
+    bool fFullHistory = request.params.size() > 1 ? request.params[1].get_bool() : false;
+    string outputType = request.params.size() > 2 ? request.params[2].get_str() : "";
 
     CNameRecord nameRec;
     {
@@ -666,9 +666,9 @@ UniValue name_history (const UniValue& params, bool fHelp)
     return res;
 }
 
-UniValue name_mempool (const UniValue& params, bool fHelp)
+UniValue name_mempool(const JSONRPCRequest& request)
 {
-    if (fHelp || params.size() > 1)
+    if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error (
             "name_mempool [valuetype]\n"
             "\nArguments:\n"
@@ -692,7 +692,7 @@ UniValue name_mempool (const UniValue& params, bool fHelp)
             + HelpExampleRpc ("name_mempool", "" )
         );
 
-    string outputType = params.size() > 0 ? params[0].get_str() : "";
+    string outputType = request.params.size() > 0 ? request.params[0].get_str() : "";
 
     UniValue res(UniValue::VARR);
     BOOST_FOREACH(const PAIRTYPE(CNameVal, set<uint256>) &pairPending, mapNamePending)
@@ -734,9 +734,9 @@ bool mycompare2 (const UniValue& lhs, const UniValue& rhs)
 
     return lhs[pos].get_int() < rhs[pos].get_int();
 }
-UniValue name_filter(const UniValue& params, bool fHelp)
+UniValue name_filter(const JSONRPCRequest& request)
 {
-    if (fHelp || params.size() > 6)
+    if (request.fHelp || request.params.size() > 6)
         throw runtime_error(
                 "name_filter [regexp] [maxage=0] [from=0] [nb=0] [stat] [valuetype]\n"
                 "scan and filter names\n"
@@ -757,12 +757,12 @@ UniValue name_filter(const UniValue& params, bool fHelp)
     int nCountFrom = 0;
     int nCountNb = 0;
 
-    string strRegexp  = params.size() > 0 ? params[0].get_str() : "";
-    int nMaxAge       = params.size() > 1 ? params[1].get_int() : 0;
-    int nFrom         = params.size() > 2 ? params[2].get_int() : 0;
-    int nNb           = params.size() > 3 ? params[3].get_int() : 0;
-    bool fStat        = params.size() > 4 ? (params[4].get_str() == "stat" ? true : false) : false;
-    string outputType = params.size() > 5 ? params[5].get_str() : "";
+    string strRegexp  = request.params.size() > 0 ? request.params[0].get_str() : "";
+    int nMaxAge       = request.params.size() > 1 ? request.params[1].get_int() : 0;
+    int nFrom         = request.params.size() > 2 ? request.params[2].get_int() : 0;
+    int nNb           = request.params.size() > 3 ? request.params[3].get_int() : 0;
+    bool fStat        = request.params.size() > 4 ? (request.params[4].get_str() == "stat" ? true : false) : false;
+    string outputType = request.params.size() > 5 ? request.params[5].get_str() : "";
 
     CNameDB dbName("r");
     vector<UniValue> oRes;
@@ -841,9 +841,9 @@ UniValue name_filter(const UniValue& params, bool fHelp)
     return oRes2;
 }
 
-UniValue name_scan(const UniValue& params, bool fHelp)
+UniValue name_scan(const JSONRPCRequest& request)
 {
-    if (fHelp || params.size() > 4)
+    if (request.fHelp || request.params.size() > 4)
         throw runtime_error(
                 "name_scan [start-name] [max-returned] [max-value-length=-1] [valuetype]\n"
                 "Scan all names, starting at start-name and returning a maximum number of entries (default 500)\n"
@@ -854,10 +854,10 @@ UniValue name_scan(const UniValue& params, bool fHelp)
     if (IsInitialBlockDownload())
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
 
-    CNameVal name      = params.size() > 0 ? nameValFromValue(params[0]) : CNameVal();
-    int nMax           = params.size() > 1 ? params[1].get_int() : 500;
-    int mMaxShownValue = params.size() > 2 ? params[2].get_int() : 0;
-    string outputType  = params.size() > 3 ? params[3].get_str() : "";
+    CNameVal name      = request.params.size() > 0 ? nameValFromValue(request.params[0]) : CNameVal();
+    int nMax           = request.params.size() > 1 ? request.params[1].get_int() : 500;
+    int mMaxShownValue = request.params.size() > 2 ? request.params[2].get_int() : 0;
+    string outputType  = request.params.size() > 3 ? request.params[3].get_str() : "";
 
     CNameDB dbName("r");
     UniValue oRes(UniValue::VARR);
@@ -946,9 +946,9 @@ bool IsWalletLocked(NameTxReturn& ret)
     return false;
 }
 
-UniValue name_new(const UniValue& params, bool fHelp)
+UniValue name_new(const JSONRPCRequest& request)
 {
-    if (fHelp || params.size() < 2 || params.size() > 5)
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 5)
         throw runtime_error(
                 "name_new <name> <value> <days> [toaddress] [valuetype]\n"
                 "Creates new key->value pair which expires after specified number of days.\n"
@@ -963,11 +963,11 @@ UniValue name_new(const UniValue& params, bool fHelp)
                 "   otherwise - Decode value string as a filepath from which to read the data.\n"
                 + HelpRequiringPassphrase());
 
-    CNameVal name = nameValFromValue(params[0]);
-    CNameVal value = nameValFromValue(params[1]);
-    int nRentalDays = params[2].get_int();
-    string strAddress = params.size() > 3 ? params[3].get_str() : "";
-    string strValueType = params.size() > 4 ? params[4].get_str() : "";
+    CNameVal name = nameValFromValue(request.params[0]);
+    CNameVal value = nameValFromValue(request.params[1]);
+    int nRentalDays = request.params[2].get_int();
+    string strAddress = request.params.size() > 3 ? request.params[3].get_str() : "";
+    string strValueType = request.params.size() > 4 ? request.params[4].get_str() : "";
 
     NameTxReturn ret = name_operation(OP_NAME_NEW, name, value, nRentalDays, strAddress, strValueType);
     if (!ret.ok)
@@ -975,9 +975,9 @@ UniValue name_new(const UniValue& params, bool fHelp)
     return ret.hex.GetHex();
 }
 
-UniValue name_update(const UniValue& params, bool fHelp)
+UniValue name_update(const JSONRPCRequest& request)
 {
-    if (fHelp || params.size() < 2 || params.size() > 5)
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 5)
         throw runtime_error(
                 "name_update <name> <value> <days> [toaddress] [valuetype]\n"
                 "Update name value, add days to expiration time and possibly transfer a name to diffrent address.\n"
@@ -991,11 +991,11 @@ UniValue name_update(const UniValue& params, bool fHelp)
                 "   otherwise - Decode value string as a filepath from which to read the data.\n"
                 + HelpRequiringPassphrase());
 
-    CNameVal name = nameValFromValue(params[0]);
-    CNameVal value = nameValFromValue(params[1]);
-    int nRentalDays = params[2].get_int();
-    string strAddress = params.size() > 3 ? params[3].get_str() : "";
-    string strValueType = params.size() > 4 ? params[4].get_str() : "";
+    CNameVal name = nameValFromValue(request.params[0]);
+    CNameVal value = nameValFromValue(request.params[1]);
+    int nRentalDays = request.params[2].get_int();
+    string strAddress = request.params.size() > 3 ? request.params[3].get_str() : "";
+    string strValueType = request.params.size() > 4 ? request.params[4].get_str() : "";
 
     NameTxReturn ret = name_operation(OP_NAME_UPDATE, name, value, nRentalDays, strAddress, strValueType);
     if (!ret.ok)
@@ -1003,14 +1003,14 @@ UniValue name_update(const UniValue& params, bool fHelp)
     return ret.hex.GetHex();
 }
 
-UniValue name_delete(const UniValue& params, bool fHelp)
+UniValue name_delete(const JSONRPCRequest& request)
 {
-    if (fHelp || params.size() != 1)
+    if (request.fHelp || request.params.size() != 1)
         throw runtime_error(
                 "name_delete <name>\nDelete a name if you own it. Others may do name_new after this command."
                 + HelpRequiringPassphrase());
 
-    CNameVal name = nameValFromValue(params[0]);
+    CNameVal name = nameValFromValue(request.params[0]);
 
     NameTxReturn ret = name_operation(OP_NAME_DELETE, name, CNameVal(), 0, "", "");
     if (!ret.ok)
@@ -1757,7 +1757,7 @@ bool CNameDB::DumpToTextFile()
     return true;
 }
 
-UniValue name_dump(const UniValue& params, bool fHelp)
+UniValue name_dump(const JSONRPCRequest& request)
 {
     hooks->DumpToTextFile();
     UniValue oName(UniValue::VOBJ);

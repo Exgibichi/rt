@@ -132,22 +132,21 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "echojson", 9, "arg9" },
 
     // ppcoin:
-    { "reservebalance", 0 },
-    { "reservebalance", 1 },
+    { "reservebalance", 0, "reserve" },
+    { "reservebalance", 1, "amount" },
 
     // emercoin:
-    //emc add missing 3rd field
-    { "name_new", 2 },
-    { "name_update", 2 },
-    { "name_filter", 1 },
-    { "name_filter", 2 },
-    { "name_filter", 3 },
-    { "name_history", 1 },
-    { "sendtoname", 1 },
-    { "gettxlistfor", 0 },
-    { "gettxlistfor", 1 },
-    { "gettxlistfor", 3 },
-    { "gettxlistfor", 4 },
+    { "name_new", 2, "days" },
+    { "name_update", 2, "days" },
+    { "name_filter", 1, "maxage" },
+    { "name_filter", 2, "from" },
+    { "name_filter", 3, "nb" },
+    { "name_history", 1, "fullhistory" },
+    { "sendtoname", 1, "amount" },
+    { "gettxlistfor", 0, "fromblock" },
+    { "gettxlistfor", 1, "toblock" },
+    { "gettxlistfor", 3, "type" },
+    { "gettxlistfor", 4, "verbose" },
 };
 
 class CRPCConvertTable

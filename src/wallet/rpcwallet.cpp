@@ -2984,6 +2984,101 @@ UniValue bumpfee(const JSONRPCRequest& request)
     return result;
 }
 
+// ppcoin: make a public-private key pair
+UniValue makekeypair(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() > 1)
+        throw runtime_error(
+            "makekeypair [prefix]\n"
+            "Make a public/private key pair.\n"
+            "[prefix] is optional preferred prefix for the public key.\n");
+
+    string strPrefix = "";
+    if (request.params.size() > 0)
+        strPrefix = request.params[0].get_str();
+
+    CKey key;
+    int nCount = 0;
+    do
+    {
+        key.MakeNewKey(false);
+        nCount++;
+    } while (nCount < 10000 && strPrefix != HexStr(key.GetPubKey()).substr(0, strPrefix.size()));
+
+    if (strPrefix != HexStr(key.GetPubKey()).substr(0, strPrefix.size()))
+        return NullUniValue;
+
+    CPrivKey vchPrivKey = key.GetPrivKey();
+    UniValue result(UniValue::VOBJ);
+    result.push_back(Pair("PrivateKey", HexStr<CPrivKey::iterator>(vchPrivKey.begin(), vchPrivKey.end())));
+    result.push_back(Pair("PublicKey", HexStr(key.GetPubKey())));
+    return result;
+}
+
+// ppcoin: reserve balance from being staked for network protection
+UniValue reservebalance(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() > 2)
+        throw runtime_error(
+            "reservebalance [<reserve> [amount]]\n"
+            "<reserve> is true or false to turn balance reserve on or off.\n"
+            "<amount> is a real and rounded to cent.\n"
+            "Set reserve amount not participating in network protection.\n"
+            "If no parameters provided current setting is printed.\n");
+
+    if (request.params.size() > 0)
+    {
+        bool fReserve = request.params[0].get_bool();
+        if (fReserve)
+        {
+            if (request.params.size() == 1)
+                throw runtime_error("must provide amount to reserve balance.\n");
+            CAmount nAmount = AmountFromValue(request.params[1]);
+            nAmount = (nAmount / CENT) * CENT;  // round to cent
+            if (nAmount < 0)
+                throw runtime_error("amount cannot be negative.\n");
+            ForceSetArg("-reservebalance", FormatMoney(nAmount));
+        }
+        else
+        {
+            if (request.params.size() > 1)
+                throw runtime_error("cannot specify amount to turn off reserve.\n");
+            ForceSetArg("-reservebalance", "0");
+        }
+    }
+
+    UniValue result(UniValue::VOBJ);
+    CAmount nReserveBalance = 0;
+    if (IsArgSet("-reservebalance") && !ParseMoney(GetArg("-reservebalance", "0"), nReserveBalance))
+        throw runtime_error("invalid reserve balance amount\n");
+    result.push_back(Pair("reserve", (nReserveBalance > 0)));
+    result.push_back(Pair("amount", ValueFromAmount(nReserveBalance)));
+    return result;
+}
+
+UniValue reencodeoldprivkey(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw runtime_error(
+            "reencodeoldprivkey \"oldprivkey\"\n"
+            "\nRe-encodes private key created in emercoin 0.3.x to 0.5.x format."
+        );
+
+    string strSecret = request.params[0].get_str();
+
+    CBitcoinSecret vchSecret;
+    bool fGood = vchSecret.SetString(strSecret, true);
+    if (!fGood) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");
+
+    CKey key = vchSecret.GetKey();
+    if (!key.IsValid()) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Private key outside allowed range");
+
+    CPubKey pubkey = key.GetPubKey();
+    if (!key.VerifyPubKey(pubkey)) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Private key failed verification against public key");
+
+    return CBitcoinSecret(key).ToString();
+}
+
 extern UniValue dumpprivkey(const JSONRPCRequest& request); // in rpcdump.cpp
 extern UniValue importprivkey(const JSONRPCRequest& request);
 extern UniValue importaddress(const JSONRPCRequest& request);
@@ -2993,6 +3088,13 @@ extern UniValue importwallet(const JSONRPCRequest& request);
 extern UniValue importprunedfunds(const JSONRPCRequest& request);
 extern UniValue removeprunedfunds(const JSONRPCRequest& request);
 extern UniValue importmulti(const JSONRPCRequest& request);
+
+extern UniValue name_new(const JSONRPCRequest& request);
+extern UniValue name_update(const JSONRPCRequest& request);
+extern UniValue name_delete(const JSONRPCRequest& request);
+extern UniValue sendtoname(const JSONRPCRequest& request);
+extern UniValue name_list(const JSONRPCRequest& request);
+extern UniValue name_debug(const JSONRPCRequest& request);
 
 static const CRPCCommand commands[] =
 { //  category              name                        actor (function)           okSafeMode
@@ -3045,6 +3147,17 @@ static const CRPCCommand commands[] =
     { "wallet",             "walletpassphrasechange",   &walletpassphrasechange,   true,   {"oldpassphrase","newpassphrase"} },
     { "wallet",             "walletpassphrase",         &walletpassphrase,         true,   {"passphrase","timeout"} },
     { "wallet",             "removeprunedfunds",        &removeprunedfunds,        true,   {"txid"} },
+
+    // emercoin commands
+    { "wallet",             "makekeypair",              &makekeypair,              true,   {"prefix"} },
+    { "wallet",             "reservebalance",           &reservebalance,           true,   {"prefix"} },
+    { "wallet",             "reencodeoldprivkey",       &reencodeoldprivkey,       true,   {"oldprivkey"} },
+    { "wallet",             "name_new",                 &name_new,                 false,  {"name","value","days","toaddress","valuetype"} },
+    { "wallet",             "name_update",              &name_update,              false,  {"name","value","days","toaddress","valuetype"} },
+    { "wallet",             "name_delete",              &name_delete,              false,  {"name"} },
+    { "wallet",             "sendtoname",               &sendtoname,               false,  {"name","amount","comment","comment-to"} },
+    { "wallet",             "name_list",                &name_list,                true,   {"name","valuetype"} },
+    { "hidden",             "name_debug",               &name_debug,               true,   {} },
 };
 
 void RegisterWalletRPCCommands(CRPCTable &t)
@@ -3054,35 +3167,4 @@ void RegisterWalletRPCCommands(CRPCTable &t)
 
     for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
         t.appendCommand(commands[vcidx].name, &commands[vcidx]);
-}
-
-// ppcoin: make a public-private key pair
-UniValue makekeypair(const UniValue& params, bool fHelp)
-{
-    if (fHelp || params.size() > 1)
-        throw runtime_error(
-            "makekeypair [prefix]\n"
-            "Make a public/private key pair.\n"
-            "[prefix] is optional preferred prefix for the public key.\n");
-
-    string strPrefix = "";
-    if (params.size() > 0)
-        strPrefix = params[0].get_str();
-
-    CKey key;
-    int nCount = 0;
-    do
-    {
-        key.MakeNewKey(false);
-        nCount++;
-    } while (nCount < 10000 && strPrefix != HexStr(key.GetPubKey()).substr(0, strPrefix.size()));
-
-    if (strPrefix != HexStr(key.GetPubKey()).substr(0, strPrefix.size()))
-        return NullUniValue;
-
-    CPrivKey vchPrivKey = key.GetPrivKey();
-    UniValue result(UniValue::VOBJ);
-    result.push_back(Pair("PrivateKey", HexStr<CPrivKey::iterator>(vchPrivKey.begin(), vchPrivKey.end())));
-    result.push_back(Pair("PublicKey", HexStr(key.GetPubKey())));
-    return result;
 }

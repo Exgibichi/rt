@@ -802,9 +802,9 @@ UniValue submitblock(const JSONRPCRequest& request)
     return BIP22ValidationResult(sc.state);
 }
 
-UniValue getauxblock(const UniValue& params, bool fHelp)
+UniValue getauxblock(const JSONRPCRequest& request)
 {
-    if (fHelp || (params.size() != 0 && params.size() != 2))
+    if (request.fHelp || (request.params.size() != 0 && request.params.size() != 2))
         throw runtime_error(
             "getauxblock [<hash> <auxpow>]\n"
             " create a new block"
@@ -820,7 +820,7 @@ UniValue getauxblock(const UniValue& params, bool fHelp)
 
     static map<uint256, std::shared_ptr<CBlock>> mapNewBlock;
 
-    if (params.size() == 0)
+    if (request.params.size() == 0)
     {
         // Update block
         static unsigned int nTransactionsUpdatedLast;
@@ -874,8 +874,8 @@ UniValue getauxblock(const UniValue& params, bool fHelp)
     else
     {
         uint256 hash;
-        hash.SetHex(params[0].get_str());
-        vector<unsigned char> vchAuxPow = ParseHex(params[1].get_str());
+        hash.SetHex(request.params[0].get_str());
+        vector<unsigned char> vchAuxPow = ParseHex(request.params[1].get_str());
         CDataStream ss(vchAuxPow, SER_GETHASH, PROTOCOL_VERSION);
         CAuxPow* pow = new CAuxPow();
         ss.SetType(ss.GetType() | SER_BTC_TX);
@@ -1071,6 +1071,9 @@ static const CRPCCommand commands[] =
     { "mining",             "prioritisetransaction",  &prioritisetransaction,  true,  {"txid","priority_delta","fee_delta"} },
     { "mining",             "getblocktemplate",       &getblocktemplate,       true,  {"template_request"} },
     { "mining",             "submitblock",            &submitblock,            true,  {"hexdata","parameters"} },
+
+    // emercoin command
+    { "mining",             "getauxblock",            &getauxblock,            true,  {"hash","auxpow"} },
 
     { "generating",         "generate",               &generate,               true,  {"nblocks","maxtries"} },
     { "generating",         "generatetoaddress",      &generatetoaddress,      true,  {"nblocks","address","maxtries"} },

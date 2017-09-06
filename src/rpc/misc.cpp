@@ -17,7 +17,6 @@
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h"
 #endif
-#include "checkpoints.h"
 
 #include <stdint.h>
 
@@ -513,77 +512,6 @@ UniValue echo(const JSONRPCRequest& request)
         );
 
     return request.params;
-}
-
-// ppcoin: get information of sync-checkpoint
-UniValue getcheckpoint(const UniValue& params, bool fHelp)
-{
-    if (fHelp || params.size() != 0)
-        throw runtime_error(
-            "getcheckpoint\n"
-            "Show info of synchronized checkpoint.\n");
-
-    UniValue result(UniValue::VOBJ);
-    CBlockIndex* pindexCheckpoint;
-
-    result.push_back(Pair("synccheckpoint", CheckpointsSync::hashSyncCheckpoint.ToString()));
-    pindexCheckpoint = mapBlockIndex[CheckpointsSync::hashSyncCheckpoint];
-    result.push_back(Pair("height", pindexCheckpoint->nHeight));
-    result.push_back(Pair("timestamp", DateTimeStrFormat(pindexCheckpoint->GetBlockTime())));
-
-    if (mapBlockIndex.count(CheckpointsSync::hashPendingCheckpoint))
-    {
-        result.push_back(Pair("pendingsynccheckpoint", CheckpointsSync::hashPendingCheckpoint.ToString()));
-        CBlockIndex* pindexPendingCheckpoint = mapBlockIndex[CheckpointsSync::hashPendingCheckpoint];
-        result.push_back(Pair("pendingheight", pindexPendingCheckpoint->nHeight));
-        result.push_back(Pair("pendingtimestamp", DateTimeStrFormat(pindexPendingCheckpoint->GetBlockTime())));
-    }
-
-    if (IsArgSet("-checkpointkey"))
-        result.push_back(Pair("checkpointmaster", true));
-
-    return result;
-}
-
-// ppcoin: reserve balance from being staked for network protection
-UniValue reservebalance(const UniValue& params, bool fHelp)
-{
-    if (fHelp || params.size() > 2)
-        throw runtime_error(
-            "reservebalance [<reserve> [amount]]\n"
-            "<reserve> is true or false to turn balance reserve on or off.\n"
-            "<amount> is a real and rounded to cent.\n"
-            "Set reserve amount not participating in network protection.\n"
-            "If no parameters provided current setting is printed.\n");
-
-    if (params.size() > 0)
-    {
-        bool fReserve = params[0].get_bool();
-        if (fReserve)
-        {
-            if (params.size() == 1)
-                throw runtime_error("must provide amount to reserve balance.\n");
-            CAmount nAmount = AmountFromValue(params[1]);
-            nAmount = (nAmount / CENT) * CENT;  // round to cent
-            if (nAmount < 0)
-                throw runtime_error("amount cannot be negative.\n");
-            ForceSetArg("-reservebalance", FormatMoney(nAmount));
-        }
-        else
-        {
-            if (params.size() > 1)
-                throw runtime_error("cannot specify amount to turn off reserve.\n");
-            ForceSetArg("-reservebalance", "0");
-        }
-    }
-
-    UniValue result(UniValue::VOBJ);
-    CAmount nReserveBalance = 0;
-    if (IsArgSet("-reservebalance") && !ParseMoney(GetArg("-reservebalance", "0"), nReserveBalance))
-        throw runtime_error("invalid reserve balance amount\n");
-    result.push_back(Pair("reserve", (nReserveBalance > 0)));
-    result.push_back(Pair("amount", ValueFromAmount(nReserveBalance)));
-    return result;
 }
 
 static const CRPCCommand commands[] =

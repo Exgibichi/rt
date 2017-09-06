@@ -1453,73 +1453,36 @@ UniValue reconsiderblock(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-static const CRPCCommand commands[] =
-{ //  category              name                      actor (function)         okSafe argNames
-  //  --------------------- ------------------------  -----------------------  ------ ----------
-    { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      true,  {} },
-    { "blockchain",         "getbestblockhash",       &getbestblockhash,       true,  {} },
-    { "blockchain",         "getblockcount",          &getblockcount,          true,  {} },
-    { "blockchain",         "getblock",               &getblock,               true,  {"blockhash","verbose"} },
-    { "blockchain",         "getblockhash",           &getblockhash,           true,  {"height"} },
-    { "blockchain",         "getblockheader",         &getblockheader,         true,  {"blockhash","verbose"} },
-    { "blockchain",         "getchaintips",           &getchaintips,           true,  {} },
-    { "blockchain",         "getdifficulty",          &getdifficulty,          true,  {} },
-    { "blockchain",         "getmempoolancestors",    &getmempoolancestors,    true,  {"txid","verbose"} },
-    { "blockchain",         "getmempooldescendants",  &getmempooldescendants,  true,  {"txid","verbose"} },
-    { "blockchain",         "getmempoolentry",        &getmempoolentry,        true,  {"txid"} },
-    { "blockchain",         "getmempoolinfo",         &getmempoolinfo,         true,  {} },
-    { "blockchain",         "getrawmempool",          &getrawmempool,          true,  {"verbose"} },
-    { "blockchain",         "gettxout",               &gettxout,               true,  {"txid","n","include_mempool"} },
-    { "blockchain",         "gettxoutsetinfo",        &gettxoutsetinfo,        true,  {} },
-    { "blockchain",         "pruneblockchain",        &pruneblockchain,        true,  {"height"} },
-    { "blockchain",         "verifychain",            &verifychain,            true,  {"checklevel","nblocks"} },
-
-    { "blockchain",         "preciousblock",          &preciousblock,          true,  {"blockhash"} },
-
-    /* Not shown in help */
-    { "hidden",             "invalidateblock",        &invalidateblock,        true,  {"blockhash"} },
-    { "hidden",             "reconsiderblock",        &reconsiderblock,        true,  {"blockhash"} },
-    { "hidden",             "waitfornewblock",        &waitfornewblock,        true,  {"timeout"} },
-    { "hidden",             "waitforblock",           &waitforblock,           true,  {"blockhash","timeout"} },
-    { "hidden",             "waitforblockheight",     &waitforblockheight,     true,  {"height","timeout"} },
-};
-
-void RegisterBlockchainRPCCommands(CRPCTable &t)
+UniValue gettxlistfor(const JSONRPCRequest& request)
 {
-    for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
-        t.appendCommand(commands[vcidx].name, &commands[vcidx]);
-}
-
-UniValue gettxlistfor(const UniValue& params, bool fHelp)
-{
-    if (fHelp || params.size() < 3 || params.size() > 5)
+    if (request.fHelp || request.params.size() < 3 || request.params.size() > 5)
         throw runtime_error(
-                "gettxlistfor <from block> <to block> <address> [type=0] [verbose=0]\n"
+                "gettxlistfor <fromblock> <toblock> <address> [type=0] [verbose=0]\n"
                 "[type]: 0 - sent/received, 1 - received, 2 - sent\n"
                 "[verbose]: 0 - false, 1 - true\n"
                 );
 
-    int nFromHeight = params[0].get_int();
-    int nToHeight   = params[1].get_int();
+    int nFromHeight = request.params[0].get_int();
+    int nToHeight   = request.params[1].get_int();
     if (nFromHeight < 0 || nFromHeight > nToHeight || nToHeight > chainActive.Height())
         throw runtime_error("<from block> must be less than or equal <to block> AND must be inside blockchain height\n");
 
-    CBitcoinAddress searchAddress(params[2].get_str());
+    CBitcoinAddress searchAddress(request.params[2].get_str());
     if (!searchAddress.IsValid())
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "address not found");
 
     int type = 0;
-    if (params.size() > 3)
+    if (request.params.size() > 3)
     {
-        type = params[3].get_int();
+        type = request.params[3].get_int();
         if (type < 0 || type > 2)
             throw runtime_error("[type] must be between 0 and 2");
     }
 
     bool verbose = false;
-    if (params.size() > 4)
+    if (request.params.size() > 4)
     {
-        verbose = params[4].get_int();
+        verbose = request.params[4].get_int();
         if (verbose < 0 || verbose > 1)
             throw runtime_error("[verbose] must be 0 or 1");
     }
@@ -1650,4 +1613,58 @@ UniValue gettxlistfor(const UniValue& params, bool fHelp)
     }
 
     return res;
+}
+
+extern UniValue name_scan(const JSONRPCRequest& request);
+extern UniValue name_filter(const JSONRPCRequest& request);
+extern UniValue name_show(const JSONRPCRequest& request);
+extern UniValue name_history(const JSONRPCRequest& request);
+extern UniValue name_mempool(const JSONRPCRequest& request);
+extern UniValue gettxlistfor(const JSONRPCRequest& request);
+extern UniValue name_dump(const JSONRPCRequest& request);
+
+static const CRPCCommand commands[] =
+{ //  category              name                      actor (function)         okSafe argNames
+  //  --------------------- ------------------------  -----------------------  ------ ----------
+    { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      true,  {} },
+    { "blockchain",         "getbestblockhash",       &getbestblockhash,       true,  {} },
+    { "blockchain",         "getblockcount",          &getblockcount,          true,  {} },
+    { "blockchain",         "getblock",               &getblock,               true,  {"blockhash","verbose"} },
+    { "blockchain",         "getblockhash",           &getblockhash,           true,  {"height"} },
+    { "blockchain",         "getblockheader",         &getblockheader,         true,  {"blockhash","verbose"} },
+    { "blockchain",         "getchaintips",           &getchaintips,           true,  {} },
+    { "blockchain",         "getdifficulty",          &getdifficulty,          true,  {} },
+    { "blockchain",         "getmempoolancestors",    &getmempoolancestors,    true,  {"txid","verbose"} },
+    { "blockchain",         "getmempooldescendants",  &getmempooldescendants,  true,  {"txid","verbose"} },
+    { "blockchain",         "getmempoolentry",        &getmempoolentry,        true,  {"txid"} },
+    { "blockchain",         "getmempoolinfo",         &getmempoolinfo,         true,  {} },
+    { "blockchain",         "getrawmempool",          &getrawmempool,          true,  {"verbose"} },
+    { "blockchain",         "gettxout",               &gettxout,               true,  {"txid","n","include_mempool"} },
+    { "blockchain",         "gettxoutsetinfo",        &gettxoutsetinfo,        true,  {} },
+    { "blockchain",         "pruneblockchain",        &pruneblockchain,        true,  {"height"} },
+    { "blockchain",         "verifychain",            &verifychain,            true,  {"checklevel","nblocks"} },
+
+    { "blockchain",         "preciousblock",          &preciousblock,          true,  {"blockhash"} },
+
+    /* Not shown in help */
+    { "hidden",             "invalidateblock",        &invalidateblock,        true,  {"blockhash"} },
+    { "hidden",             "reconsiderblock",        &reconsiderblock,        true,  {"blockhash"} },
+    { "hidden",             "waitfornewblock",        &waitfornewblock,        true,  {"timeout"} },
+    { "hidden",             "waitforblock",           &waitforblock,           true,  {"blockhash","timeout"} },
+    { "hidden",             "waitforblockheight",     &waitforblockheight,     true,  {"height","timeout"} },
+
+    // emercoin commands
+    { "blockchain",         "name_scan",              &name_scan,              true,  {} },
+    { "blockchain",         "name_filter",            &name_filter,            true,  {} },
+    { "blockchain",         "name_show",              &name_show,              true,  {} },
+    { "blockchain",         "name_history",           &name_history,           true,  {} },
+    { "blockchain",         "name_mempool",           &name_mempool,           true,  {} },
+    { "blockchain",         "gettxlistfor",           &gettxlistfor,           true,  {} },
+    { "hidden",             "name_dump",              &name_dump,              true,  {} },
+};
+
+void RegisterBlockchainRPCCommands(CRPCTable &t)
+{
+    for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
+        t.appendCommand(commands[vcidx].name, &commands[vcidx]);
 }
