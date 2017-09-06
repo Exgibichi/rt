@@ -124,7 +124,9 @@ Intro::Intro(QWidget *parent) :
     ui->setupUi(this);
     ui->welcomeLabel->setText(ui->welcomeLabel->text().arg(tr(PACKAGE_NAME)));
     ui->storageLabel->setText(ui->storageLabel->text().arg(tr(PACKAGE_NAME)));
-    uint64_t pruneTarget = std::max<int64_t>(0, GetArg("-prune", 0));
+    // emc - disabled until correctly implemented
+    //uint64_t pruneTarget = std::max<int64_t>(0, GetArg("-prune", 0));
+    uint64_t pruneTarget = 0;
     requiredSpace = BLOCK_CHAIN_SIZE;
     if (pruneTarget) {
         uint64_t prunedGBs = std::ceil(pruneTarget * 1024 * 1024.0 / GB_BYTES);
