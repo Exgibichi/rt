@@ -152,7 +152,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // ppcoin: if coinstake available add coinstake tx
     static int64_t nLastCoinStakeSearchTime = GetAdjustedTime();  // only initialized at startup
-    CBlockIndex* pindexPrev = chainActive.Tip();  //emc - is it ok to get this value without cs_main lock?
+
+    LOCK2(cs_main, mempool.cs);
+    CBlockIndex* pindexPrev = chainActive.Tip();
 
     if (pwallet)  // attemp to find a coinstake
     {
@@ -182,7 +184,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     else
         pblock->nBits = GetNextTargetRequired(pindexPrev, false, chainparams.GetConsensus());
 
-    LOCK2(cs_main, mempool.cs);
     nHeight = pindexPrev->nHeight + 1;
 
     pblock->nVersion = ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());

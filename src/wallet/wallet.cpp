@@ -2965,22 +2965,21 @@ bool CWallet::CreateNameTx(const CRecipient& recipient, const CWalletTx& wtxName
 typedef std::vector<unsigned char> valtype;
 bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int64_t nSearchInterval, CMutableTransaction& txNew)
 {
-    const Consensus::Params& params = Params().GetConsensus();
-    // The following split & combine thresholds are important to security
-    // Should not be adjusted if you don't understand the consequences
-    static unsigned int nStakeSplitAge = (60 * 60 * 24 * 90);
-    CAmount nPoWReward = GetProofOfWorkReward(GetLastBlockIndex(chainActive.Tip(), false)->nBits);
-    CAmount nCombineThreshold = nPoWReward / 3;
-
-
-    arith_uint256 bnTargetPerCoinDay;
-    bnTargetPerCoinDay.SetCompact(nBits);
-
     // Transaction index is required to get to block header
     if (!fTxIndex)
         return error("CreateCoinStake : transaction index unavailable");
 
+    const Consensus::Params& params = Params().GetConsensus();
+    // The following split & combine thresholds are important to security
+    // Should not be adjusted if you don't understand the consequences
+    static unsigned int nStakeSplitAge = (60 * 60 * 24 * 90);
     LOCK2(cs_main, cs_wallet);
+    CAmount nPoWReward = GetProofOfWorkReward(GetLastBlockIndex(chainActive.Tip(), false)->nBits);
+    CAmount nCombineThreshold = nPoWReward / 3;
+
+    arith_uint256 bnTargetPerCoinDay;
+    bnTargetPerCoinDay.SetCompact(nBits);
+
     txNew.vin.clear();
     txNew.vout.clear();
     // Mark coin stake transaction
