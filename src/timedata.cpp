@@ -18,7 +18,9 @@
 #include <boost/foreach.hpp>
 
 static CCriticalSection cs_nTimeOffset;
-static int64_t nTimeOffset = 0;
+
+static volatile int64_t nTimeOffset =  0;		
+static volatile int     nUpdCount   = ~0;
 
 /**
  * "Never go to sea with two chronometers; take one or three."
@@ -28,9 +30,14 @@ static int64_t nTimeOffset = 0;
  *  - The user (asking the user to fix the system clock if the first two disagree)
  */
 int64_t GetTimeOffset()
-{
-    LOCK(cs_nTimeOffset);
-    return nTimeOffset;
+{ 
+  int64_t offset;
+  int     cnt1;
+  do {		
+    cnt1    = nUpdCount;		
+    offset  = nTimeOffset;		
+  } while(cnt1 != nUpdCount || cnt1 > 0);		
+  return offset;
 }
 
 int64_t GetAdjustedTime()
@@ -77,18 +84,18 @@ void AddTimeData(const CNetAddr& ip, int64_t nOffsetSample)
     // So we should hold off on fixing this and clean it up as part of
     // a timing cleanup that strengthens it in a number of other ways.
     //
-    if (vTimeOffsets.size() >= 5 && vTimeOffsets.size() % 2 == 1)
+    
+    size_t vlen = vTimeOffsets.size();
+    if (vTimeOffsets.size() >= 5)
     {
-        int64_t nMedian = vTimeOffsets.median();
         std::vector<int64_t> vSorted = vTimeOffsets.sorted();
+	unsigned midpoint = vlen >> 1;
+	// If vTimeOffsets.size is even, median=average(midpoint, midpoint-1)
+        int64_t nMedian = (vSorted[midpoint] + vSorted[midpoint - (~vlen & 1)]) >> 1;
         // Only let other nodes change our time by so much
-        if (abs64(nMedian) <= std::max<int64_t>(0, GetArg("-maxtimeadjustment", DEFAULT_MAX_TIME_ADJUSTMENT)))
+        if (abs64(nMedian) > std::max<int64_t>(0, GetArg("-maxtimeadjustment", DEFAULT_MAX_TIME_ADJUSTMENT)))
         {
-            nTimeOffset = nMedian;
-        }
-        else
-        {
-            nTimeOffset = 0;
+            nMedian = 0;
 
             static bool fDone;
             if (!fDone)
@@ -108,11 +115,16 @@ void AddTimeData(const CNetAddr& ip, int64_t nOffsetSample)
                 }
             }
         }
-        
+       
+	// Lock-free update nTimeOffset
+        nUpdCount = -nUpdCount;
+        nTimeOffset = nMedian;
+        nUpdCount = ~nUpdCount | 0xe0000000;
+
         BOOST_FOREACH(int64_t n, vSorted)
             LogPrint("net", "%+d  ", n);
         LogPrint("net", "|  ");
         
-        LogPrint("net", "nTimeOffset = %+d  (%+d minutes)\n", nTimeOffset, nTimeOffset/60);
+        LogPrint("net", "nTimeOffset = %+d  (%+d minutes)\n", nMedian, nMedian/60);
     }
 }
