@@ -153,7 +153,6 @@ BITCOIN_CORE_H = \
   utiltime.h \
   validation.h \
   validationinterface.h \
-  versionbits.h \
   wallet/coincontrol.h \
   wallet/crypter.h \
   wallet/db.h \
@@ -220,7 +219,6 @@ libbitcoin_server_a_SOURCES = \
   ui_interface.cpp \
   validation.cpp \
   validationinterface.cpp \
-  versionbits.cpp \
 ## --- ppcoin and emercoin sources start from this line --- ##
   kernel.cpp \
   namecoin.cpp \

@@ -94,9 +94,7 @@ public:
 
     void SetNull()
     {
-        //emc - Should we add this? In new btc client code was rewriten to set nVersion = 0
-        // nVersion = CBlockHeader::CURRENT_VERSION | (AUXPOW_CHAIN_ID * BLOCK_VERSION_CHAIN_START);
-        nVersion = 0;
+        nVersion = CBlockHeader::CURRENT_VERSION | (AUXPOW_CHAIN_ID * BLOCK_VERSION_CHAIN_START);
         hashPrevBlock.SetNull();
         hashMerkleRoot.SetNull();
         nTime = 0;
