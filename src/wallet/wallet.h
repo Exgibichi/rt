@@ -45,7 +45,7 @@ extern bool fWalletUnlockMintOnly;
 
 static const unsigned int DEFAULT_KEYPOOL_SIZE = 500;
 //! -paytxfee default
-static const CAmount DEFAULT_TRANSACTION_FEE = MIN_TX_FEE;
+static const CAmount DEFAULT_TRANSACTION_FEE = MIN_TX_FEE / 10; // per 1kb
 //! -fallbackfee default
 static const CAmount DEFAULT_FALLBACK_FEE = 20000;
 //! -mintxfee default

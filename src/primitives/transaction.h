@@ -233,7 +233,8 @@ public:
 
     bool IsDust(const CFeeRate &minRelayTxFee) const
     {
-        return (nValue < GetDustThreshold(minRelayTxFee));
+        // return (nValue < GetDustThreshold(minRelayTxFee));
+        return false; // there is no dust in emercoin
     }
 
     friend bool operator==(const CTxOut& a, const CTxOut& b)

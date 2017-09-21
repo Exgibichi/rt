@@ -34,7 +34,7 @@ CAmount CFeeRate::GetFee(size_t nBytes_) const
             nFee = CAmount(-1);
     }
 
-    return nFee;
+    return std::max(nFee, GetMinFee(nSize));
 }
 
 std::string CFeeRate::ToString() const
@@ -45,8 +45,7 @@ std::string CFeeRate::ToString() const
 CAmount GetMinFee(size_t nBytes)
 {
     // Base fee is either MIN_TX_FEE or MIN_RELAY_TX_FEE
-    CAmount nBaseFee = SUBCENT;
-
+    CAmount nBaseFee = MIN_TX_FEE;
     CAmount nMinFee = (1 + nBytes / (10 * 1024)) * nBaseFee; // 1 subcent per 10 kb of data
 
     if (!MoneyRange(nMinFee))

@@ -2839,7 +2839,7 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
                 //     return false;
                 // }
 
-                // emercoin: check that enough fee is included (at least MIN_TX_FEE per 1000 bytes)
+                // emercoin: check that enough fee is included (at least MIN_TX_FEE per 10 kb)
                 CAmount nMinFee = max(nFeeInput, wtxNew.tx->GetMinFee());
                 if (nFeeRet < nMinFee)
                 {
@@ -4011,8 +4011,6 @@ std::string CWallet::GetWalletHelpString(bool showDebug)
                                                             CURRENCY_UNIT, FormatMoney(payTxFee.GetFeePerK())));
     strUsage += HelpMessageOpt("-rescan", _("Rescan the block chain for missing wallet transactions on startup"));
     strUsage += HelpMessageOpt("-salvagewallet", _("Attempt to recover private keys from a corrupt wallet on startup"));
-    if (showDebug)
-        strUsage += HelpMessageOpt("-sendfreetransactions", strprintf(_("Send transactions as zero-fee transactions if possible (default: %u)"), DEFAULT_SEND_FREE_TRANSACTIONS));
     strUsage += HelpMessageOpt("-spendzeroconfchange", strprintf(_("Spend unconfirmed change when sending transactions (default: %u)"), DEFAULT_SPEND_ZEROCONF_CHANGE));
     strUsage += HelpMessageOpt("-txconfirmtarget=<n>", strprintf(_("If paytxfee is not set, include enough fee so transactions begin confirmation on average within n blocks (default: %u)"), DEFAULT_TX_CONFIRM_TARGET));
     strUsage += HelpMessageOpt("-usehd", _("Use hierarchical deterministic key generation (HD) after BIP32. Only has effect during wallet creation/first start") + " " + strprintf(_("(default: %u)"), DEFAULT_USE_HD_WALLET));
@@ -4309,7 +4307,7 @@ bool CWallet::ParameterInteraction()
                         _("This is the transaction fee you will pay if you send a transaction."));
 
         payTxFee = CFeeRate(nFeePerK, 1000);
-        if (payTxFee < ::minRelayTxFee || payTxFee.GetFeePerK() < MIN_TX_FEE)
+        if (payTxFee < ::minRelayTxFee || payTxFee.GetFeePerK() < MIN_TX_FEE / 10)
         {
             return InitError(strprintf(_("Invalid amount for -paytxfee=<amount>: '%s' (must be at least %s)"),
                                        GetArg("-paytxfee", ""), ::minRelayTxFee.ToString()));
@@ -4337,7 +4335,7 @@ bool CWallet::ParameterInteraction()
     }
     nTxConfirmTarget = GetArg("-txconfirmtarget", DEFAULT_TX_CONFIRM_TARGET);
     bSpendZeroConfChange = GetBoolArg("-spendzeroconfchange", DEFAULT_SPEND_ZEROCONF_CHANGE);
-    fSendFreeTransactions = GetBoolArg("-sendfreetransactions", DEFAULT_SEND_FREE_TRANSACTIONS);
+    fSendFreeTransactions = DEFAULT_SEND_FREE_TRANSACTIONS;  // disabled in emercoin
     fWalletRbf = GetBoolArg("-walletrbf", DEFAULT_WALLET_RBF);
 
     if (fSendFreeTransactions && GetArg("-limitfreerelay", DEFAULT_LIMITFREERELAY) <= 0)
@@ -4441,7 +4439,7 @@ int CMerkleTx::GetBlocksToMaturity() const
 
 bool CMerkleTx::AcceptToMemoryPool(const CAmount& nAbsurdFee, CValidationState& state)
 {
-    return ::AcceptToMemoryPool(mempool, state, tx, true, NULL, NULL, false, nAbsurdFee);
+    return ::AcceptToMemoryPool(mempool, state, tx, NULL, NULL, false, nAbsurdFee);
 }
 
 static void SendMoneyCheck(const CAmount& nValue, const CAmount& curBalance)

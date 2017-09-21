@@ -254,10 +254,11 @@ QString formatBitcoinURI(const SendCoinsRecipient &info)
 
 bool isDust(const QString& address, const CAmount& amount)
 {
-    CTxDestination dest = CBitcoinAddress(address.toStdString()).Get();
-    CScript script = GetScriptForDestination(dest);
-    CTxOut txOut(amount, script);
-    return txOut.IsDust(dustRelayFee);
+//    CTxDestination dest = CBitcoinAddress(address.toStdString()).Get();
+//    CScript script = GetScriptForDestination(dest);
+//    CTxOut txOut(amount, script);
+//    return txOut.IsDust(dustRelayFee);
+    return false; // there is no dust in emercoin
 }
 
 QString HtmlEscape(const QString& str, bool fMultiLine)
