@@ -425,6 +425,13 @@ public:
     {
         return nVersion & 0xff;
     }
+
+    /**
+     * Returns true if there are nRequired or more blocks of minVersion or above
+     * in the last Params().ToCheckBlockUpgradeMajority() blocks, starting at pstart
+     * and going backwards.
+     */
+    static bool IsSuperMajority(int minVersion, const CBlockIndex* pstart, unsigned int nRequired, const Consensus::Params& params);
 };
 
 arith_uint256 GetBlockTrust(const CBlockIndex& block);

@@ -43,6 +43,11 @@ struct Params {
     int64_t nStakeMinAge;
     int64_t nStakeMaxAge;
     int64_t nStakeModifierInterval;
+
+    /** Used to check majorities for block version upgrade */
+    int nEnforceBlockUpgradeMajority;
+    int nRejectBlockOutdatedMajority;
+    int nToCheckBlockUpgradeMajority;
 };
 } // namespace Consensus
 

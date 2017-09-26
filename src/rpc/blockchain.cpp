@@ -1131,8 +1131,15 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
     softforks.push_back(SoftForkDesc("bip34", 2, tip, consensusParams));
     softforks.push_back(SoftForkDesc("bip66", 3, tip, consensusParams));
     softforks.push_back(SoftForkDesc("bip65", 4, tip, consensusParams));
-    //emc add description for csv and segwit - probably by using SoftForkDesc
-    obj.push_back(Pair("softforks",             softforks));
+    obj.push_back(Pair("softforks", softforks));
+
+    UniValue bip9_softforks(UniValue::VOBJ);
+    string status = IsV7Enabled(tip, consensusParams) ? "active" : "defined";
+    UniValue tmp(UniValue::VOBJ);
+    tmp.push_back(Pair("status", status));
+    bip9_softforks.push_back(Pair("csv", tmp));
+    bip9_softforks.push_back(Pair("segwit", tmp));
+    obj.push_back(Pair("bip9_softforks", bip9_softforks));
 
     if (fPruneMode)
     {

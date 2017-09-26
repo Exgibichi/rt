@@ -99,6 +99,10 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00000000000000000013176bf8d7dfeab4e1db31dc93bc311b436e82ab226b90"); //453354
 
+        consensus.nEnforceBlockUpgradeMajority = 750;
+        consensus.nRejectBlockOutdatedMajority = 950;
+        consensus.nToCheckBlockUpgradeMajority = 1000;
+
         /**
          * The message start string is designed to be unlikely to occur in normal data.
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
@@ -191,6 +195,10 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00000000000128796ee387cf110ccb9d2f36cffaf7f73079c995377c65ac0dcc"); //1079274
 
+        consensus.nEnforceBlockUpgradeMajority = 51;
+        consensus.nRejectBlockOutdatedMajority = 75;
+        consensus.nToCheckBlockUpgradeMajority = 100;
+
         pchMessageStart[0] = 0xcb;
         pchMessageStart[1] = 0xf2;
         pchMessageStart[2] = 0xc0;
@@ -220,7 +228,6 @@ public:
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
         fMineBlocksOnDemand = false;
-
 
         checkpointData = (CCheckpointData) {
             boost::assign::map_list_of
@@ -270,6 +277,10 @@ public:
 
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00");
+
+        consensus.nEnforceBlockUpgradeMajority = 750;
+        consensus.nRejectBlockOutdatedMajority = 950;
+        consensus.nToCheckBlockUpgradeMajority = 1000;
 
         pchMessageStart[0] = 0xcb;
         pchMessageStart[1] = 0xf2;

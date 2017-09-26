@@ -197,3 +197,16 @@ CBlockHeader CBlockIndex::GetBlockHeader() const
     block.nFlags         = nFlags;
     return block;
 }
+
+bool CBlockIndex::IsSuperMajority(int minVersion, const CBlockIndex* pstart, unsigned int nRequired, const Consensus::Params& params)
+{
+    unsigned int nToCheck = params.nToCheckBlockUpgradeMajority;
+    unsigned int nFound = 0;
+    for (unsigned int i = 0; i < nToCheck && nFound < nRequired && pstart != NULL; i++)
+    {
+        if (pstart->GetBlockVersion() >= minVersion)
+            ++nFound;
+        pstart = pstart->pprev;
+    }
+    return (nFound >= nRequired);
+}
