@@ -96,9 +96,6 @@ static bool SelectBlockFromCandidates(
                 itemSelected = &item;
 	    }
 	}
-
-        if (pindex->GetBlockTime() > nSelectionIntervalStop)
-            break;
     } // for
  
     if(itemSelected) {
