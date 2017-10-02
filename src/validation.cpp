@@ -4109,6 +4109,8 @@ bool InitBlockIndex(const CChainParams& chainparams)
             if (!WriteBlockToDisk(block, blockPos, chainparams.MessageStart()))
                 return error("LoadBlockIndex(): writing genesis block to disk failed");
             CBlockIndex *pindex = AddToBlockIndex(block);
+            // emercoin: calculate pindex->nFlags for genesis block before doing FlushStateToDisk()
+            ppcoinContextualBlockChecks(block, state, pindex, false);
             if (!ReceivedBlockTransactions(block, state, pindex, blockPos))
                 return error("LoadBlockIndex(): genesis block not accepted");
             // ppcoin: initialize synchronized checkpoint
