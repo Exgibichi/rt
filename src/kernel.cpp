@@ -28,12 +28,12 @@ static bool GetLastStakeModifier(const CBlockIndex* pindex, uint64_t& nStakeModi
     if (!pindex)
         return error("GetLastStakeModifier: null pindex");
     do {
-	if(pindex->GeneratedStakeModifier()) {
+        if (pindex->GeneratedStakeModifier()) {
             nStakeModifier = pindex->nStakeModifier;
             nModifierTime = pindex->GetBlockTime();
             return true;
-	}
-    } while((pindex = pindex->pprev) != NULL);
+        }
+    } while ((pindex = pindex->pprev) != NULL);
     return error("GetLastStakeModifier: no generation at genesis block");
 }
 
@@ -48,10 +48,10 @@ static int64_t GetStakeModifierSelectionIntervalSection(int nSection)
 static int64_t GetStakeModifierSelectionInterval()
 {
     static int64_t nSelectionInterval = -1;
-    if(nSelectionInterval < 0) {
-      nSelectionInterval = 0;
-      for (int nSection=0; nSection<64; nSection++)
-        nSelectionInterval += GetStakeModifierSelectionIntervalSection(nSection);
+    if (nSelectionInterval < 0) {
+        nSelectionInterval = 0;
+        for (int nSection=0; nSection<64; nSection++)
+            nSelectionInterval += GetStakeModifierSelectionIntervalSection(nSection);
     }
     return nSelectionInterval;
 }
@@ -67,19 +67,18 @@ static bool SelectBlockFromCandidates(
     arith_uint256 zero = 0;
     pair<const CBlockIndex*, arith_uint256> *itemSelected = NULL;
 
-    for (auto& item : vSortedByTimestamp)
-    {
+    for (auto& item : vSortedByTimestamp) {
         const CBlockIndex* pindex = item.first;
-	if(pindex == NULL)
-	    continue; // This block already has been selected
+        if (pindex == NULL)
+            continue; // This block already has been selected
 
         if (itemSelected != NULL && pindex->GetBlockTime() > nSelectionIntervalStop)
             break;
 
-	if(itemSelected == NULL || item.second < itemSelected->second) {
+        if (itemSelected == NULL || item.second < itemSelected->second) {
             // compute the selection hash by hashing its proof-hash and the
             // previous proof-of-stake modifier
-	    if(item.second == zero) {
+            if (item.second == zero) {
                 uint256 hashProof = pindex->IsProofOfStake()? pindex->hashProofOfStake : pindex->GetBlockHash();
                 CDataStream ss(SER_GETHASH, 0);
                 ss << hashProof << nStakeModifierPrev;
@@ -90,21 +89,21 @@ static bool SelectBlockFromCandidates(
                 if (pindex->IsProofOfStake())
                     item.second >>= 32;
 
-	        if(itemSelected == NULL || item.second < itemSelected->second) 
-                   itemSelected = &item;
-	    } else {
+                if (itemSelected == NULL || item.second < itemSelected->second)
+                    itemSelected = &item;
+            } else {
                 itemSelected = &item;
-	    }
-	}
+            }
+        }
     } // for
  
-    if(itemSelected) {
+    if (itemSelected) {
         *pindexSelected = itemSelected->first;
-	itemSelected->first = NULL;
-	return true;
+        itemSelected->first = NULL;
+        return true;
     } else {
         *pindexSelected = (const CBlockIndex*) 0;
-	return false;
+        return false;
     }
 
   //  if (fDebug && GetBoolArg("-printstakemodifier", false))
@@ -140,7 +139,7 @@ bool ComputeNextStakeModifier(const CBlockIndex* pindexCurrent, uint64_t& nStake
     if (!GetLastStakeModifier(pindexPrev, nStakeModifier, nModifierTime))
         return error("ComputeNextStakeModifier: unable to get last modifier");
     static int fPrint =-1;
-    if(fPrint < 0) 
+    if (fPrint < 0)
         fPrint = GetBoolArg("-printstakemodifier", false);
 
     if (fPrint)
@@ -180,7 +179,6 @@ bool ComputeNextStakeModifier(const CBlockIndex* pindexCurrent, uint64_t& nStake
         vSortedByTimestamp.push_back(make_pair(pindex, 0));
         pindex = pindex->pprev;
     }
-    // int nHeightFirstCandidate = pindex ? (pindex->nHeight + 1) : 0;
 
     // Shuffle before sort
     for (int i = vSortedByTimestamp.size() - 1; i > 1; --i)
