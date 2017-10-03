@@ -183,21 +183,24 @@ bool ComputeNextStakeModifier(const CBlockIndex* pindexCurrent, uint64_t& nStake
     // int nHeightFirstCandidate = pindex ? (pindex->nHeight + 1) : 0;
 
     // Shuffle before sort
-    for(int i = vSortedByTimestamp.size() - 1; i > 1; --i)
-	std::swap(vSortedByTimestamp[i], vSortedByTimestamp[GetRand(i)]);
+    for (int i = vSortedByTimestamp.size() - 1; i > 1; --i)
+        std::swap(vSortedByTimestamp[i], vSortedByTimestamp[GetRand(i)]);
 
-    sort(vSortedByTimestamp.begin(), vSortedByTimestamp.end(), [] (const pair<const CBlockIndex*, arith_uint256> &a, const pair<const CBlockIndex*, arith_uint256> &b) {
-	if(a.first->GetBlockTime() != b.first->GetBlockTime())
-	  return a.first->GetBlockTime() < b.first->GetBlockTime();
-	// Timestamp equals - compare block hashes
-	const uint32_t *pa = a.first->GetBlockHash().GetDataPtr();
-	const uint32_t *pb = b.first->GetBlockHash().GetDataPtr();
-	int cnt = 256 / 32;
-	do {
-	  --cnt;
-	  if(pa[cnt] != pb[cnt])
-	    return pa[cnt] < pb[cnt];
-	} while(cnt);
+    sort(vSortedByTimestamp.begin(), vSortedByTimestamp.end(), [] (const pair<const CBlockIndex*, arith_uint256> &a, const pair<const CBlockIndex*, arith_uint256> &b)
+    {
+        if (a.first->GetBlockTime() != b.first->GetBlockTime())
+            return a.first->GetBlockTime() < b.first->GetBlockTime();
+        // Timestamp equals - compare block hashes
+        const uint256& ha = a.first->GetBlockHash(); // needed because of weird g++ (5.4.0 20160609) bug
+        const uint256& hb = b.first->GetBlockHash();
+        const uint32_t *pa = ha.GetDataPtr();
+        const uint32_t *pb = hb.GetDataPtr();
+        int cnt = 256 / 32;
+        do {
+            --cnt;
+            if(pa[cnt] != pb[cnt])
+                return pa[cnt] < pb[cnt];
+        } while(cnt);
         return false; // Elements are equal
     });
 
