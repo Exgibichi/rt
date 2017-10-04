@@ -89,11 +89,10 @@ static bool SelectBlockFromCandidates(
                 if (pindex->IsProofOfStake())
                     item.second >>= 32;
 
-                if (itemSelected == NULL || item.second < itemSelected->second)
-                    itemSelected = &item;
-            } else {
-                itemSelected = &item;
+                if (itemSelected != NULL && item.second >= itemSelected->second)
+                    continue;
             }
+            itemSelected = &item;
         }
     } // for
  
@@ -181,8 +180,9 @@ bool ComputeNextStakeModifier(const CBlockIndex* pindexCurrent, uint64_t& nStake
     }
 
     // Shuffle before sort
-    for (int i = vSortedByTimestamp.size() - 1; i > 1; --i)
-        std::swap(vSortedByTimestamp[i], vSortedByTimestamp[GetRand(i)]);
+    uint32_t rnd = GetRand(1 << 30);
+    for (int i = vSortedByTimestamp.size() - 1, j = (i >> 2) | 1; i > j; --i)
+        std::swap(vSortedByTimestamp[i], vSortedByTimestamp[(rnd = rnd * 22695477 + 1) % i]);
 
     sort(vSortedByTimestamp.begin(), vSortedByTimestamp.end(), [] (const pair<const CBlockIndex*, arith_uint256> &a, const pair<const CBlockIndex*, arith_uint256> &b)
     {
