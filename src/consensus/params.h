@@ -33,7 +33,7 @@ struct Params {
     bool fPowAllowMinDifficultyBlocks;
     int64_t nTargetSpacing;
     int64_t nTargetTimespan;
-    uint256 nMinimumChainWork;
+    uint256 nMinimumChainTrust;
     uint256 defaultAssumeValid;
 
     // emercoin stuff:

@@ -1266,7 +1266,7 @@ bool IsInitialBlockDownload()
         return true;
     if (chainActive.Tip() == NULL)
         return true;
-    if (chainActive.Tip()->nChainTrust < UintToArith256(chainParams.GetConsensus().nMinimumChainWork))
+    if (chainActive.Tip()->nChainTrust < UintToArith256(chainParams.GetConsensus().nMinimumChainTrust))
         return true;
     if (chainActive.Tip()->GetBlockTime() < (GetTime() - nMaxTipAge))
         return true;
@@ -1460,10 +1460,11 @@ bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoins
             const COutPoint &prevout = tx.vin[i].prevout;
             const CCoins *coins = inputs.AccessCoins(prevout.hash);
             assert(coins);
-
             // If prev is coinbase, check that it's matured
             if (coins->IsCoinBase() || coins->IsCoinStake()) {
-                if (nSpendHeight - coins->nHeight < COINBASE_MATURITY)
+                // emercoin: at some point we changed coinbase maturity from 12 to 32
+                int cnbMaturity = nSpendHeight > 193912 ? COINBASE_MATURITY : COINBASE_MATURITY_OLD;
+                if (nSpendHeight - coins->nHeight < cnbMaturity)
                     return state.Invalid(false,
                         REJECT_INVALID, "bad-txns-premature-spend-of-coinbase/coinstake",
                         strprintf("tried to spend coinbase/coinstake at depth %d", nSpendHeight - coins->nHeight));
@@ -1902,7 +1903,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
         if (it != mapBlockIndex.end()) {
             if (it->second->GetAncestor(pindex->nHeight) == pindex &&
                 pindexBestHeader->GetAncestor(pindex->nHeight) == pindex &&
-                pindexBestHeader->nChainTrust >= UintToArith256(chainparams.GetConsensus().nMinimumChainWork)) {
+                pindexBestHeader->nChainTrust >= UintToArith256(chainparams.GetConsensus().nMinimumChainTrust)) {
                 // This block is a member of the assumed verified chain and an ancestor of the best header.
                 // The equivalent time check discourages hashpower from extorting the network via DOS attack
                 //  into accepting an invalid block through telling users they must manually set assumevalid.
@@ -1910,7 +1911,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                 //  it hard to hide the implication of the demand.  This also avoids having release candidates
                 //  that are hardly doing any signature verification at all in testing without having to
                 //  artificially set the default assumed verified block further back.
-                // The test against nMinimumChainWork prevents the skipping when denied access to any chain at
+                // The test against nMinimumChainTrust prevents the skipping when denied access to any chain at
                 //  least as good as the expected chain.
                 fScriptChecks = (GetBlockProofEquivalentTime(*pindexBestHeader, *pindex, *pindexBestHeader, chainparams.GetConsensus()) <= 60 * 60 * 24 * 7 * 2);
             }
@@ -2004,12 +2005,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     CAmount nValueIn = 0;
     CAmount nValueOut = 0;
     std::vector<CAmount> vFees (block.vtx.size(), 0);
-    static int trustheight = -1;
-    if (trustheight < 0)
-    {
-        const MapCheckpoints& checkpoints = Params().Checkpoints().mapCheckpoints;
-        trustheight = GetArg("-trustheight", (checkpoints.rbegin())->first - 1);
-    }
 
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
@@ -2063,7 +2058,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
             std::vector<CScriptCheck> vChecks;
             bool fCacheResults = fJustCheck; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
-            if (pindex->nHeight > trustheight && !CheckInputs(tx, state, view, fScriptChecks, flags, fCacheResults, txdata[i], nScriptCheckThreads ? &vChecks : NULL))
+            if (!CheckInputs(tx, state, view, fScriptChecks, flags, fCacheResults, txdata[i], nScriptCheckThreads ? &vChecks : NULL))
                 return error("ConnectBlock(): CheckInputs on %s failed with %s",
                     tx.GetHash().ToString(), FormatStateMessage(state));
             control.Add(vChecks);
@@ -2808,7 +2803,7 @@ bool ResetBlockFailureFlags(CBlockIndex *pindex) {
     return true;
 }
 
-CBlockIndex* AddToBlockIndex(const CBlockHeader& block)
+CBlockIndex* AddToBlockIndex(const CBlockHeader& block, bool bSetAsProofOfstake)
 {
     // Check for duplicate
     uint256 hash = block.GetHash();
@@ -2833,6 +2828,8 @@ CBlockIndex* AddToBlockIndex(const CBlockHeader& block)
         pindexNew->BuildSkip();
     }
     pindexNew->nTimeMax = (pindexNew->pprev ? std::max(pindexNew->pprev->nTimeMax, pindexNew->nTime) : pindexNew->nTime);
+    if (bSetAsProofOfstake)
+        pindexNew->SetProofOfStake();
     pindexNew->nChainTrust = (pindexNew->pprev ? pindexNew->pprev->nChainTrust : 0) + GetBlockTrust(*pindexNew);
     pindexNew->RaiseValidity(BLOCK_VALID_TREE);
     if (pindexBestHeader == NULL || pindexBestHeader->nChainTrust < pindexNew->nChainTrust)
@@ -3335,13 +3332,9 @@ static bool AcceptBlockHeader(const CBlockHeader& block, bool fProofOfStake, CVa
         if (!ContextualCheckBlockHeader(block, fProofOfStake, state, chainparams.GetConsensus(), pindexPrev, GetAdjustedTime()))
             return error("%s: Consensus::ContextualCheckBlockHeader: %s, %s", __func__, hash.ToString(), FormatStateMessage(state));
     }
-    if (pindex == NULL)
-        pindex = AddToBlockIndex(block);
 
-    // emercoin: set PoS flag for CBlockIndex. This should probably be done immediately after we added header to CBlockIndex (i.e., after or inside AddToBlockIndex),
-    // since I do not know when it will flush block index to disk
-    if (fProofOfStake)
-        pindex->SetProofOfStake();
+    if (pindex == NULL)
+        pindex = AddToBlockIndex(block, fProofOfStake);
 
     if (ppindex)
         *ppindex = pindex;
@@ -4108,7 +4101,7 @@ bool InitBlockIndex(const CChainParams& chainparams)
                 return error("LoadBlockIndex(): FindBlockPos failed");
             if (!WriteBlockToDisk(block, blockPos, chainparams.MessageStart()))
                 return error("LoadBlockIndex(): writing genesis block to disk failed");
-            CBlockIndex *pindex = AddToBlockIndex(block);
+            CBlockIndex *pindex = AddToBlockIndex(block, false);
             // emercoin: calculate pindex->nFlags for genesis block before doing FlushStateToDisk()
             ppcoinContextualBlockChecks(block, state, pindex, false);
             if (!ReceivedBlockTransactions(block, state, pindex, blockPos))

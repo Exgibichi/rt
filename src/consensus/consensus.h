@@ -18,6 +18,9 @@ static const unsigned int MAX_BLOCK_BASE_SIZE = 1000000;
 static const int64_t MAX_BLOCK_SIGOPS_COST = 80000;
 /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
 static const int COINBASE_MATURITY = 32;
+// Used until block 193912 on mainNet.
+// It was originaly 12, but value of 20 is ok, because none of the transaction used value below 20
+static const int COINBASE_MATURITY_OLD = 20;
 
 /** Flags for nSequence and nLockTime locks */
 enum {
