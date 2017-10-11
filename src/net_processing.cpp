@@ -1180,10 +1180,9 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         return true;
     }
 
-    // emercoin: set network serialization mode to accept/send PoS headers.
+    // emercoin: set deserialization mode to read PoS flag in headers
+    // serialization mode to encode PoS flags is set in CSerializedNetMsg Make()
     vRecv.SetType(vRecv.GetType() | SER_POSMARKER);
-    //emc - fix outgoing PoS flag enconding
-    //pfrom->ssSend.SetType(pfrom->ssSend.GetType() | SER_POSMARKER);
 
     if (!(pfrom->GetLocalServices() & NODE_BLOOM) &&
               (strCommand == NetMsgType::FILTERLOAD ||
