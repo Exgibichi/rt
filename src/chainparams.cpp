@@ -91,6 +91,9 @@ public:
         consensus.nStakeMaxAge = 60 * 60 * 24 * 90;             // stake age of full weight
         consensus.nStakeModifierInterval = 6 * 60 * 60;         // time to elapse before new modifier is computed
 
+        consensus.nCoinbaseMaturity = 32;
+        consensus.nCoinbaseMaturityOld = 20;  // Used until block 193912 on mainNet.
+
         consensus.fPowAllowMinDifficultyBlocks = false;
 
         // The best chain should have at least this much work.
@@ -186,7 +189,10 @@ public:
         consensus.nTargetSpacingMax = 12 * consensus.nStakeTargetSpacing; // 2 hours
         consensus.nStakeMinAge = 60 * 60 * 24;                  // minimum age for coin age
         consensus.nStakeMaxAge = 60 * 60 * 24 * 90;             // stake age of full weight
-        consensus.nStakeModifierInterval = 6 * 20;              // time to elapse before new modifier is computed
+        consensus.nStakeModifierInterval = 60 * 20;              // time to elapse before new modifier is computed
+
+        consensus.nCoinbaseMaturity = 1;
+        consensus.nCoinbaseMaturityOld = 1;
 
         consensus.fPowAllowMinDifficultyBlocks = true;
 
@@ -270,6 +276,9 @@ public:
         consensus.nStakeMinAge = 60 * 60 * 24;                  // minimum age for coin age
         consensus.nStakeMaxAge = 60 * 60 * 24 * 90;             // stake age of full weight
         consensus.nStakeModifierInterval = 6 * 20;              // time to elapse before new modifier is computed
+
+        consensus.nCoinbaseMaturity = 32;
+        consensus.nCoinbaseMaturityOld = 32;
 
         consensus.fPowAllowMinDifficultyBlocks = true;
 

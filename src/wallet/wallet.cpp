@@ -4431,9 +4431,10 @@ int CMerkleTx::GetDepthInMainChain(const CBlockIndex* &pindexRet) const
 
 int CMerkleTx::GetBlocksToMaturity() const
 {
+    const Consensus::Params& params = Params().GetConsensus();
     if (!(IsCoinBase() || IsCoinStake()))
         return 0;
-    return max(0, (COINBASE_MATURITY+1) - GetDepthInMainChain());
+    return max(0, (params.nCoinbaseMaturity+1) - GetDepthInMainChain());
 }
 
 

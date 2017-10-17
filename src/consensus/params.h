@@ -48,6 +48,10 @@ struct Params {
     int nEnforceBlockUpgradeMajority;
     int nRejectBlockOutdatedMajority;
     int nToCheckBlockUpgradeMajority;
+
+    /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
+    int nCoinbaseMaturity;
+    int nCoinbaseMaturityOld;
 };
 } // namespace Consensus
 
