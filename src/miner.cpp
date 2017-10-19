@@ -126,7 +126,7 @@ void BlockAssembler::resetBlock()
 }
 
 // emercoin: if pwallet != NULL it will attempt to create coinstake
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, CWallet* pwallet)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, CWallet* pwallet, bool* pfPoSCancel)
 {
     int64_t nTimeStart = GetTimeMicros();
 
@@ -158,7 +158,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     if (pwallet)  // attemp to find a coinstake
     {
-        bool fPoSCancel = true;
+        *pfPoSCancel = true;
         pblock->nBits = GetNextTargetRequired(pindexPrev, true, chainparams.GetConsensus());
         CMutableTransaction txCoinStake;
         int64_t nSearchTime = txCoinStake.nTime; // search to current time
@@ -172,14 +172,14 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                     coinbaseTx.vout[0].SetEmpty();
                     coinbaseTx.nTime = txCoinStake.nTime;
                     pblock->vtx.push_back(MakeTransactionRef(CTransaction(txCoinStake)));
-                    fPoSCancel = false;
+                    *pfPoSCancel = false;
                 }
             }
             nLastCoinStakeSearchInterval = nSearchTime - nLastCoinStakeSearchTime;
             nLastCoinStakeSearchTime = nSearchTime;
         }
-        if (fPoSCancel)
-            return NULL; // emercoin: there is no point to continue if we failed to create coinstake
+        if (*pfPoSCancel)
+            return nullptr; // emercoin: there is no point to continue if we failed to create coinstake
     }
     else
         pblock->nBits = GetNextTargetRequired(pindexPrev, false, chainparams.GetConsensus());
@@ -764,9 +764,15 @@ void PoSMiner(CWallet *pwallet)
             //
             CBlockIndex* pindexPrev = chainActive.Tip();
 
-            std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, true, pwalletMain));
+            bool fPoSCancel = false;
+            std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, true, pwalletMain, &fPoSCancel));
             if (!pblocktemplate.get())
             {
+                if (fPoSCancel == true)
+                {
+                    MilliSleep(pos_timio);
+                    continue;
+                }
                 LogPrintf("Error in EmercoinMiner: Keypool ran out, please call keypoolrefill before restarting the mining thread\n");
                 return;
             }

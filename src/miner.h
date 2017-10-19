@@ -166,7 +166,7 @@ public:
     BlockAssembler(const CChainParams& chainparams);
     /** Construct a new block template with coinbase to scriptPubKeyIn */
     // emercoin: if pwallet != NULL it will attempt to create coinstake
-    std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx=true, CWallet *pwallet=NULL);
+    std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx=true, CWallet* pwallet=nullptr, bool* pfPoSCancel=nullptr);
 
 private:
     // utility functions
