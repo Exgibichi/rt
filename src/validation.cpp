@@ -3195,7 +3195,6 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
 
     // Reject outdated version blocks when 95% (75% on testnet) of the network has upgraded:
     // check for version 2, 3 and 4 upgrades
-    //emc set these values
     if((block.GetBlockVersion() < 2 && nHeight >= consensusParams.BIP34Height) ||
        (block.GetBlockVersion() < 3 && nHeight >= consensusParams.BIP66Height) ||
        (block.GetBlockVersion() < 4 && nHeight >= consensusParams.BIP65Height) ||

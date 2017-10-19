@@ -153,7 +153,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // ppcoin: if coinstake available add coinstake tx
     static int64_t nLastCoinStakeSearchTime = GetAdjustedTime();  // only initialized at startup
 
-    LOCK2(cs_main, mempool.cs);
+    LOCK(cs_main);
     CBlockIndex* pindexPrev = chainActive.Tip();
 
     if (pwallet)  // attemp to find a coinstake
@@ -183,6 +183,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
     else
         pblock->nBits = GetNextTargetRequired(pindexPrev, false, chainparams.GetConsensus());
+
+    LOCK(mempool.cs);
 
     nHeight = pindexPrev->nHeight + 1;
 
