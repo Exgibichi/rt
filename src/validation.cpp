@@ -1972,13 +1972,14 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
     // Start enforcing BIP68 (sequence locks) and BIP112 (CHECKSEQUENCEVERIFY)
     int nLockTimeFlags = 0;
-    if (block.GetBlockVersion() >= 7 && IsV7Enabled(pindex->pprev, chainparams.GetConsensus())) {
+    bool fV7Enabled = block.GetBlockVersion() >= 7 && IsV7Enabled(pindex->pprev, chainparams.GetConsensus());
+    if (fV7Enabled) {
         flags |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
         nLockTimeFlags |= LOCKTIME_VERIFY_SEQUENCE;
     }
 
     // Start enforcing WITNESS rules
-    if (block.GetBlockVersion() >= 7 && IsV7Enabled(pindex->pprev, chainparams.GetConsensus())) {
+    if (fV7Enabled) {
         flags |= SCRIPT_VERIFY_WITNESS;
         flags |= SCRIPT_VERIFY_NULLDUMMY;
     }
@@ -3108,7 +3109,7 @@ static bool CheckIndexAgainstCheckpoint(const CBlockIndex* pindexPrev, CValidati
 /** Check whether witness commitments, BIP68, BIP112 and BIP113 are required for block. */
 bool IsV7Enabled(const CBlockIndex* pindexPrev, const Consensus::Params& params)
 {
-    LOCK(cs_main);
+    AssertLockHeld(cs_main);
     return CBlockIndex::IsSuperMajority(7, pindexPrev, params.nRejectBlockOutdatedMajority, params);
 }
 
@@ -3218,7 +3219,8 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
 
     // Start enforcing BIP113 (Median Time Past)
     int nLockTimeFlags = 0;
-    if (block.GetBlockVersion() >= 7 && IsV7Enabled(pindexPrev, consensusParams)) {
+    bool fV7Enabled = block.GetBlockVersion() >= 7 && IsV7Enabled(pindexPrev, consensusParams);
+    if (fV7Enabled) {
         nLockTimeFlags |= LOCKTIME_MEDIAN_TIME_PAST;
     }
 
@@ -3252,7 +3254,7 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
     //   {0xaa, 0x21, 0xa9, 0xed}, and the following 32 bytes are SHA256^2(witness root, witness nonce). In case there are
     //   multiple, the last one is used.
     bool fHaveWitness = false;
-    if (block.GetBlockVersion() >= 7 && IsV7Enabled(pindexPrev, consensusParams)) {
+    if (fV7Enabled) {
         int commitpos = GetWitnessCommitmentIndex(block);
         if (commitpos != -1) {
             bool malleated = false;
