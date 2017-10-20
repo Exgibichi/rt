@@ -2049,7 +2049,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         CNodeState *nodestate = State(pfrom->GetId());
 
-        if (IsV7Enabled(pindex->pprev, chainparams.GetConsensus()) && !nodestate->fSupportsDesiredCmpctVersion) {
+        if (!nodestate->fSupportsDesiredCmpctVersion && IsV7Enabled(pindex->pprev, chainparams.GetConsensus())) {
             // Don't bother trying to process compact blocks from v1 peers
             // after segwit activates.
             return true;
@@ -2342,7 +2342,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             while (pindexWalk && !chainActive.Contains(pindexWalk) && vToFetch.size() <= MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
                 if (!(pindexWalk->nStatus & BLOCK_HAVE_DATA) &&
                         !mapBlocksInFlight.count(pindexWalk->GetBlockHash()) &&
-                        (!IsV7Enabled(pindexWalk->pprev, chainparams.GetConsensus()) || State(pfrom->GetId())->fHaveWitness)) {
+                        ( State(pfrom->GetId())->fHaveWitness || !IsV7Enabled(pindexWalk->pprev, chainparams.GetConsensus()) )) {
                     // We don't have this block, and it's not yet in flight.
                     vToFetch.push_back(pindexWalk);
                 }

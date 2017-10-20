@@ -2852,7 +2852,7 @@ bool ReceivedBlockTransactions(const CBlock &block, CValidationState& state, CBl
     pindexNew->nDataPos = pos.nPos;
     pindexNew->nUndoPos = 0;
     pindexNew->nStatus |= BLOCK_HAVE_DATA;
-    if (IsV7Enabled(pindexNew->pprev, Params().GetConsensus())) {
+    if (block.nVersion >= 7 && IsV7Enabled(pindexNew->pprev, Params().GetConsensus())) {
         pindexNew->nStatus |= BLOCK_OPT_WITNESS;
     }
     pindexNew->RaiseValidity(BLOCK_VALID_TRANSACTIONS);
@@ -3132,7 +3132,7 @@ void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPr
 {
     int commitpos = GetWitnessCommitmentIndex(block);
     static const std::vector<unsigned char> nonce(32, 0x00);
-    if (commitpos != -1 && IsV7Enabled(pindexPrev, consensusParams) && !block.vtx[0]->HasWitness()) {
+    if (commitpos != -1 && block.nVersion >= 7 && IsV7Enabled(pindexPrev, consensusParams) && !block.vtx[0]->HasWitness()) {
         CMutableTransaction tx(*block.vtx[0]);
         tx.vin[0].scriptWitness.stack.resize(1);
         tx.vin[0].scriptWitness.stack[0] = nonce;
@@ -3952,7 +3952,7 @@ bool RewindBlockIndex(const CChainParams& params)
 
     int nHeight = 1;
     while (nHeight <= chainActive.Height()) {
-        if (IsV7Enabled(chainActive[nHeight - 1], params.GetConsensus()) && !(chainActive[nHeight]->nStatus & BLOCK_OPT_WITNESS)) {
+        if (!(chainActive[nHeight]->nStatus & BLOCK_OPT_WITNESS) && IsV7Enabled(chainActive[nHeight - 1], params.GetConsensus())) {
             break;
         }
         nHeight++;
@@ -3989,7 +3989,7 @@ bool RewindBlockIndex(const CChainParams& params)
         // this block or some successor doesn't HAVE_DATA, so we were unable to
         // rewind all the way.  Blocks remaining on chainActive at this point
         // must not have their validity reduced.
-        if (IsV7Enabled(pindexIter->pprev, params.GetConsensus()) && !(pindexIter->nStatus & BLOCK_OPT_WITNESS) && !chainActive.Contains(pindexIter)) {
+        if (!(pindexIter->nStatus & BLOCK_OPT_WITNESS) && !chainActive.Contains(pindexIter) && IsV7Enabled(pindexIter->pprev, params.GetConsensus())) {
             // Reduce validity
             pindexIter->nStatus = std::min<unsigned int>(pindexIter->nStatus & BLOCK_VALID_MASK, BLOCK_VALID_TREE) | (pindexIter->nStatus & ~BLOCK_VALID_MASK);
             // Remove have-data flags.
