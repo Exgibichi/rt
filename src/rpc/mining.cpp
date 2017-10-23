@@ -719,7 +719,7 @@ UniValue submitblock(const JSONRPCRequest& request)
     {
         LOCK(cs_main);
         BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
-        if (mi != mapBlockIndex.end()) {
+        if (mi != mapBlockIndex.end() && block.nVersion >= 7 && IsV7Enabled(mi->second, Params().GetConsensus())) {
             UpdateUncommittedBlockStructures(block, mi->second, Params().GetConsensus());
         }
     }
