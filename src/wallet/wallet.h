@@ -838,7 +838,6 @@ public:
     bool DummySignTx(CMutableTransaction &txNew, const ContainerType &coins);
 
     static CFeeRate minTxFee;
-    static CFeeRate fallbackFee;
     /**
      * Estimate the minimum fee considering user set parameters
      * and the required fee

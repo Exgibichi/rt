@@ -866,16 +866,6 @@ TxMempoolInfo CTxMemPool::info(const uint256& hash) const
     return GetInfo(i);
 }
 
-CFeeRate CTxMemPool::estimateFee(int nBlocks) const
-{
-    LOCK(cs);
-    return minerPolicyEstimator->estimateFee(nBlocks);
-}
-CFeeRate CTxMemPool::estimateSmartFee(int nBlocks, int *answerFoundAtBlocks) const
-{
-    LOCK(cs);
-    return minerPolicyEstimator->estimateSmartFee(nBlocks, answerFoundAtBlocks, *this);
-}
 double CTxMemPool::estimatePriority(int nBlocks) const
 {
     LOCK(cs);
