@@ -158,12 +158,12 @@ CAmount GetNameOpFee(const CBlockIndex* pindex, const int nRentalDays, int op, c
     txMinFee += CENT - 1;
     txMinFee = (txMinFee / CENT) * CENT;
 
-    // reduce fee by 100 in 0.6.3emc
-    if (pindex->nHeight >= Params().GetConsensus().MinFeeHeight)
-        txMinFee = txMinFee / 100;
+    // reduce fee by 100 in 0.7.0emc
+    bool fV7Enabled = pindex->GetBlockVersion() >= 7 && IsV7Enabled(pindex->pprev, Params().GetConsensus());
+    if (fV7Enabled) txMinFee = txMinFee / 100;
 
     // Fee should be at least MIN_TX_FEE
-    txMinFee = max(txMinFee, MIN_TX_FEE);
+    txMinFee = max(txMinFee, fV7Enabled ? MIN_TX_FEE : CENT);
 
     return txMinFee;
 }
@@ -1213,8 +1213,9 @@ NameTxReturn name_operation(const int op, const CNameVal& name, CNameVal value, 
         }
 
     // set fee and send!
+        bool fV7Enabled = chainActive.Tip()->GetBlockVersion() >= 7 && IsV7Enabled(chainActive.Tip(), Params().GetConsensus());
         CAmount nameFee = GetNameOpFee(chainActive.Tip(), nRentalDays, op, name, value);
-        SendName(nameScript, MIN_TXOUT_AMOUNT, wtx, wtxIn, nameFee);
+        SendName(nameScript, fV7Enabled ? MIN_TXOUT_AMOUNT : CENT, wtx, wtxIn, nameFee);
     }
 
     //success! collect info and return

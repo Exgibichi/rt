@@ -26,8 +26,6 @@ struct Params {
     int BIP66Height;
     /** Block height at which merged mining becomes active */
     int MMHeight;
-    /** Block height at which min tx fee was changed */
-    int MinFeeHeight;
     /** Proof of work parameters */
     uint256 powLimit;
     bool fPowAllowMinDifficultyBlocks;
@@ -45,7 +43,6 @@ struct Params {
     int64_t nStakeModifierInterval;
 
     /** Used to check majorities for block version upgrade */
-    int nEnforceBlockUpgradeMajority;
     int nRejectBlockOutdatedMajority;
     int nToCheckBlockUpgradeMajority;
 

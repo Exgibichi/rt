@@ -2586,6 +2586,7 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
         set<pair<const CWalletTx*,unsigned int> > setCoins;
         LOCK2(cs_main, cs_wallet);
         {
+            CAmount nMinOut = GetMinTxOut(chainActive.Tip()->GetBlockVersion(), chainActive.Tip());
             std::vector<COutput> vAvailableCoins;
             AvailableCoins(vAvailableCoins, true, coinControl, wtxNew.tx->nTime);
 
@@ -2678,7 +2679,7 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
                 }
 
                 // ppcoin: sub-cent change is moved to fee
-                if (nChange > 0 && nChange < MIN_TXOUT_AMOUNT)
+                if (nChange > 0 && nChange < nMinOut)
                 {
                     nFeeRet += nChange;
                     nChange = 0;

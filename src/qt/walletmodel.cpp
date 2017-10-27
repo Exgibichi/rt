@@ -225,6 +225,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
     int nAddresses = 0;
 
     // Pre-check input data for validity
+    CAmount minOut = GetMinTxOutLOCKED(chainActive.Tip()->GetBlockVersion(), chainActive.Tip());
     Q_FOREACH(const SendCoinsRecipient &rcp, recipients)
     {
         if (rcp.fSubtractFeeFromAmount)
@@ -237,7 +238,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             for (int i = 0; i < details.outputs_size(); i++)
             {
                 const payments::Output& out = details.outputs(i);
-                if (out.amount() < MIN_TXOUT_AMOUNT)
+                if (out.amount() < (uint64_t)minOut) // should be ok, because minOut should always be a number >= 0
                     continue;
                 subtotal += out.amount();
                 const unsigned char* scriptStr = (const unsigned char*)out.script().data();
@@ -258,7 +259,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             {
                 return InvalidAddress;
             }
-            if(rcp.amount < MIN_TXOUT_AMOUNT)
+            if(rcp.amount < minOut)
             {
                 return InvalidAmount;
             }

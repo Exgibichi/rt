@@ -514,9 +514,6 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
     {
         if (txout.IsEmpty() && (!tx.IsCoinBase()) && (!tx.IsCoinStake()))
             return state.DoS(100, error("CTransaction::CheckTransaction() : txout empty for user transaction"));
-        // ppcoin: enforce minimum output amount
-        if ((!txout.IsEmpty()) && txout.nValue < MIN_TXOUT_AMOUNT)
-            return state.DoS(100, error("CTransaction::CheckTransaction() : txout.nValue below minimum"));
         if (txout.nValue > MAX_MONEY)
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-vout-toolarge");
         nValueOut += txout.nValue;
@@ -593,6 +590,9 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
 
     if (!CheckTransaction(tx, state))
         return false; // state filled in by CheckTransaction
+
+    if (!CheckMinTxOut(ptx, chainActive.Tip()->GetBlockVersion(), chainActive.Tip()))
+        return error("AcceptToMemoryPool: : CheckMinTxOut failed");
 
     // Coinbase is only valid in a block, not as a loose transaction
     if (tx.IsCoinBase() || tx.IsCoinStake())
@@ -1480,18 +1480,7 @@ bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoins
 
         }
 
-    if (tx.IsCoinStake())
-    {
-        // ppcoin: coin stake tx earns reward instead of paying fee
-        uint64_t nCoinAge;
-        if (!GetCoinAge(tx, inputs, nCoinAge))
-            return error("CheckInputs() : %s unable to get coin age for coinstake", tx.GetHash().ToString());
-        int64_t nStakeReward = tx.GetValueOut() - nValueIn;
-        if (nStakeReward > GetProofOfStakeReward(nCoinAge) - tx.GetMinFee() + MIN_TX_FEE)
-            return state.DoS(100, error("CheckInputs() : %s stake reward exceeded", tx.GetHash().ToString()),
-                             REJECT_INVALID, "bad-txns-coinstake-too-large");
-    }
-    else
+    if (!tx.IsCoinStake())
     {
         if (nValueIn < tx.GetValueOut())
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-in-belowout", false,
@@ -1864,6 +1853,19 @@ bool ppcoinContextualBlockChecks(const CBlock& block, CValidationState& state, C
     return true;
 }
 
+static bool CheckCoinbaseReward(const CBlock& block, CValidationState& state, bool fV7Enabled)
+{
+    // emercoin: moved from CheckBlock(), because this check now depends on context
+    // Check coinbase reward
+    CAmount txFeeCancelation = fV7Enabled ? MIN_TX_FEE : CENT;
+    CAmount powLimit = block.IsProofOfWork() ? GetProofOfWorkReward(block.nBits) - block.vtx[0]->GetMinFee() + txFeeCancelation : 0;
+    if (block.vtx[0]->GetValueOut() > powLimit)
+        return state.DoS(100, error("ConnectBlock() : coinbase pays too much (actual=%d vs limit=%d)",
+                         block.vtx[0]->GetValueOut(), powLimit), REJECT_INVALID, "bad-cb-amount");
+    else
+        return true;
+}
+
 bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex,
                   CCoinsViewCache& view, const CChainParams& chainparams, bool fJustCheck, bool fWriteNames)
 {
@@ -1875,8 +1877,13 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     int64_t nTimeStart = GetTimeMicros();
 
     // Check it again in case a previous version let a bad block in
-    if (!CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck, !fJustCheck, !fJustCheck))
+    bool fV7Enabled = block.GetBlockVersion() >= 7 && IsV7Enabled(pindex->pprev, chainparams.GetConsensus());
+    if (!CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck, !fJustCheck, !fJustCheck) ||
+        !CheckCoinbaseReward(block, state, fV7Enabled))
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
+
+    if (!CheckMinTxOut(block, pindex->pprev))
+        return error("%s: Consensus::CheckTransaction: %s", __func__, "txout.nValue below minimum");
 
     // verify that the view's current state corresponds to the previous block
     uint256 hashPrevBlock = pindex->pprev == NULL ? uint256() : pindex->pprev->GetBlockHash();
@@ -1970,7 +1977,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
     // Start enforcing BIP68 (sequence locks) and BIP112 (CHECKSEQUENCEVERIFY)
     int nLockTimeFlags = 0;
-    bool fV7Enabled = block.GetBlockVersion() >= 7 && IsV7Enabled(pindex->pprev, chainparams.GetConsensus());
     if (fV7Enabled) {
         flags |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
         nLockTimeFlags |= LOCKTIME_VERIFY_SEQUENCE;
@@ -2053,6 +2059,19 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             {
                 vFees[i] = nTxValueIn-nTxValueOut;
                 nFees += nTxValueIn-nTxValueOut;
+            }
+            else
+            // emercoin: moved to here from CheckInputs(), because this check now depends on context
+            {
+                // ppcoin: coin stake tx earns reward instead of paying fee
+                uint64_t nCoinAge;
+                if (!GetCoinAge(tx, view, nCoinAge))
+                    return error("CheckInputs() : %s unable to get coin age for coinstake", tx.GetHash().ToString());
+                int64_t nStakeReward = tx.GetValueOut() - nValueIn;
+                CAmount txFeeCancelation = fV7Enabled ? MIN_TX_FEE : CENT;
+                if (nStakeReward > GetProofOfStakeReward(nCoinAge) - tx.GetMinFee() + txFeeCancelation)
+                    return state.DoS(100, error("ConnectBlock() : %s stake reward exceeded", tx.GetHash().ToString()),
+                                     REJECT_INVALID, "bad-txns-coinstake-too-large");
             }
 
             std::vector<CScriptCheck> vChecks;
@@ -3052,14 +3071,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         return state.DoS(50, error("CheckBlock() : coinstake timestamp violation nTimeBlock=%u nTimeTx=%u", block.GetBlockTime(), block.vtx[1]->nTime),
                 REJECT_INVALID, "bad-cs-time");
 
-    // Check coinbase reward
-    CAmount powLimit = block.IsProofOfWork() ? GetProofOfWorkReward(block.nBits) - block.vtx[0]->GetMinFee() + MIN_TX_FEE : 0;
-    if (block.vtx[0]->GetValueOut() > powLimit)
-        return state.DoS(100,
-                         error("ConnectBlock() : coinbase pays too much (actual=%d vs limit=%d)",
-                               block.vtx[0]->GetValueOut(), powLimit),
-                               REJECT_INVALID, "bad-cb-amount");
-
     // Check transactions
     for (const auto& tx : block.vtx)
     {
@@ -3169,6 +3180,10 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
 {
     const int nHeight = pindexPrev == NULL ? 0 : pindexPrev->nHeight + 1;
 
+    bool fV7Enabled = IsV7Enabled(pindexPrev, consensusParams);
+    if (!CheckCoinbaseReward(block, state, fV7Enabled))
+        return false;
+
     // Check proof-of-work or proof-of-stake
     if (nHeight > 10000)
     {
@@ -3198,8 +3213,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
        (block.GetBlockVersion() < 3 && nHeight >= consensusParams.BIP66Height) ||
        (block.GetBlockVersion() < 4 && nHeight >= consensusParams.BIP65Height) ||
        (block.GetBlockVersion() < 5 && nHeight >= consensusParams.MMHeight) ||
-       (block.GetBlockVersion() < 6 && nHeight >= consensusParams.MinFeeHeight) ||
-       (block.GetBlockVersion() < 7 && IsV7Enabled(pindexPrev, consensusParams)))
+       (block.GetBlockVersion() < 7 && fV7Enabled))
             return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
                                  strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
@@ -3211,6 +3225,8 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
     return true;
 }
 
+// emercoin: note, this function can process blocks without strict order
+// use it only if all needed context information can be obtain from headers (headers are always in strict order)
 bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
 {
     const int nHeight = pindexPrev == NULL ? 0 : pindexPrev->nHeight + 1;
@@ -3411,6 +3427,9 @@ static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidation
         }
         return error("%s: %s", __func__, FormatStateMessage(state));
     }
+
+    if (!CheckMinTxOut(block, pindex->pprev))
+        return error("%s: Consensus::CheckTransaction: %s", __func__, "txout.nValue below minimum");
 
     // ppcoin: check that the block satisfies synchronized checkpoint
     if (!CheckpointsSync::CheckSync(pindex))
@@ -4705,4 +4724,41 @@ bool CheckBlockSignature(const CBlock& block)
         return key.Verify(block.GetHash(), block.vchBlockSig);
     }
     return false;
+}
+
+CAmount GetMinTxOut(int nVersion, CBlockIndex *pindexPrev)
+{
+    bool fV7Enabled = nVersion >= 7 && IsV7Enabled(pindexPrev, Params().GetConsensus());
+    return fV7Enabled ? MIN_TXOUT_AMOUNT : CENT;
+}
+
+CAmount GetMinTxOutLOCKED(int nVersion, CBlockIndex *pindexPrev)
+{
+    LOCK(cs_main);
+    return GetMinTxOut(nVersion, pindexPrev);
+}
+
+bool CheckMinTxOut(const CTransactionRef& tx, int nVersion, CBlockIndex *pindexPrev)
+{
+    CAmount minOut = GetMinTxOut(nVersion, pindexPrev);
+    for (const auto& txout : tx->vout)
+    {
+        // ppcoin: enforce minimum output amount
+        if ((!txout.IsEmpty()) && txout.nValue < minOut)
+            return false;
+    }
+    return true;
+}
+
+bool CheckMinTxOut(const CBlock& block, CBlockIndex *pindexPrev)
+{
+    CAmount minOut = GetMinTxOut(block.GetBlockVersion(), pindexPrev);
+    for (const auto& tx : block.vtx)
+        for (const auto& txout : tx->vout)
+        {
+            // ppcoin: enforce minimum output amount
+            if ((!txout.IsEmpty()) && txout.nValue < minOut)
+                return false;
+        }
+    return true;
 }

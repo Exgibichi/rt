@@ -77,7 +77,6 @@ public:
         consensus.BIP65Height = 212920;
         consensus.BIP66Height = 212806;
         consensus.MMHeight = 219809;
-        consensus.MinFeeHeight = 100000000; //emc change this once fork happens
         consensus.powLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~arith_uint256(0) >> 32;
         consensus.bnInitialHashTarget = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~arith_uint256(0) >> 32;
         consensus.nTargetTimespan = 7 * 24 * 60 * 60; // one week
@@ -102,8 +101,7 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x3b5b8bb145e5d267b06430582f5efc4a1cbe128a836cdf07ab2000c9caabe550"); // at block 250 000
 
-        consensus.nEnforceBlockUpgradeMajority = 750;
-        consensus.nRejectBlockOutdatedMajority = 950;
+        consensus.nRejectBlockOutdatedMajority = 850;
         consensus.nToCheckBlockUpgradeMajority = 1000;
 
         /**
@@ -177,7 +175,6 @@ public:
         consensus.BIP65Height = 368;
         consensus.BIP66Height = 141;
         consensus.MMHeight = 2189;
-        consensus.MinFeeHeight = 100000000; //emc change this once fork happens
         consensus.powLimit = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~arith_uint256(0) >> 28;
         consensus.bnInitialHashTarget = uint256S("00000007ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); //~uint256(0) >> 29;
         consensus.nTargetTimespan = 7 * 24 * 60 * 60; // two week
@@ -202,8 +199,7 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00");
 
-        consensus.nEnforceBlockUpgradeMajority = 51;
-        consensus.nRejectBlockOutdatedMajority = 75;
+        consensus.nRejectBlockOutdatedMajority = 65;
         consensus.nToCheckBlockUpgradeMajority = 100;
 
         pchMessageStart[0] = 0xcb;
@@ -263,7 +259,6 @@ public:
         consensus.BIP65Height = 1351; // BIP65 activated on regtest (Used in rpc activation tests)
         consensus.BIP66Height = 1251; // BIP66 activated on regtest (Used in rpc activation tests)
         consensus.MMHeight = 2189;
-        consensus.MinFeeHeight = 100000000; //emc change this once fork happens
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.bnInitialHashTarget = uint256S("00000007ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); //~uint256(0) >> 29;
         consensus.nTargetTimespan = 7 * 24 * 60 * 60; // one week
@@ -288,8 +283,7 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00");
 
-        consensus.nEnforceBlockUpgradeMajority = 750;
-        consensus.nRejectBlockOutdatedMajority = 950;
+        consensus.nRejectBlockOutdatedMajority = 850;
         consensus.nToCheckBlockUpgradeMajority = 1000;
 
         pchMessageStart[0] = 0xcb;

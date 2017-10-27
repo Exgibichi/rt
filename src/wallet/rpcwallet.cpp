@@ -380,7 +380,7 @@ UniValue sendtoaddress(const JSONRPCRequest& request)
     if (nAmount <= 0)
         throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for send");
 
-    if (nAmount < MIN_TXOUT_AMOUNT)
+    if (nAmount < GetMinTxOutLOCKED(chainActive.Tip()->GetBlockVersion(), chainActive.Tip()))
         throw JSONRPCError(RPC_INSUFFICIENT_SEND_AMOUNT, "Send amount too small");
 
     // Wallet comments
@@ -818,7 +818,7 @@ UniValue sendfrom(const JSONRPCRequest& request)
     CAmount nAmount = AmountFromValue(request.params[2]);
     if (nAmount <= 0)
         throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for send");
-    if (nAmount < MIN_TXOUT_AMOUNT)
+    if (nAmount < GetMinTxOutLOCKED(chainActive.Tip()->GetBlockVersion(), chainActive.Tip()))
         throw JSONRPCError(RPC_INSUFFICIENT_SEND_AMOUNT, "Send amount too small");
     int nMinDepth = 1;
     if (request.params.size() > 3)
@@ -910,6 +910,7 @@ UniValue sendmany(const JSONRPCRequest& request)
 
     CAmount totalAmount = 0;
     vector<string> keys = sendTo.getKeys();
+    CAmount nMinOut = GetMinTxOut(chainActive.Tip()->GetBlockVersion(), chainActive.Tip());
     BOOST_FOREACH(const string& name_, keys)
     {
         CBitcoinAddress address(name_);
@@ -924,7 +925,7 @@ UniValue sendmany(const JSONRPCRequest& request)
         CAmount nAmount = AmountFromValue(sendTo[name_]);
         if (nAmount <= 0)
             throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for send");
-        if (nAmount < MIN_TXOUT_AMOUNT)
+        if (nAmount < nMinOut)
             throw JSONRPCError(RPC_INSUFFICIENT_SEND_AMOUNT, "Send amount too small");
         totalAmount += nAmount;
 
