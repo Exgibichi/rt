@@ -730,10 +730,8 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
 
         CAmount nValueOut = tx.GetValueOut();
         CAmount nFees = nValueIn-nValueOut;
-        //emc add minimum fee check
-        //emc also add fee display in error message
-        if (isNameTx && !hooks->IsNameFeeEnough(ptx, nFees))
-            return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "insufficient name fee");
+        if (nFees < tx.GetMinFee() || (isNameTx && !hooks->IsNameFeeEnough(ptx, nFees)))
+            return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "fee is below minimum");
         // nModifiedFees includes any fee deltas from PrioritiseTransaction
         CAmount nModifiedFees = nFees;
         double nPriorityDummy = 0;
