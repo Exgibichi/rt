@@ -6,8 +6,8 @@
 #include <boost/asio/ssl.hpp>
 
 using namespace std;
-using namespace boost;
-using namespace boost::asio;
+//using namespace boost;
+//using namespace boost::asio;
 
 //-----------------------------------------------------
 ExchBox::ExchBox() {}

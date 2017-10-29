@@ -35,6 +35,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
 
+
 using namespace std;
 
 CWallet* pwalletMain = NULL;
@@ -2288,7 +2289,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
       nMaxDP = GetArg("-maxdp", 128 * 1024 * 1024);
 
   uint16_t *dp;        // Dynamic programming array
-  uint32_t dp_tgt = nTargetValue / MIN_TXOUT_AMOUNT;
+  uint32_t dp_tgt = nTargetValue / TX_DP_AMOUNT;
   if(dp_tgt < nMaxDP && (dp = (uint16_t*)calloc(dp_tgt + 1, sizeof(uint16_t))) != NULL) {
     dp[0] = 1; // Zero CENTs can be reached anyway
     uint32_t rlimit = 0; // Current Right Borer limit
@@ -2299,7 +2300,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
     uint32_t min_over_sum  = ~0;
     // Apply UTXOs to DP array, until exact sum will be found
     for(uint16_t utxo_no = 0; utxo_no < max_utxo_qty && dp[dp_tgt] == 0; utxo_no++) {
-      uint32_t offset = vValue[utxo_no].first / MIN_TXOUT_AMOUNT;
+      uint32_t offset = vValue[utxo_no].first / TX_DP_AMOUNT;
       for(int32_t ndx = rlimit; ndx >= 0; ndx--)
         if(dp[ndx]) {
          uint32_t nxt = ndx + offset;
@@ -2329,7 +2330,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
         LogPrintf("SelectCoins() DP Added #%u: Val=%s\n", utxo_no, FormatMoney(vValue[utxo_no].first));
       setCoinsRet.insert(vValue[utxo_no].second);
       nValueRet += vValue[utxo_no].first;
-      min_over_sum -= vValue[utxo_no].first / MIN_TXOUT_AMOUNT;
+      min_over_sum -= vValue[utxo_no].first / TX_DP_AMOUNT;
       min_over_utxo = dp[min_over_sum];
     }
 
