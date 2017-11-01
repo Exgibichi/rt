@@ -3428,7 +3428,11 @@ static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidation
     }
 
     if (!CheckMinTxOut(block, pindex->pprev))
+    {
+        pindex->nStatus |= BLOCK_FAILED_VALID;
+        setDirtyBlockIndex.insert(pindex);
         return error("%s: Consensus::CheckTransaction: %s", __func__, "txout.nValue below minimum");
+    }
 
     // ppcoin: check that the block satisfies synchronized checkpoint
     if (!CheckpointsSync::CheckSync(pindex))
