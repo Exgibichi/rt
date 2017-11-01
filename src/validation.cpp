@@ -3180,10 +3180,6 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
 {
     const int nHeight = pindexPrev == NULL ? 0 : pindexPrev->nHeight + 1;
 
-    bool fV7Enabled = IsV7Enabled(pindexPrev, consensusParams);
-    if (!CheckCoinbaseReward(block, state, fV7Enabled))
-        return false;
-
     // Check proof-of-work or proof-of-stake
     if (nHeight > 10000)
     {
@@ -3213,7 +3209,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
        (block.GetBlockVersion() < 3 && nHeight >= consensusParams.BIP66Height) ||
        (block.GetBlockVersion() < 4 && nHeight >= consensusParams.BIP65Height) ||
        (block.GetBlockVersion() < 5 && nHeight >= consensusParams.MMHeight) ||
-       (block.GetBlockVersion() < 7 && fV7Enabled))
+       (block.GetBlockVersion() < 7 && IsV7Enabled(pindexPrev, consensusParams)))
             return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
                                  strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
@@ -3234,6 +3230,9 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
     // Start enforcing BIP113 (Median Time Past)
     int nLockTimeFlags = 0;
     bool fV7Enabled = block.GetBlockVersion() >= 7 && IsV7Enabled(pindexPrev, consensusParams);
+    if (!CheckCoinbaseReward(block, state, fV7Enabled))
+        return false;
+
     if (fV7Enabled) {
         nLockTimeFlags |= LOCKTIME_MEDIAN_TIME_PAST;
     }
