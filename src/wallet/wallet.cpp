@@ -2598,7 +2598,6 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
                 CAmount nValueToSelect = nValue;
                 if (nSubtractFeeFromAmount == 0)
                     nValueToSelect += nFeeRet;
-                double dPriority = 0;
                 // vouts to the payees
                 for (const auto& recipient : vecSend)
                 {
@@ -2634,32 +2633,18 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
                 // Choose coins to use
                 CAmount nValueIn = 0;
                 setCoins.clear();
-                // emercoin: in case of namecoin tx we have already supplied input
-                //           skip coin selection if we have enough money in namecoin input
+                // emercoin: in case of name tx we have already supplied input
+                //           skip coin selection if we have enough money in name input
                 if (nValueToSelect - nNameTxInCredit > 0 && !SelectCoins(vAvailableCoins, nValueToSelect - nNameTxInCredit, setCoins, nValueIn, coinControl))
                 {
                     strFailReason = _("Insufficient funds");
                     return false;
                 }
-                // emercoin: name tx always at first position
+                // emercoin: add name input
                 if (!wtxNameIn.tx->IsNull())
                 {
                     setCoins.insert(setCoins.begin(), make_pair(&wtxNameIn, nNameTxOut));
                     nValueIn += nNameTxInCredit;
-                }
-
-                for (const auto& pcoin : setCoins)
-                {
-                    CAmount nCredit = pcoin.first->tx->vout[pcoin.second].nValue;
-                    //The coin age after the next block (depth+1) is used instead of the current,
-                    //reflecting an assumption the user would accept a bit more delay for
-                    //a chance at a free transaction.
-                    //But mempool inputs might still be in the mempool, so their age stays 0
-                    int age = pcoin.first->GetDepthInMainChain();
-                    assert(age >= 0);
-                    if (age != 0)
-                        age += 1;
-                    dPriority += (double)nCredit * age;
                 }
 
                 CAmount nChange = nValueIn - nValueToSelect;
@@ -2789,9 +2774,6 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
 
                 unsigned int nBytes = GetVirtualTransactionSize(txNew);
 
-                CTransaction txNewConst(txNew);
-                dPriority = txNewConst.ComputePriority(dPriority, nBytes);
-
                 // Remove scriptSigs to eliminate the fee calculation dummy signatures
                 for (auto& vin : txNew.vin) {
                     vin.scriptSig = CScript();
@@ -2818,6 +2800,18 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
                     return false;
                 }
 
+                // Try to reduce change to include necessary fee
+                if (nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
+                    CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
+                    vector<CTxOut>::iterator change_position = txNew.vout.begin()+nChangePosInOut;
+                    // Only reduce change if remaining amount is still a large enough output.
+                    if (change_position->nValue >= MIN_FINAL_CHANGE + additionalFeeNeeded) {
+                        change_position->nValue -= additionalFeeNeeded;
+                        nFeeRet += additionalFeeNeeded;
+                        // Done, able to increase fee from change
+                    }
+                }
+
                 // emercoin: check that enough fee is included (at least MIN_TX_FEE per 10 kb)
                 CAmount nMinFee = max(nFeeInput, nFeeNeeded);
                 if (nFeeRet < nMinFee)
@@ -2825,43 +2819,6 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
                     nFeeRet = nMinFee;
                     continue;
                 }
-
-                //emc disable until review
-                // if (nFeeRet >= nFeeNeeded) {
-                //     // Reduce fee to only the needed amount if we have change
-                //     // output to increase.  This prevents potential overpayment
-                //     // in fees if the coins selected to meet nFeeNeeded result
-                //     // in a transaction that requires less fee than the prior
-                //     // iteration.
-                //     // TODO: The case where nSubtractFeeFromAmount > 0 remains
-                //     // to be addressed because it requires returning the fee to
-                //     // the payees and not the change output.
-                //     // TODO: The case where there is no change output remains
-                //     // to be addressed so we avoid creating too small an output.
-                //     if (nFeeRet > nFeeNeeded && nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
-                //         CAmount extraFeePaid = nFeeRet - nFeeNeeded;
-                //         vector<CTxOut>::iterator change_position = txNew.vout.begin()+nChangePosInOut;
-                //         change_position->nValue += extraFeePaid;
-                //         nFeeRet -= extraFeePaid;
-                //     }
-                //     break; // Done, enough fee included.
-                // }
-
-                // // Try to reduce change to include necessary fee
-                // if (nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
-                //     CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
-                //     vector<CTxOut>::iterator change_position = txNew.vout.begin()+nChangePosInOut;
-                //     // Only reduce change if remaining amount is still a large enough output.
-                //     if (change_position->nValue >= MIN_FINAL_CHANGE + additionalFeeNeeded) {
-                //         change_position->nValue -= additionalFeeNeeded;
-                //         nFeeRet += additionalFeeNeeded;
-                //         break; // Done, able to increase fee from change
-                //     }
-                // }
-
-                // // Include more fee and try again.
-                // nFeeRet = nFeeNeeded;
-                // continue;
                 break;
             }
         }
@@ -4457,7 +4414,7 @@ void SendName(CScript scriptPubKey, CAmount nValue, CWalletTx& wtxNew, const CWa
     CReserveKey reservekey(pwalletMain);
     CAmount nFeeRequired;
     std::string strError;
-    int nChangePosRet = -1; //emc - check if this setting (random position for change) is correct for name transactions
+    int nChangePosRet = -1;
     CRecipient recipient = {scriptPubKey, nValue, false};
     if (!pwalletMain->CreateNameTx(recipient, wtxNameIn, nFeeInput, wtxNew, reservekey, nFeeRequired, nChangePosRet, strError)) {
         if (nValue + nFeeRequired > curBalance)

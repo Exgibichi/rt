@@ -51,7 +51,7 @@ static const CAmount DEFAULT_FALLBACK_FEE = MIN_TX_FEE / 10;
 //! minimum recommended increment for BIP 125 replacement txs
 static const CAmount WALLET_INCREMENTAL_RELAY_FEE = 5 * (MIN_TX_FEE / 10); // emercoin: this value was changed by analogy. Most other fees were 1000, this one was 5000.
 //! target minimum change amount
-static const CAmount MIN_CHANGE = CENT; //emc fix this to subcent after fork Min Fee fork happens
+static const CAmount MIN_CHANGE = 2*CENT; //emc fix this to subcent after fork Min Fee fork happens
 //! final minimum change amount after paying for fees
 static const CAmount MIN_FINAL_CHANGE = MIN_CHANGE/2;
 //! Default for -spendzeroconfchange
