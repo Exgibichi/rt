@@ -183,7 +183,6 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
         const CScript& script2 = mTemplates.find(TX_PUBKEYHASH)->second;
 
         vSolutionsRet.clear();
-        typeRet = TX_NAME;
 
         opcodetype opcode1, opcode2;
         vector<unsigned char> vch1, vch2;
@@ -194,7 +193,10 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
         while (true)
         {
             if (pc1 == scriptOut.end() && pc2 == script2.end())
+            {
+                typeRet = TX_NAME;
                 return true;
+            }
             if (!scriptOut.GetOp(pc1, opcode1, vch1))
                 break;
             if (!script2.GetOp(pc2, opcode2, vch2))
