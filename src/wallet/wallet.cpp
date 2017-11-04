@@ -1250,7 +1250,7 @@ bool CWallet::IsChange(const CTxOut& txout) const
     // 'the change' will need to be implemented (maybe extend CWalletTx to remember
     // which output, if any, was change).
     bool fName;
-    if (::IsMine(*this, txout.scriptPubKey, fName))
+    if (::IsMine(fName, *this, txout.scriptPubKey))
     {
         if (fName)
             return false;   // names are technicaly change, but they are much more than that, so we do not want to group them with change.
