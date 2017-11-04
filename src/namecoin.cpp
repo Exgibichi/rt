@@ -1764,29 +1764,3 @@ UniValue name_dump(const JSONRPCRequest& request)
     UniValue oName(UniValue::VOBJ);
     return oName;
 }
-
-bool SignNameSignature(const CKeyStore& keystore, const CTransaction& txFrom, CMutableTransaction& txTo, unsigned int nIn, int nHashType)
-{
-    assert(nIn < txTo.vin.size());
-    CTxIn& txin = txTo.vin[nIn];
-    assert(txin.prevout.n < txFrom.vout.size());
-    const CTxOut& txout = txFrom.vout[txin.prevout.n];
-
-    // Leave out the signature from the hash, since a signature can't sign itself.
-    // The checksig op will also drop the signatures from its hash.
-
-    //emc fix this
-//    uint256 hash = SignatureHash(txout.scriptPubKey, txTo, nIn, nHashType);
-
-//    CScript scriptPubKey;
-//    if (!RemoveNameScriptPrefix(txout.scriptPubKey, scriptPubKey))
-//        return error("SignNameSignature(): failed to remove name script prefix");
-
-//    txnouttype whichType;
-//    if (!SignStep(keystore, scriptPubKey, hash, nHashType, txin.scriptSig, whichType))
-//        return false;
-
-//    // Test solution
-//    return VerifyScript(txin.scriptSig, txout.scriptPubKey, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker(&txTo, nIn), NULL, txTo.nVersion == NAMECOIN_TX_VERSION);
-    return false;
-}

@@ -82,11 +82,10 @@ static bool SignStep(const BaseSignatureCreator& creator, const CScript& scriptP
     {
     case TX_NONSTANDARD:
     case TX_NULL_DATA:
-    case TX_NAME:
-        return false;
     case TX_PUBKEY:
         keyID = CPubKey(vSolutions[0]).GetID();
         return Sign1(keyID, creator, scriptPubKey, ret, sigversion);
+    case TX_NAME:  // name tx is represented as TX_PUBKEYHASH internaly, that is why we do not "break;" before TX_PUBKEYHASH
     case TX_PUBKEYHASH:
         keyID = CKeyID(uint160(vSolutions[0]));
         if (!Sign1(keyID, creator, scriptPubKey, ret, sigversion))
@@ -187,7 +186,7 @@ bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPu
     sigdata.scriptSig = PushAll(result);
 
     // Test solution
-    return solved && VerifyScript(sigdata.scriptSig, fromPubKey, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, creator.Checker());
+    return solved && VerifyScript(sigdata.scriptSig, fromPubKey, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, creator.Checker(), nullptr, whichType == TX_NAME);
 }
 
 SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nIn)
