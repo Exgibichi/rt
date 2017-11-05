@@ -159,11 +159,14 @@ CAmount GetNameOpFee(const CBlockIndex* pindex, const int nRentalDays, int op, c
     txMinFee = (txMinFee / CENT) * CENT;
 
     // reduce fee by 100 in 0.7.0emc
-    bool fV7Enabled = pindex->GetBlockVersion() >= 7 && IsV7Enabled(pindex->pprev, Params().GetConsensus());
-    if (fV7Enabled) txMinFee = txMinFee / 100;
+    static int fTestnet = -1;
+    if (fTestnet < 0)
+        fTestnet = Params().NetworkIDString() == CBaseChainParams::TESTNET;
+    bool fLessFee = fTestnet || (pindex->GetBlockVersion() >= 7 && IsV7Enabled(pindex->pprev, Params().GetConsensus()));
+    if (fLessFee) txMinFee = txMinFee / 100;
 
     // Fee should be at least MIN_TX_FEE
-    txMinFee = max(txMinFee, fV7Enabled ? MIN_TX_FEE : CENT);
+    txMinFee = max(txMinFee, fLessFee ? MIN_TX_FEE : CENT);
 
     return txMinFee;
 }

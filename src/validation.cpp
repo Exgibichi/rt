@@ -4731,8 +4731,13 @@ bool CheckBlockSignature(const CBlock& block)
 
 CAmount GetMinTxOut(int nVersion, CBlockIndex *pindexPrev)
 {
-    bool fV7Enabled = nVersion >= 7 && IsV7Enabled(pindexPrev, Params().GetConsensus());
-    return fV7Enabled ? MIN_TXOUT_AMOUNT : CENT;
+    static int fTestnet = -1;
+    if (fTestnet < 0)
+        fTestnet = Params().NetworkIDString() == CBaseChainParams::TESTNET;
+    if (fTestnet)
+        return MIN_TXOUT_AMOUNT;  // emercoin: small outputs are already enabled in testnet
+    else
+        return nVersion >= 7 && IsV7Enabled(pindexPrev, Params().GetConsensus()) ? MIN_TXOUT_AMOUNT : CENT;
 }
 
 CAmount GetMinTxOutLOCKED(int nVersion, CBlockIndex *pindexPrev)
