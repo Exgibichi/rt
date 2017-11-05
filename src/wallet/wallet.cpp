@@ -2829,17 +2829,6 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
             int nIn = 0;
             for (const auto& coin : setCoins)
             {
-                //emc - add name signature
-                // emercoin: we sign name tx differently.
-// +                    if (coin.first == &wtxNameIn && coin.second == nNameTxOut)
-// +                    {
-// +                        if (!SignNameSignature(*this, *coin.first, txNew, nIn++))
-// +                        {
-// +                            strFailReason = _("Signing transaction failed");
-// +                            return false;
-// +                        }
-// +                    }
-// +                    else
                 const CScript& scriptPubKey = coin.first->tx->vout[coin.second].scriptPubKey;
                 SignatureData sigdata;
 

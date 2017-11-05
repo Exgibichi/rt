@@ -779,7 +779,7 @@ UniValue getauxblock(const JSONRPCRequest& request)
             // Create new block with nonce = 0 and extraNonce = 1
             //emc - how does auxpow work with segwit block?
             CScript scriptDummy = CScript() << OP_TRUE;
-            pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy, false);
+            pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy, true);
             if (!pblocktemplate)
                 throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
 
