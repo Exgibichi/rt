@@ -1878,7 +1878,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
     // Check it again in case a previous version let a bad block in
     bool fV7Enabled = block.GetBlockVersion() >= 7 && IsV7Enabled(pindex->pprev, chainparams.GetConsensus());
-    if (!CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck, !fJustCheck, !fJustCheck) ||
+    if (!CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck, !fJustCheck) ||
         !CheckCoinbaseReward(block, state, fV7Enabled))
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
 
@@ -3008,7 +3008,7 @@ bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const 
     return true;
 }
 
-bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckSign)
+bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW, bool fCheckMerkleRoot)
 {
     // These are checks that are independent of context.
 
@@ -3091,10 +3091,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     if (nSigOps * WITNESS_SCALE_FACTOR > MAX_BLOCK_SIGOPS_COST)
         return state.DoS(100, false, REJECT_INVALID, "bad-blk-sigops", false, "out-of-bounds SigOpCount");
 
-    // ppcoin: check block signature
-    if (fCheckSign && !CheckBlockSignature(block))
-        return state.DoS(100, error("CheckBlock() : bad block signature"), REJECT_INVALID, "bad-blk-sign");
-
     if (fCheckPOW && fCheckMerkleRoot)
         block.fChecked = true;
 
@@ -3137,7 +3133,7 @@ static int GetWitnessCommitmentIndex(const CBlock& block)
     return commitpos;
 }
 
-void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams)
+void UpdateUncommittedBlockStructures(CBlock& block)
 {
     int commitpos = GetWitnessCommitmentIndex(block);
     static const std::vector<unsigned char> nonce(32, 0x00);
@@ -3149,7 +3145,7 @@ void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPr
     }
 }
 
-std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams)
+std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block)
 {
     std::vector<unsigned char> commitment;
     int commitpos = GetWitnessCommitmentIndex(block);
@@ -3172,7 +3168,7 @@ std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBloc
         tx.vout.push_back(out);
         block.vtx[0] = MakeTransactionRef(std::move(tx));
     }
-    UpdateUncommittedBlockStructures(block, pindexPrev, consensusParams);
+    UpdateUncommittedBlockStructures(block);
     return commitment;
 }
 
@@ -3223,7 +3219,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
 
 // emercoin: note, this function can process blocks without strict order
 // use it only if all needed context information can be obtain from headers (headers are always in strict order)
-bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
+bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev, bool fCheckSign)
 {
     const int nHeight = pindexPrev == NULL ? 0 : pindexPrev->nHeight + 1;
 
@@ -3304,6 +3300,10 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
     if (GetBlockWeight(block) > MAX_BLOCK_WEIGHT) {
         return state.DoS(100, false, REJECT_INVALID, "bad-blk-weight", false, strprintf("%s : weight limit failed", __func__));
     }
+
+    // ppcoin: check block signature
+    if (fCheckSign && !CheckBlockSignature(block, fV7Enabled))
+        return state.DoS(100, error("CheckBlock() : bad block signature"), REJECT_INVALID, "bad-blk-sign");
 
     return true;
 }
@@ -3526,9 +3526,9 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
     // NOTE: CheckBlockHeader is called by CheckBlock
     if (!ContextualCheckBlockHeader(block, block.IsProofOfStake(), state, chainparams.GetConsensus(), pindexPrev, GetAdjustedTime()))
         return error("%s: Consensus::ContextualCheckBlockHeader: %s", __func__, FormatStateMessage(state));
-    if (!CheckBlock(block, state, chainparams.GetConsensus(), fCheckPOW, fCheckMerkleRoot, fCheckSign))
+    if (!CheckBlock(block, state, chainparams.GetConsensus(), fCheckPOW, fCheckMerkleRoot))
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
-    if (!ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindexPrev))
+    if (!ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindexPrev, fCheckSign))
         return error("%s: Consensus::ContextualCheckBlock: %s", __func__, FormatStateMessage(state));
     if (!ConnectBlock(block, state, &indexDummy, viewNew, chainparams, true))
         return false;
@@ -4682,51 +4682,66 @@ bool GetCoinAge(const CTransaction& tx, const CCoinsViewCache &view, uint64_t& n
     return true;
 }
 
-// ppcoin: sign block
 typedef std::vector<unsigned char> valtype;
-bool SignBlock(CBlock& block, const CKeyStore& keystore)
+bool SelectPubkeyForBlockSigning(const CBlock& block, vector<valtype>& vSolutions, bool fV7Enabled)
 {
-    vector<valtype> vSolutions;
     txnouttype whichType;
-    const CTxOut& txout = block.IsProofOfStake()? block.vtx[1]->vout[1] : block.vtx[0]->vout[0];
-
-    if (!Solver(txout.scriptPubKey, whichType, vSolutions))
-        return false;
-    if (whichType == TX_PUBKEY)
+    if (fV7Enabled && !block.IsProofOfStake())
+        for (const auto& txout : block.vtx[0]->vout)
+        {
+            if (!Solver(txout.scriptPubKey, whichType, vSolutions))
+                return false;
+            if (whichType == TX_PUBKEY)
+                return true;
+        }
+    else
     {
-        // Sign
-        const valtype& vchPubKey = vSolutions[0];
-        CKey key;
-        if (!keystore.GetKey(Hash160(vchPubKey), key))
+        const CTxOut& txout = block.IsProofOfStake()? block.vtx[1]->vout[1] : block.vtx[0]->vout[0];
+        if (!Solver(txout.scriptPubKey, whichType, vSolutions))
             return false;
-        if (key.GetPubKey() != vchPubKey)
-            return false;
-        return key.Sign(block.GetHash(), block.vchBlockSig, 0);
+        if (whichType == TX_PUBKEY)
+            return true;
     }
     return false;
 }
 
+// ppcoin: sign block
+bool SignBlock(CBlock& block, const CKeyStore& keystore)
+{
+    vector<valtype> vSolutions;
+    bool fV7Enabled = false;
+    {
+        LOCK(cs_main);
+        fV7Enabled = chainActive.Tip()->GetBlockVersion() >= 7 && IsV7Enabled(chainActive.Tip(), Params().GetConsensus());
+    }
+    if (!SelectPubkeyForBlockSigning(block, vSolutions, fV7Enabled))
+        return false;
+
+    // Sign
+    const valtype& vchPubKey = vSolutions[0];
+    CKey key;
+    if (!keystore.GetKey(Hash160(vchPubKey), key))
+        return false;
+    if (key.GetPubKey() != vchPubKey)
+        return false;
+    return key.Sign(block.GetHash(), block.vchBlockSig, 0);
+}
+
 // ppcoin: check block signature
-bool CheckBlockSignature(const CBlock& block)
+bool CheckBlockSignature(const CBlock& block, bool fV7Enabled)
 {
     if (block.GetHash() == Params().GetConsensus().hashGenesisBlock)
         return block.vchBlockSig.empty();
 
     vector<valtype> vSolutions;
-    txnouttype whichType;
-    const CTxOut& txout = block.IsProofOfStake()? block.vtx[1]->vout[1] : block.vtx[0]->vout[0];
-
-    if (!Solver(txout.scriptPubKey, whichType, vSolutions))
+    if (!SelectPubkeyForBlockSigning(block, vSolutions, fV7Enabled))
         return false;
-    if (whichType == TX_PUBKEY)
-    {
-        const valtype& vchPubKey = vSolutions[0];
-        CPubKey key(vchPubKey);
-        if (block.vchBlockSig.empty())
-            return false;
-        return key.Verify(block.GetHash(), block.vchBlockSig);
-    }
-    return false;
+
+    const valtype& vchPubKey = vSolutions[0];
+    CPubKey key(vchPubKey);
+    if (block.vchBlockSig.empty())
+        return false;
+    return key.Verify(block.GetHash(), block.vchBlockSig);
 }
 
 CAmount GetMinTxOut(int nVersion, CBlockIndex *pindexPrev)
@@ -4752,7 +4767,7 @@ bool CheckMinTxOut(const CTransactionRef& tx, int nVersion, CBlockIndex *pindexP
     for (const auto& txout : tx->vout)
     {
         // ppcoin: enforce minimum output amount
-        if ((!txout.IsEmpty()) && txout.nValue < minOut)
+        if (!txout.IsEmpty() && txout.nValue < minOut)
             return false;
     }
     return true;
@@ -4761,11 +4776,24 @@ bool CheckMinTxOut(const CTransactionRef& tx, int nVersion, CBlockIndex *pindexP
 bool CheckMinTxOut(const CBlock& block, CBlockIndex *pindexPrev)
 {
     CAmount minOut = GetMinTxOut(block.GetBlockVersion(), pindexPrev);
-    for (const auto& tx : block.vtx)
-        for (const auto& txout : tx->vout)
+
+    // check coinbase/coinstake transaction
+    int commitpos = block.nVersion >= 7 ? GetWitnessCommitmentIndex(block) : -1;
+    const CTransactionRef& tx0 = block.vtx[0];
+    for (size_t j = 0; j < tx0->vout.size(); j++)
+    {
+        // emercoin: enforce minimum output amount if not witness commitment
+        bool fWC = commitpos >= 0 && (unsigned int)commitpos == j;
+        if (!fWC && !tx0->vout[j].IsEmpty() && tx0->vout[j].nValue < minOut)
+            return false;
+    }
+
+    // check all of the remaining transactions
+    for (size_t i = 1; i < block.vtx.size(); i++)
+        for (const auto& txout : block.vtx[i]->vout)
         {
             // ppcoin: enforce minimum output amount
-            if ((!txout.IsEmpty()) && txout.nValue < minOut)
+            if (!txout.IsEmpty() && txout.nValue < minOut)
                 return false;
         }
     return true;

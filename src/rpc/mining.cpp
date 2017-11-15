@@ -709,7 +709,7 @@ UniValue submitblock(const JSONRPCRequest& request)
     // check block before attempting to sign it.
     {
         CValidationState state;
-        if (!CheckBlock(block, state, Params().GetConsensus(), true,  true, false))
+        if (!CheckBlock(block, state, Params().GetConsensus(), true,  true))
             throw JSONRPCError(-100, "Block failed CheckBlock() function.");
     }
 
@@ -720,7 +720,7 @@ UniValue submitblock(const JSONRPCRequest& request)
         LOCK(cs_main);
         BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
         if (mi != mapBlockIndex.end() && block.nVersion >= 7 && IsV7Enabled(mi->second, Params().GetConsensus())) {
-            UpdateUncommittedBlockStructures(block, mi->second, Params().GetConsensus());
+            UpdateUncommittedBlockStructures(block);
         }
     }
 
@@ -777,7 +777,6 @@ UniValue getauxblock(const JSONRPCRequest& request)
             nStart = GetTime();
 
             // Create new block with nonce = 0 and extraNonce = 1
-            //emc - how does auxpow work with segwit block?
             CScript scriptDummy = CScript() << OP_TRUE;
             pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy, true);
             if (!pblocktemplate)
@@ -841,7 +840,7 @@ UniValue getauxblock(const JSONRPCRequest& request)
         // check block before attempting to sign it.
         {
             CValidationState state;
-            if (!CheckBlock(*pblock, state, Params().GetConsensus(), true, true, false))
+            if (!CheckBlock(*pblock, state, Params().GetConsensus(), true, true))
                 throw JSONRPCError(-100, "Block failed CheckBlock() function.");
         }
 
