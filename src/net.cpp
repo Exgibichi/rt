@@ -2750,6 +2750,7 @@ CNode::CNode(NodeId idIn, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn
     fPauseRecv = false;
     fPauseSend = false;
     nProcessQueueSize = 0;
+    temperature = 0;
 
     BOOST_FOREACH(const std::string &msg, getAllNetMessageTypes())
         mapRecvBytesPerMsgCmd[msg] = 0;

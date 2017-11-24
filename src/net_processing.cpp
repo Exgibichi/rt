@@ -1810,7 +1810,20 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         std::list<CTransactionRef> lRemovedTxn;
 
+        // Continuously rate-limit transactions
+        // This mitigates 'penny-flooding' -- sending thousands of free transactions just to
+        // be annoying or make others' transactions take longer to confirm.
+        int probability = pfrom->temperature - 1000000;  // 1mb block size
+        if (probability > 1000000 || GetRand(1000000 - probability) == 0)
+              return true;
+
         if (!AlreadyHave(inv) && AcceptToMemoryPool(mempool, state, ptx, &fMissingInputs, &lRemovedTxn)) {
+            // emercoin: raise temerature for this peer
+            time_t now_time = GetTime();
+            int32_t tau = 600; // Seconds per block
+            int32_t tx_size = (int32_t)::GetVirtualTransactionSize(*ptx);
+            pfrom->temperature = tx_size + pfrom->temperature * exp(-(now_time - pfrom->temperature) / tau);
+
             mempool.check(pcoinsTip);
             RelayTransaction(tx, connman);
             for (unsigned int i = 0; i < tx.vout.size(); i++) {
