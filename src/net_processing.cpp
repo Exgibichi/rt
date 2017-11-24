@@ -1791,6 +1791,20 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             return true;
         }
 
+        // Continuously rate-limit transactions
+        // This mitigates 'penny-flooding' -- sending thousands of free transactions just to
+        // be annoying or make others' transactions take longer to confirm.
+        // Adjust temperature for this peer
+	// temp_limit: 1/2 block flooding (1mb) per 1 minute.
+	const int temp_limit = 1024 * 1024 / 2 / 10;
+	int64_t now_time = GetTime();
+        int     minutes_gone = (now_time >> 6) - (pfrom->nLastTXTime >> 6); // 64s intervals
+	pfrom->nLastTXTime = now_time;
+	pfrom->temperature = 10 + ((minutes_gone < 32)? pfrom->temperature >> minutes_gone : 0);
+	// Random exit, if temp too high
+	if(pfrom->temperature > temp_limit && pfrom->temperature - temp_limit > GetRand(temp_limit))
+            return true; // drop this tx from hot peer - maybe he is spammer
+
         std::deque<COutPoint> vWorkQueue;
         std::vector<uint256> vEraseQueue;
         CTransactionRef ptx;
@@ -1810,27 +1824,15 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         std::list<CTransactionRef> lRemovedTxn;
 
-        // Continuously rate-limit transactions
-        // This mitigates 'penny-flooding' -- sending thousands of free transactions just to
-        // be annoying or make others' transactions take longer to confirm.
-        int probability = pfrom->temperature - 1000000;  // 1mb block size
-        if (probability > 1000000 || GetRand(1000000 - probability) == 0)
-              return true;
-
         if (!AlreadyHave(inv) && AcceptToMemoryPool(mempool, state, ptx, &fMissingInputs, &lRemovedTxn)) {
             // emercoin: raise temerature for this peer
-            time_t now_time = GetTime();
-            int32_t tau = 600; // Seconds per block
-            int32_t tx_size = (int32_t)::GetVirtualTransactionSize(*ptx);
-            pfrom->temperature = tx_size + pfrom->temperature * exp(-(now_time - pfrom->temperature) / tau);
+            pfrom->temperature  += (int32_t)::GetVirtualTransactionSize(*ptx);
 
             mempool.check(pcoinsTip);
             RelayTransaction(tx, connman);
             for (unsigned int i = 0; i < tx.vout.size(); i++) {
                 vWorkQueue.emplace_back(inv.hash, i);
             }
-
-            pfrom->nLastTXTime = GetTime();
 
             LogPrint("mempool", "AcceptToMemoryPool: peer=%d: accepted %s (poolsz %u txn, %u kB)\n",
                 pfrom->id,
