@@ -1,5 +1,5 @@
 ---
-name: "emercoin-win-0.6"
+name: "emercoin-win-0.7"
 enable_cache: true
 suites:
 - "trusty"
