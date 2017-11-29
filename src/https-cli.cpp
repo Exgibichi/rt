@@ -37,7 +37,7 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <WinCrypt.h>
+#include <wincrypt.h>
 #define snprintf _snprintf
 #define strcasecmp _stricmp 
 #else
@@ -509,7 +509,8 @@ HttpsLE(const char *host, const char *get, const char *post, std::string *ret) {
 
     PCCERT_CONTEXT pContext;
     while (pContext = CertEnumCertificatesInStore(hStore, pContext)) {
-      X509 *x509 = d2i_X509(NULL, &pContext->pbCertEncoded, pContext->cbCertEncoded);
+      const unsigned char *buf = pContext->pbCertEncoded;
+      X509 *x509 = d2i_X509(NULL, &buf, pContext->cbCertEncoded);
       if (x509) {
         X509_STORE_add_cert(store, x509);
         X509_free(x509);
