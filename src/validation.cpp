@@ -3057,10 +3057,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
             return state.DoS(100, error("CheckBlock() : coinstake in wrong position"),
                              REJECT_INVALID, "bad-cs-missing");
 
-    // ppcoin: coinbase output should be empty if proof-of-stake block
-    if (block.IsProofOfStake() && (block.vtx[0]->vout.size() != 1 || !block.vtx[0]->vout[0].IsEmpty()))
-        return error("CheckBlock() : coinbase output not empty for proof-of-stake block");
-
     // Check coinbase timestamp
     if (block.GetBlockTime() > (int64_t)block.vtx[0]->nTime + nMaxClockDrift)
         return state.DoS(50, error("CheckBlock() : coinbase timestamp is too early"),
@@ -3281,6 +3277,11 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
             fHaveWitness = true;
         }
     }
+
+    // ppcoin: coinbase output should be empty if proof-of-stake block
+    //         unless it is segwit block with valid WC output - in this case we allow one additional output
+    if (block.IsProofOfStake() && (block.vtx[0]->vout.size() != (fHaveWitness ? 2 : 1) || !block.vtx[0]->vout[0].IsEmpty()))
+        return error("CheckBlock() : coinbase output not empty for proof-of-stake block");
 
     // No witness data is allowed in blocks that don't commit to witness data, as this would otherwise leave room for spam
     if (!fHaveWitness) {
