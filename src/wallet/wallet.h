@@ -185,10 +185,6 @@ public:
      */
     int nIndex;
 
-    // emercoin: for backward compatability with auxpow code only
-    std::vector<uint256> vMerkleBranch;
-    bool fAuxPow;
-
     CMerkleTx()
     {
         SetTx(MakeTransactionRef());
@@ -209,7 +205,6 @@ public:
     {
         hashBlock = uint256();
         nIndex = -1;
-        fAuxPow = false;
     }
 
     void SetTx(CTransactionRef arg)
@@ -221,15 +216,10 @@ public:
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action) {
+        std::vector<uint256> vMerkleBranch; // For compatibility with older versions.
         READWRITE(tx);
         READWRITE(hashBlock);
-        if (fAuxPow)
-            READWRITE(this->vMerkleBranch);
-        else
-        {
-            std::vector<uint256> vMerkleBranch; // For compatibility with older versions.
-            READWRITE(vMerkleBranch);
-        }
+        READWRITE(vMerkleBranch);
         READWRITE(nIndex);
     }
 

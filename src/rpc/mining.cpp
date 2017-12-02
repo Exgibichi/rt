@@ -22,6 +22,7 @@
 #include "util.h"
 #include "utilstrencodings.h"
 #include "validationinterface.h"
+#include "wallet/wallet.h"
 
 #include <memory>
 #include <stdint.h>

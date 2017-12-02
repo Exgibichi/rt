@@ -4,15 +4,64 @@
 #ifndef BITCOIN_AUXPOW_H
 #define BITCOIN_AUXPOW_H
 
-#include "consensus/params.h"
 #include "primitives/block.h"
-#include "wallet/wallet.h"
+#include "primitives/transaction.h"
+#include "streams.h"
+#include "hash.h"
 
+//unsigned char pchMergedMiningHeader[] = { 0xfa, 0xbe, 'm', 'm' };
 
-class CAuxPow : public CMerkleTx
+/** A transaction with a merkle branch linking it to the block chain. */
+class CMerkleTxSmall
 {
 public:
-    CAuxPow() : CMerkleTx() {}
+    CTransactionRef tx;
+    uint256 hashBlock;
+    std::vector<uint256> vMerkleBranch;
+    int nIndex;
+
+    CMerkleTxSmall()
+    {
+        SetTx(MakeTransactionRef());
+        Init();
+    }
+
+    CMerkleTxSmall(CTransactionRef arg)
+    {
+        SetTx(std::move(arg));
+        Init();
+    }
+
+    /** Helper conversion operator to allow passing CMerkleTx where CTransaction is expected.
+     *  TODO: adapt callers and remove this operator. */
+    operator const CTransaction&() const { return *tx; }
+
+    void Init()
+    {
+        hashBlock = uint256();
+        nIndex = -1;
+    }
+
+    void SetTx(CTransactionRef arg)
+    {
+        tx = std::move(arg);
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(tx);
+        READWRITE(hashBlock);
+        READWRITE(vMerkleBranch);
+        READWRITE(nIndex);
+    }
+};
+
+class CAuxPow : public CMerkleTxSmall
+{
+public:
+    CAuxPow() : CMerkleTxSmall() {}
 
     // Merkle branch with root vchAux
     // root must be present inside the coinbase
@@ -25,16 +74,13 @@ public:
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action) {
-        fAuxPow = true;
-        READWRITE(*(CMerkleTx*)this);
+        READWRITE(*(CMerkleTxSmall*)this);
         READWRITE(vChainMerkleBranch);
         READWRITE(nChainIndex);
         // Always serialize the saved parent block as header so that the size of CAuxPow
         // is consistent.
         READWRITE(parentBlockHeader);
     }
-
-    bool Check(uint256 hashAuxBlock, int nChainID, const Consensus::Params &params);
 
     uint256 GetParentBlockHash()
     {
