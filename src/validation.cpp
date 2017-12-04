@@ -1461,7 +1461,7 @@ bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoins
             // If prev is coinbase, check that it's matured
             if (coins->IsCoinBase() || coins->IsCoinStake()) {
                 // emercoin: at some point we changed coinbase maturity from 12 to 32
-                int cnbMaturity = nSpendHeight > 193912 ? ::Params().GetConsensus().nCoinbaseMaturity : ::Params().GetConsensus().nCoinbaseMaturity;
+                int cnbMaturity = nSpendHeight > 193912 ? ::Params().GetConsensus().nCoinbaseMaturity : ::Params().GetConsensus().nCoinbaseMaturityOld;
                 if (nSpendHeight - coins->nHeight < cnbMaturity)
                     return state.Invalid(false,
                         REJECT_INVALID, "bad-txns-premature-spend-of-coinbase/coinstake",
