@@ -616,22 +616,35 @@ uint16_t EmcDns::HandleQuery() {
     
   } // if(p) - ends of DB search 
 
+  char val2[VAL_SIZE];
   // There is generate ANSWER section
   { // Extract TTL
-    char val2[VAL_SIZE];
     char *tokens[MAX_TOK];
     int ttlqty = Tokenize("TTL", NULL, tokens, strcpy(val2, m_value));
     m_ttl = ttlqty? atoi(tokens[0]) : 24 * 3600;
   }
   
-  if(qtype == 0xff) { // ALL Q-types
-    char val2[VAL_SIZE];
-    // List values for ANY:    A NS CNA PTR MX AAAA
-    const uint16_t q_all[] = { 1, 2, 5, 12, 15, 28, 0 };
-    for(const uint16_t *q = q_all; *q; q++)
-      Answer_ALL(*q, strcpy(val2, m_value));
-  } else 
+  // List values for ANY:    A NS CNA PTR MX AAAA
+  const uint16_t q_all[] = { 1, 2, 5, 12, 15, 28, 0 };
+  
+  switch(qtype) {
+    case 0xff:	// ALL
+      for(const uint16_t *q = q_all; *q; q++)
+        Answer_ALL(*q, strcpy(val2, m_value));
+      break;
+    case 1:	// A
+    case 28:	// AAAA
+      Answer_ALL(qtype, strcpy(val2, m_value));
+      if(m_hdr->ANCount != 0)
+        break;
+      qtype = 5; // Not found A/AAAA - try lookup for CNAME in the default section
+                 // Quoth RFC 1034, Section 3.6.2:
+                 // If a CNAME RR is present at a node, no other data should be present;
+    default:
       Answer_ALL(qtype, m_value);
+      break;
+  } // switch
+
   return 0;
 } // EmcDns::HandleQuery
 

@@ -1795,8 +1795,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         // This mitigates 'penny-flooding' -- sending thousands of free transactions just to
         // be annoying or make others' transactions take longer to confirm.
         // Adjust temperature for this peer
-	// temp_limit: 1/2 block flooding (1mb) per 1 minute.
-	const int temp_limit = 1024 * 1024 / 2 / 10;
+	// temp_limit: 1/10 block flooding (1mb) per 1 minute.
+	const int temp_limit = 2 * 1024 * 1024 / 10;
 	int64_t now_time = GetTime();
         int     minutes_gone = (now_time >> 6) - (pfrom->nLastTXTime >> 6); // 64s intervals
 	pfrom->nLastTXTime = now_time;
