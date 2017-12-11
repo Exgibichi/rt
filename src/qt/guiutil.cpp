@@ -149,11 +149,8 @@ void setupAmountWidget(QLineEdit *widget, QWidget *parent)
     widget->setAlignment(Qt::AlignRight|Qt::AlignVCenter);
 }
 
-bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out)
+bool parseBitcoinURI2(const QUrl &uri, vector<SendCoinsRecipient> &out)
 {
-    // return if URI is not valid or is no bitcoin: URI
-    if(!uri.isValid() || uri.scheme() != QString("emercoin"))
-        return false;
 
     SendCoinsRecipient rv;
     rv.address = uri.path();
@@ -203,25 +200,29 @@ bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out)
         if (fShouldReturnFalse)
             return false;
     }
-    if(out)
-    {
-        *out = rv;
-    }
+    out.push_back(rv);
+
     return true;
 }
 
-bool parseBitcoinURI(QString uri, SendCoinsRecipient *out)
+bool parseBitcoinURI(QString uri, vector<SendCoinsRecipient> &out)
 {
     // Convert bitcoin:// to bitcoin:
     //
     //    Cannot handle this later, because bitcoin:// will cause Qt to see the part after // as host,
     //    which will lower-case it (and thus invalidate the address).
     if(uri.startsWith("emercoin://", Qt::CaseInsensitive))
-    {
         uri.replace(0, 11, "emercoin:");
-    }
+
     QUrl uriInstance(uri);
-    return parseBitcoinURI(uriInstance, out);
+
+    // return if URI is not valid or is no bitcoin: URI
+    if(!uri.isValid() || uri.scheme() != QString("emercoin"))
+        return false;
+
+    out.clean();
+
+    return parseBitcoinURI2(uriInstance, out);
 }
 
 QString formatBitcoinURI(const SendCoinsRecipient &info)
