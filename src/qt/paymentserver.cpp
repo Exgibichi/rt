@@ -215,7 +215,7 @@ void PaymentServer::ipcParseCommandLine(int argc, char* argv[])
         {
             savedPaymentRequests.append(arg);
 
-            vector<SendCoinsRecipient> rv;
+            std::vector<SendCoinsRecipient> rv;
             if (GUIUtil::parseBitcoinURI(arg, rv) && !rv[0].address.isEmpty())
             {
                 CBitcoinAddress address(rv[0].address.toStdString());
@@ -436,7 +436,7 @@ void PaymentServer::handleURIOrFile(const QString& s)
         }
         else // normal URI
         {
-            vector<SendCoinsRecipient> recipients;
+            std::vector<SendCoinsRecipient> recipients;
             if (GUIUtil::parseBitcoinURI(s, recipients))
             {
                 CBitcoinAddress address(recipients[0].address.toStdString());

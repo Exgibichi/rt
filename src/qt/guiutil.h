@@ -46,8 +46,8 @@ namespace GUIUtil
     void setupAmountWidget(QLineEdit *widget, QWidget *parent);
 
     // Parse "bitcoin:" URI into recipient object, return true on successful parsing
-    bool parseBitcoinURI2(const QUrl &uri, vector<SendCoinsRecipient> &out);
-    bool parseBitcoinURI(QString uri, vector<SendCoinsRecipient> &out);
+    bool parseBitcoinURI2(const QUrl &uri, std::vector<SendCoinsRecipient> &out);
+    bool parseBitcoinURI(QString uri, std::vector<SendCoinsRecipient> &out);
     QString formatBitcoinURI(const SendCoinsRecipient &info);
 
     // Returns true if given address+amount meets "dust" definition

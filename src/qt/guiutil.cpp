@@ -149,7 +149,7 @@ void setupAmountWidget(QLineEdit *widget, QWidget *parent)
     widget->setAlignment(Qt::AlignRight|Qt::AlignVCenter);
 }
 
-bool parseBitcoinURI2(const QUrl &uri, vector<SendCoinsRecipient> &out)
+bool parseBitcoinURI2(const QUrl &uri, std::vector<SendCoinsRecipient> &out)
 {
 
     SendCoinsRecipient rv;
@@ -205,7 +205,7 @@ bool parseBitcoinURI2(const QUrl &uri, vector<SendCoinsRecipient> &out)
     return true;
 }
 
-bool parseBitcoinURI(QString uri, vector<SendCoinsRecipient> &out)
+bool parseBitcoinURI(QString uri, std::vector<SendCoinsRecipient> &out)
 {
     // Convert bitcoin:// to bitcoin:
     //
@@ -217,10 +217,10 @@ bool parseBitcoinURI(QString uri, vector<SendCoinsRecipient> &out)
     QUrl uriInstance(uri);
 
     // return if URI is not valid or is no bitcoin: URI
-    if(!uri.isValid() || uri.scheme() != QString("emercoin"))
+    if(!uriInstance.isValid() || uriInstance.scheme() != QString("emercoin"))
         return false;
 
-    out.clean();
+    out.clear();
 
     return parseBitcoinURI2(uriInstance, out);
 }
