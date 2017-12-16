@@ -205,6 +205,11 @@ bool parseBitcoinURI2(const QUrl &uri, std::vector<SendCoinsRecipient> &out)
     return true;
 }
 
+// URI format for sendmany:
+// emercoin:sendmany?Addr1=Amount1\lLabel1\mMsg1&Addr2=Amount2&Addr3=Amount3\mMsg3
+// Label starts from   \l
+// Message starts from \m
+// No "\&=" permitted within label and msg
 
 bool parseEmercoinSendmany(const QUrl &uri, std::vector<SendCoinsRecipient> &out) {
 
@@ -217,20 +222,33 @@ bool parseEmercoinSendmany(const QUrl &uri, std::vector<SendCoinsRecipient> &out
     for (QList<QPair<QString, QString> >::iterator i = items.begin(); i != items.end(); i++)
     {
         SendCoinsRecipient rv;
+
 	// Add the address
 	rv.address = i->first;
-        // Add message, if exist
-	char *p_msg = (char*)strchr(i->second.c_str(), ':');
-	if(p_msg) {
-	  *p_msg = 0;
-          rv.message.assign(p_msg + 1);
-	}
+
+        // Add /label:message, if exist
+	char p_label = NULL;
+	char p_msg   = NULL;
+
+	for(char *p = (char*)i->second.c_str(); *p; p++)
+	  if(*p == '\\')
+	    switch(p[1]) {
+	      case 'l': 
+	        *p++ = 0; p_label = p + 1; continue;
+	      case 'm': 
+	        *p++ = 0; p_msg   = p + 1; continue;
+	      default:
+	        continue;
+	    } // for+if+switch
+	if(p_label && *p_label) rv.label.assign(p_label);
+	if(p_msg   && *p_msg)   rv.message.assign(p_msg);
+
 	// Add amount, if specified
 	if(*(i->second.c_str()) != 0 && !BitcoinUnits::parse(BitcoinUnits::BTC, i->second, &rv.amount))
 	  continue;
 
         out.push_back(rv);
-    } // for
+    } // for QList
 
     return !out.empty();
 }
