@@ -205,6 +205,36 @@ bool parseBitcoinURI2(const QUrl &uri, std::vector<SendCoinsRecipient> &out)
     return true;
 }
 
+
+bool parseEmercoinSendmany(const QUrl &uri, std::vector<SendCoinsRecipient> &out) {
+
+#if QT_VERSION < 0x050000
+    QList<QPair<QString, QString> > items = uri.queryItems();
+#else
+    QUrlQuery uriQuery(uri);
+    QList<QPair<QString, QString> > items = uriQuery.queryItems();
+#endif
+    for (QList<QPair<QString, QString> >::iterator i = items.begin(); i != items.end(); i++)
+    {
+        SendCoinsRecipient rv;
+	// Add the address
+	rv.address = i->first;
+        // Add message, if exist
+	char *p_msg = (char*)strchr(i->second.c_str(), ':');
+	if(p_msg) {
+	  *p_msg = 0;
+          rv.message.assign(p_msg + 1);
+	}
+	// Add amount, if specified
+	if(*(i->second.c_str()) != 0 && !BitcoinUnits::parse(BitcoinUnits::BTC, i->second, &rv.amount))
+	  continue;
+
+        out.push_back(rv);
+    } // for
+
+    return !out.empty();
+}
+
 bool parseBitcoinURI(QString uri, std::vector<SendCoinsRecipient> &out)
 {
     // Convert bitcoin:// to bitcoin:
@@ -222,7 +252,7 @@ bool parseBitcoinURI(QString uri, std::vector<SendCoinsRecipient> &out)
 
     out.clear();
 
-    return parseBitcoinURI2(uriInstance, out);
+    return uriInstance.path().startsWith("sendmany")? parseEmercoinSendmany(uriInstance, out) : parseBitcoinURI2(uriInstance, out);
 }
 
 QString formatBitcoinURI(const SendCoinsRecipient &info)
