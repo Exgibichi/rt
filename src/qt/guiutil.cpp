@@ -227,10 +227,10 @@ bool parseEmercoinSendmany(const QUrl &uri, std::vector<SendCoinsRecipient> &out
 	rv.address = i->first;
 
         // Add /label:message, if exist
-	char p_label = NULL;
-	char p_msg   = NULL;
+    char* p_label = NULL;
+    char* p_msg   = NULL;
 
-	for(char *p = (char*)i->second.c_str(); *p; p++)
+    for(char *p = (char*)i->second.toStdString().c_str(); *p; p++)
 	  if(*p == '\\')
 	    switch(p[1]) {
 	      case 'l': 
@@ -240,11 +240,11 @@ bool parseEmercoinSendmany(const QUrl &uri, std::vector<SendCoinsRecipient> &out
 	      default:
 	        continue;
 	    } // for+if+switch
-	if(p_label && *p_label) rv.label.assign(p_label);
-	if(p_msg   && *p_msg)   rv.message.assign(p_msg);
+    if(p_label && *p_label) rv.label = p_label;
+    if(p_msg   && *p_msg)   rv.message = p_msg;
 
 	// Add amount, if specified
-	if(*(i->second.c_str()) != 0 && !BitcoinUnits::parse(BitcoinUnits::BTC, i->second, &rv.amount))
+    if(*(i->second.toStdString().c_str()) != 0 && !BitcoinUnits::parse(BitcoinUnits::BTC, i->second, &rv.amount))
 	  continue;
 
         out.push_back(rv);
