@@ -126,8 +126,8 @@
         <translation>Оношилгоо ба засварын консолыг онгойлго</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
-        <translation>Биткойн</translation>
+        <source>Emercoin</source>
+        <translation>Емеркойн</translation>
     </message>
     <message>
         <source>Wallet</source>

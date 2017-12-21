@@ -138,16 +138,16 @@
         <translation>Повторно индексирање на блокови од дискот...</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation>Испрати биткоини на Биткоин адреса</translation>
+        <source>Send coins to a Emercoin address</source>
+        <translation>Испрати биткоини на Емеркоин адреса</translation>
     </message>
     <message>
         <source>&amp;Verify message...</source>
         <translation>&amp;Потврди порака...</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
-        <translation>Биткоин</translation>
+        <source>Emercoin</source>
+        <translation>Емеркоин</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -578,8 +578,8 @@
         <translation>Опции:</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Биткоин Core</translation>
+        <source>Emercoin Core</source>
+        <translation>Емеркоин Core</translation>
     </message>
     <message>
         <source>Warning</source>
