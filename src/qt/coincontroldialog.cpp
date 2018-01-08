@@ -444,7 +444,7 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
     CAmount nChange             = 0;
     unsigned int nBytes         = 0;
     unsigned int nBytesInputs   = 0;
-    double dPriority            = 0;
+    //double dPriority            = 0;
     double dPriorityInputs      = 0;
     unsigned int nQuantity      = 0;
     int nQuantityUncompressed   = 0;
@@ -527,10 +527,11 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
 
 
         // Allow free? (require at least hard-coded threshold and default to that if no estimate)
-        double mempoolEstimatePriority = mempool.estimateSmartPriority(nTxConfirmTarget);
-        dPriority = dPriorityInputs / (nBytes - nBytesInputs + (nQuantityUncompressed * 29)); // 29 = 180 - 151 (uncompressed public keys are over the limit. max 151 bytes of the input are ignored for priority)
-        double dPriorityNeeded = std::max(mempoolEstimatePriority, AllowFreeThreshold());
-        fAllowFree = (dPriority >= dPriorityNeeded);
+        //double mempoolEstimatePriority = mempool.estimateSmartPriority(nTxConfirmTarget);
+        //dPriority = dPriorityInputs / (nBytes - nBytesInputs + (nQuantityUncompressed * 29)); // 29 = 180 - 151 (uncompressed public keys are over the limit. max 151 bytes of the input are ignored for priority)
+        //double dPriorityNeeded = std::max(mempoolEstimatePriority, AllowFreeThreshold());
+        //fAllowFree = (dPriority >= dPriorityNeeded);
+        fAllowFree = false; // emercoin: we have no free transaction
 
         if (fSendFreeTransactions)
             if (fAllowFree && nBytes <= MAX_FREE_TRANSACTION_CREATE_SIZE)
