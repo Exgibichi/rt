@@ -31,6 +31,7 @@
 #include <boost/tuple/tuple.hpp>
 #include <queue>
 #include <utility>
+#include <stack>
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -208,10 +209,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // transaction (which in most cases can be a no-op).
     fIncludeWitness = IsV7Enabled(pindexPrev, chainparams.GetConsensus()) && fMineWitnessTx;
 
-    addPriorityTxs();
-    int nPackagesSelected = 0;
-    int nDescendantsUpdated = 0;
-    addPackageTxs(nPackagesSelected, nDescendantsUpdated);
+    addTxs();
 
     int64_t nTime1 = GetTimeMicros();
 
@@ -248,7 +246,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
     int64_t nTime2 = GetTimeMicros();
 
-    LogPrint("bench", "CreateNewBlock() packages: %.2fms (%d packages, %d updated descendants), validity: %.2fms (total %.2fms)\n", 0.001 * (nTime1 - nTimeStart), nPackagesSelected, nDescendantsUpdated, 0.001 * (nTime2 - nTime1), 0.001 * (nTime2 - nTimeStart));
+    LogPrint("bench", "CreateNewBlock() txs: %.2fms, validity: %.2fms (total %.2fms)\n", 0.001 * (nTime1 - nTimeStart), 0.001 * (nTime2 - nTime1), 0.001 * (nTime2 - nTimeStart));
 
     return std::move(pblocktemplate);
 }
@@ -593,6 +591,78 @@ void BlockAssembler::addPackageTxs(int &nPackagesSelected, int &nDescendantsUpda
         // Update transactions that depend on each of these
         nDescendantsUpdated += UpdatePackagesForAdded(ancestors, mapModifiedTx);
     }
+}
+
+void BlockAssembler::addTxs()
+{
+    // How much of the block should be dedicated to transactions
+    unsigned int nBlockTxSize = nBlockMaxSize;
+
+    bool fSizeAccounting = fNeedSizeAccounting;
+    fNeedSizeAccounting = true;
+
+    std::stack<CTxMemPool::txiter> stack;
+    std::set<CTxMemPool::txiter, CTxMemPool::CompareIteratorByHash> waitSet;
+    typedef std::set<CTxMemPool::txiter, CTxMemPool::CompareIteratorByHash>::iterator waitIter;
+
+    for (CTxMemPool::indexed_transaction_set::iterator mi = mempool.mapTx.begin(); mi != mempool.mapTx.end(); ++mi)
+        stack.push(mi);
+
+    CTxMemPool::txiter iter;
+    CCoinsViewCache view(pcoinsTip);
+    while (!stack.empty() && !blockFinished) { // add a tx from stack to fill the nBlockTxSize
+        iter = stack.top();
+        stack.pop();
+
+        // If tx already in block, skip
+        if (inBlock.count(iter)) {
+            assert(false); // shouldn't happen
+            continue;
+        }
+
+        // cannot accept witness transactions into a non-witness block
+        if (!fIncludeWitness && iter->GetTx().HasWitness())
+            continue;
+
+        // If tx is dependent on other mempool txs which haven't yet been included
+        // then put it in the waitSet
+        if (isStillDependent(iter)) {
+            waitSet.insert(iter);
+            continue;
+        }
+
+        // ppcoin: timestamp limit
+        if (iter->GetTx().nTime > GetAdjustedTime() || (pblock->IsProofOfStake() && iter->GetTx().nTime > pblock->vtx[1]->nTime))
+            continue;
+
+        // ppcoin: simplify transaction fee
+        CAmount nTxFees = view.GetValueIn(iter->GetTx()) - iter->GetTx().GetValueOut();
+        CAmount nMinFee = iter->GetTx().GetMinFee();
+        if (nTxFees < nMinFee)
+            continue;
+
+        // If this tx fits in the block add it, otherwise keep looping
+        if (TestForBlock(iter)) {
+            AddToBlock(iter);
+
+            // If now that this txs is added we've surpassed our desired priority size
+            if (nBlockSize >= nBlockTxSize) {
+                break;
+            }
+
+            // This tx was successfully added, so
+            // add transactions that depend on this one to the stack to try again
+            BOOST_FOREACH(CTxMemPool::txiter child, mempool.GetMemPoolChildren(iter))
+            {
+                waitIter witer = waitSet.find(child);
+                if (witer != waitSet.end()) {
+                    stack.push(child);
+                    waitSet.erase(witer);
+                }
+            }
+        }
+    }
+    fNeedSizeAccounting = fSizeAccounting;
 }
 
 void BlockAssembler::addPriorityTxs()

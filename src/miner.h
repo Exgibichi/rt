@@ -176,6 +176,8 @@ private:
     void AddToBlock(CTxMemPool::txiter iter);
 
     // Methods for how to add transactions to a block.
+    /** emercoin: add transactions at random */
+    void addTxs();
     /** Add transactions based on tx "priority" */
     void addPriorityTxs();
     /** Add transactions based on feerate including unconfirmed ancestors
