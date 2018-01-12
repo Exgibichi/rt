@@ -35,6 +35,7 @@ public:
     virtual bool DisconnectInputs(const CTransactionRef& tx);
     virtual bool ConnectBlock(CBlockIndex* pindex, const vector<nameTempProxy>& vName);
     virtual bool ExtractAddress(const CScript& script, string& address);
+    virtual bool CheckPendingNames(const CTransactionRef& tx);
     virtual void AddToPendingNames(const CTransactionRef& tx);
     virtual bool RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut);
     virtual bool IsNameScript(CScript scr);
@@ -1334,6 +1335,30 @@ int IndexOfNameOutput(const CTransactionRef& tx)
     return nti.nOut;
 }
 
+bool CNamecoinHooks::CheckPendingNames(const CTransactionRef& tx)
+{
+    if (tx->nVersion != NAMECOIN_TX_VERSION)
+        return false;
+
+    CCoins coins;
+    if (pcoinsTip->GetCoins(tx->GetHash(), coins)) // try to ignore coins that are in blockchain
+        return false;
+
+    if (tx->vout.size() < 1)
+        return error("CheckPendingNames() : no output in tx %s\n", tx->ToString());
+
+    NameTxInfo nti;
+    if (!DecodeNameTx(tx, nti))
+        return error("CheckPendingNames() : could not decode name script in tx %s\n", tx->ToString());
+
+    if (mapNamePending.count(nti.name))
+    {
+        LogPrintf("CheckPendingNames() : there is already a pending operation on this name\n");
+        return false;
+    }
+    return true;
+}
+
 void CNamecoinHooks::AddToPendingNames(const CTransactionRef& tx)
 {
     if (tx->nVersion != NAMECOIN_TX_VERSION)
@@ -1345,19 +1370,19 @@ void CNamecoinHooks::AddToPendingNames(const CTransactionRef& tx)
 
     if (tx->vout.size() < 1)
     {
-        error("AddToPendingNames() : no output in tx %s\n", tx->ToString());
+        LogPrintf("AddToPendingNames() : no output in tx %s\n", tx->ToString());
         return;
     }
 
     NameTxInfo nti;
     if (!DecodeNameTx(tx, nti))
     {
-        error("AddToPendingNames() : could not decode name script in tx %s", tx->ToString());
+        LogPrintf("AddToPendingNames() : could not decode name script in tx %s\n", tx->ToString());
         return;
     }
 
     mapNamePending[nti.name].insert(tx->GetHash());
-    LogPrintf("AddToPendingNames(): added %s %s from tx %s", stringFromOp(nti.op), stringFromNameVal(nti.name), tx->ToString());
+    LogPrintf("AddToPendingNames(): added %s %s from tx %s\n", stringFromOp(nti.op), stringFromNameVal(nti.name), tx->ToString());
 }
 
 // Checks name tx and save name data to vName if valid

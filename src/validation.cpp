@@ -604,7 +604,11 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
         return state.DoS(0, false, REJECT_NONSTANDARD, "no-witness-yet", true);
     }
 
+    // Rather not accept more than one name op on the same name
     bool isNameTx = tx.nVersion == NAMECOIN_TX_VERSION;
+    if (isNameTx && !hooks->CheckPendingNames(ptx))
+        return state.DoS(0, false, REJECT_NONSTANDARD, "name-op-on-pending-name");
+
     // Rather not work on nonstandard transactions (unless -testnet/-regtest)
     std::string reason;
     if (fRequireStandard && !IsStandardTx(tx, reason, witnessEnabled) && !isNameTx)
