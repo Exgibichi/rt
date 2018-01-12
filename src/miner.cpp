@@ -605,8 +605,13 @@ void BlockAssembler::addTxs()
     std::set<CTxMemPool::txiter, CTxMemPool::CompareIteratorByHash> waitSet;
     typedef std::set<CTxMemPool::txiter, CTxMemPool::CompareIteratorByHash>::iterator waitIter;
 
-    for (CTxMemPool::indexed_transaction_set::iterator mi = mempool.mapTx.begin(); mi != mempool.mapTx.end(); ++mi)
-        stack.push(mi);
+    // fill stack with elements that are sorted by time with descending order.
+    // note: to convert reverse iterator to forward iterator we use base()
+    // but we need to add +1 to get iterator for the same element
+    // operator+ is not supported for reverse iterators in boost
+    // that is why we use ++ operator instead
+    for (auto mi = mempool.mapTx.get<2>().rbegin(); mi != mempool.mapTx.get<2>().rend();)
+        stack.push(mempool.mapTx.project<0>((++mi).base()));
 
     CTxMemPool::txiter iter;
     CCoinsViewCache view(pcoinsTip);
