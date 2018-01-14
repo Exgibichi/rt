@@ -23,6 +23,7 @@
 #include "txmempool.h"
 #include "uint256.h"
 #include "utilstrencodings.h"
+#include "namecoin.h"
 #ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
 #endif
@@ -67,6 +68,13 @@ void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry)
     entry.push_back(Pair("vsize", (int)::GetVirtualTransactionSize(tx)));
     entry.push_back(Pair("version", tx.nVersion));
     entry.push_back(Pair("locktime", (int64_t)tx.nLockTime));
+
+    NameTxInfo nti;
+    if (DecodeNameTx(MakeTransactionRef(std::move(tx)), nti))
+    {
+        entry.push_back(Pair("name", stringFromNameVal(nti.name)));
+        entry.push_back(Pair("value", encodeNameVal(nti.value, "")));
+    }
 
     UniValue vin(UniValue::VARR);
     for (unsigned int i = 0; i < tx.vin.size(); i++) {

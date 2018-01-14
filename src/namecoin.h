@@ -100,8 +100,9 @@ extern std::map<CNameVal, std::set<uint256> > mapNamePending;
 
 int IndexOfNameOutput(const CTransactionRef &tx);
 bool GetNameCurrentAddress(const CNameVal& name, CBitcoinAddress& address, std::string& error);
-std::string stringFromNameVal(const CNameVal& nameVal);
 CNameVal nameValFromString(const std::string& str);
+std::string stringFromNameVal(const CNameVal& nameVal);
+std::string encodeNameVal(const CNameVal& input, const string& format);
 std::string stringFromOp(int op);
 
 CAmount GetNameOpFee(const CBlockIndex* pindexBlock, const int nRentalDays, int op, const CNameVal& name, const CNameVal& value);
