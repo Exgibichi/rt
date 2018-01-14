@@ -266,9 +266,6 @@ bool IsNameFeeEnough(const NameTxInfo& nti, const CBlockIndex* pindexBlock, cons
 
 bool CNamecoinHooks::IsNameFeeEnough(const CTransactionRef& tx, const CAmount& txFee)
 {
-    if (tx->nVersion != NAMECOIN_TX_VERSION)
-        return false;
-
     NameTxInfo nti;
     if (!DecodeNameTx(tx, nti))
         return false;
@@ -1337,9 +1334,6 @@ int IndexOfNameOutput(const CTransactionRef& tx)
 
 bool CNamecoinHooks::CheckPendingNames(const CTransactionRef& tx)
 {
-    if (tx->nVersion != NAMECOIN_TX_VERSION)
-        return false;
-
     CCoins coins;
     if (pcoinsTip->GetCoins(tx->GetHash(), coins)) // try to ignore coins that are in blockchain
         return false;
@@ -1361,9 +1355,6 @@ bool CNamecoinHooks::CheckPendingNames(const CTransactionRef& tx)
 
 void CNamecoinHooks::AddToPendingNames(const CTransactionRef& tx)
 {
-    if (tx->nVersion != NAMECOIN_TX_VERSION)
-        return;
-
     CCoins coins;
     if (pcoinsTip->GetCoins(tx->GetHash(), coins)) // try to ignore coins that are in blockchain
         return;
@@ -1386,13 +1377,10 @@ void CNamecoinHooks::AddToPendingNames(const CTransactionRef& tx)
 }
 
 // Checks name tx and save name data to vName if valid
-// returns true if: (tx is valid name tx) OR (tx is not a name tx)
+// returns true if: tx is valid name tx
 // returns false if tx is invalid name tx
 bool CNamecoinHooks::CheckInputs(const CTransactionRef& tx, const CBlockIndex* pindexBlock, vector<nameTempProxy> &vName, const CDiskTxPos& pos, const CAmount& txFee)
 {
-    if (tx->nVersion != NAMECOIN_TX_VERSION)
-        return true;
-
 //read name tx
     NameTxInfo nti;
     if (!DecodeNameTx(tx, nti))
@@ -1508,9 +1496,6 @@ bool CNamecoinHooks::CheckInputs(const CTransactionRef& tx, const CBlockIndex* p
 
 bool CNamecoinHooks::DisconnectInputs(const CTransactionRef& tx)
 {
-    if (tx->nVersion != NAMECOIN_TX_VERSION)
-        return true;
-
     NameTxInfo nti;
     if (!DecodeNameTx(tx, nti))
     {
