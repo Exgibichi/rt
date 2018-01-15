@@ -110,7 +110,7 @@ void WalletView::setBitcoinGUI(BitcoinGUI *gui)
         connect(this, SIGNAL(hdEnabledStatusChanged(int)), gui, SLOT(setHDStatus(int)));
 
         // emercoin:
-        connect(gui->labelWalletEncryptionIcon, SIGNAL(clicked()), this, SLOT(on_labelWalletEncryptionIcon_clicked()));
+        connect(gui->labelWalletEncryptionIcon, SIGNAL(clicked(QPoint)), this, SLOT(on_labelWalletEncryptionIcon_clicked()));
     }
 }
 
