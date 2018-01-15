@@ -3152,7 +3152,6 @@ static const CRPCCommand commands[] =
     // emercoin commands
     { "wallet",             "makekeypair",              &makekeypair,              true,   {"prefix"} },
     { "wallet",             "reservebalance",           &reservebalance,           true,   {"prefix"} },
-    { "wallet",             "reencodeoldprivkey",       &reencodeoldprivkey,       true,   {"oldprivkey"} },
     { "wallet",             "name_new",                 &name_new,                 false,  {"name","value","days","toaddress","valuetype"} },
     { "wallet",             "name_update",              &name_update,              false,  {"name","value","days","toaddress","valuetype"} },
     { "wallet",             "name_delete",              &name_delete,              false,  {"name"} },
