@@ -3057,29 +3057,6 @@ UniValue reservebalance(const JSONRPCRequest& request)
     return result;
 }
 
-UniValue reencodeoldprivkey(const JSONRPCRequest& request)
-{
-    if (request.fHelp || request.params.size() != 1)
-        throw runtime_error(
-            "reencodeoldprivkey \"oldprivkey\"\n"
-            "\nRe-encodes private key created in emercoin 0.3.x to 0.5.x format."
-        );
-
-    string strSecret = request.params[0].get_str();
-
-    CBitcoinSecret vchSecret;
-    bool fGood = vchSecret.SetString(strSecret, true);
-    if (!fGood) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");
-
-    CKey key = vchSecret.GetKey();
-    if (!key.IsValid()) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Private key outside allowed range");
-
-    CPubKey pubkey = key.GetPubKey();
-    if (!key.VerifyPubKey(pubkey)) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Private key failed verification against public key");
-
-    return CBitcoinSecret(key).ToString();
-}
-
 extern UniValue dumpprivkey(const JSONRPCRequest& request); // in rpcdump.cpp
 extern UniValue importprivkey(const JSONRPCRequest& request);
 extern UniValue importaddress(const JSONRPCRequest& request);
@@ -3152,7 +3129,6 @@ static const CRPCCommand commands[] =
     // emercoin commands
     { "wallet",             "makekeypair",              &makekeypair,              true,   {"prefix"} },
     { "wallet",             "reservebalance",           &reservebalance,           true,   {"prefix"} },
-    { "wallet",             "reencodeoldprivkey",       &reencodeoldprivkey,       true,   {"oldprivkey"} },
     { "wallet",             "name_new",                 &name_new,                 false,  {"name","value","days","toaddress","valuetype"} },
     { "wallet",             "name_update",              &name_update,              false,  {"name","value","days","toaddress","valuetype"} },
     { "wallet",             "name_delete",              &name_delete,              false,  {"name"} },

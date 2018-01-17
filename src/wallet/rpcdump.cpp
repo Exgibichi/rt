@@ -75,6 +75,22 @@ std::string DecodeDumpString(const std::string &str) {
     return ret.str();
 }
 
+bool checkPrivKey(const string& privKey, bool oldPrivKeyMode, CKey& key, string& error)
+{
+    CBitcoinSecret vchSecret;
+    if (!vchSecret.SetString(privKey, oldPrivKeyMode)) {
+        error = "Invalid private key encoding";
+        return false;
+    }
+
+    key = vchSecret.GetKey();
+    if (!key.IsValid()) {
+        error = "Private key outside allowed range";
+        return false;
+    }
+    return true;
+}
+
 UniValue importprivkey(const JSONRPCRequest& request)
 {
     if (!EnsureWalletIsAvailable(request.fHelp))
@@ -123,13 +139,13 @@ UniValue importprivkey(const JSONRPCRequest& request)
     if (fRescan && fPruneMode)
         throw JSONRPCError(RPC_WALLET_ERROR, "Rescan is disabled in pruned mode");
 
-    CBitcoinSecret vchSecret;
-    bool fGood = vchSecret.SetString(strSecret);
-
-    if (!fGood) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");
-
-    CKey key = vchSecret.GetKey();
-    if (!key.IsValid()) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Private key outside allowed range");
+    // emercoin: first check privkey as normal, then try to reencode it to old format
+    CKey key;
+    string sError1 = "", sError2 = "";
+    if (!checkPrivKey(strSecret, false, key, sError1))
+        if (!checkPrivKey(strSecret, true, key, sError2)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, sError1);
+        }
 
     CPubKey pubkey = key.GetPubKey();
     assert(key.VerifyPubKey(pubkey));
