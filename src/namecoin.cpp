@@ -653,13 +653,13 @@ UniValue name_history(const JSONRPCRequest& request)
         obj.push_back(Pair("time",             (boost::int64_t)tx->nTime));
         obj.push_back(Pair("height",           nameRec.vtxPos[i].nHeight));
         obj.push_back(Pair("address",          nti.strAddress));
-      if (nti.fIsMine)
-        obj.push_back(Pair("address_is_mine",  "true"));
+        if (nti.fIsMine)
+            obj.push_back(Pair("address_is_mine",  "true"));
         obj.push_back(Pair("operation",        stringFromOp(nti.op)));
-      if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
-        obj.push_back(Pair("days_added",       nti.nRentalDays));
-      if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
-        obj.push_back(Pair("value", encodeNameVal(nti.value, outputType)));
+        if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
+            obj.push_back(Pair("days_added",       nti.nRentalDays));
+        if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
+            obj.push_back(Pair("value", encodeNameVal(nti.value, outputType)));
 
         res.push_back(obj);
     }
@@ -714,13 +714,13 @@ UniValue name_mempool(const JSONRPCRequest& request)
             obj.push_back(Pair("txid",             hash.ToString()));
             obj.push_back(Pair("time",             (boost::int64_t)tx->nTime));
             obj.push_back(Pair("address",          nti.strAddress));
-          if (nti.fIsMine)
-            obj.push_back(Pair("address_is_mine",  "true"));
+            if (nti.fIsMine)
+                obj.push_back(Pair("address_is_mine",  "true"));
             obj.push_back(Pair("operation",        stringFromOp(nti.op)));
-          if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
-            obj.push_back(Pair("days_added",       nti.nRentalDays));
-          if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
-            obj.push_back(Pair("value",            encodeNameVal(nti.value, outputType)));
+            if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
+                obj.push_back(Pair("days_added",       nti.nRentalDays));
+            if (nti.op == OP_NAME_UPDATE || nti.op == OP_NAME_NEW)
+                obj.push_back(Pair("value",            encodeNameVal(nti.value, outputType)));
 
             res.push_back(obj);
         }
