@@ -712,10 +712,11 @@ UniValue submitblock(const JSONRPCRequest& request)
         CValidationState state;
         if (!CheckBlock(block, state, Params().GetConsensus(), true,  true))
             throw JSONRPCError(-100, "Block failed CheckBlock() function.");
-    }
 
-    if (!SignBlock(block, *pwalletMain))
-        throw JSONRPCError(-100, "Unable to sign block, wallet locked?");
+        LOCK2(cs_main, pwalletMain->cs_wallet);
+        if (!SignBlock(block, *pwalletMain))
+            throw JSONRPCError(-100, "Unable to sign block, wallet locked?");
+    }
 
     {
         LOCK(cs_main);
@@ -778,8 +779,12 @@ UniValue getauxblock(const JSONRPCRequest& request)
             nStart = GetTime();
 
             // Create new block with nonce = 0 and extraNonce = 1
-            CScript scriptDummy = CScript() << OP_TRUE;
-            pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy, true);
+            boost::shared_ptr<CReserveScript> coinbase_script;
+            {
+                LOCK(pwalletMain->cs_wallet);
+                pwalletMain->GetScriptForMining(coinbase_script);
+            }
+            pblocktemplate = BlockAssembler(Params()).CreateNewBlock(coinbase_script->reserveScript, true);
             if (!pblocktemplate)
                 throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
 
@@ -838,15 +843,22 @@ UniValue getauxblock(const JSONRPCRequest& request)
             }
         }
 
+        {
+            CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION);
+            ssBlock << *pblock;
+            LogPrintf("blockhex = %s\n", HexStr(ssBlock.begin(), ssBlock.end()));
+        }
+
         // check block before attempting to sign it.
         {
             CValidationState state;
             if (!CheckBlock(*pblock, state, Params().GetConsensus(), true, true))
                 throw JSONRPCError(-100, "Block failed CheckBlock() function.");
-        }
 
-        if (!SignBlock(*pblock, *pwalletMain))
-            throw JSONRPCError(-100, "Unable to sign block, wallet locked?");
+            LOCK2(cs_main, pwalletMain->cs_wallet);
+            if (!SignBlock(*pblock, *pwalletMain))
+                throw JSONRPCError(-100, "Unable to sign block, wallet locked?");
+        }
 
         submitblock_StateCatcher sc(pblock->GetHash());
         RegisterValidationInterface(&sc);

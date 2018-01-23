@@ -4714,11 +4714,7 @@ bool SelectPubkeyForBlockSigning(const CBlock& block, vector<valtype>& vSolution
 bool SignBlock(CBlock& block, const CKeyStore& keystore)
 {
     vector<valtype> vSolutions;
-    bool fV7Enabled = false;
-    {
-        LOCK(cs_main);
-        fV7Enabled = chainActive.Tip()->GetBlockVersion() >= 7 && IsV7Enabled(chainActive.Tip(), Params().GetConsensus());
-    }
+    bool fV7Enabled = chainActive.Tip()->GetBlockVersion() >= 7 && IsV7Enabled(chainActive.Tip(), Params().GetConsensus());
     if (!SelectPubkeyForBlockSigning(block, vSolutions, fV7Enabled))
         return false;
 

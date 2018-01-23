@@ -876,10 +876,13 @@ void PoSMiner(CWallet *pwallet)
             // ppcoin: if proof-of-stake block found then process block
             if (pblock->IsProofOfStake())
             {
-                if (!SignBlock(*pblock, *pwallet))
                 {
-                    strMintWarning = strMintMessage;
-                    continue;
+                    LOCK2(cs_main, pwalletMain->cs_wallet);
+                    if (!SignBlock(*pblock, *pwallet))
+                    {
+                        strMintWarning = strMintMessage;
+                        continue;
+                    }
                 }
                 strMintWarning = "";
                 LogPrintf("CPUMiner : proof-of-stake block found %s\n", pblock->GetHash().ToString());
