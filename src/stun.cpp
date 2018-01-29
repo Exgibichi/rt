@@ -502,7 +502,7 @@ static int StunRequest2(int sock, struct sockaddr_in *server, struct sockaddr_in
 } // StunRequest2
 
 /*---------------------------------------------------------------------*/
-static int StunRequest(const char *host, uint16_t port, struct sockaddr_in *mapped) {
+static int StunRequest(const char *host, uint16_t port, struct sockaddr_in *mapped, uint16_t src_port) {
   struct hostent *hostinfo = gethostbyname(host);
   if(hostinfo == NULL)
       return -1;
@@ -520,6 +520,8 @@ static int StunRequest(const char *host, uint16_t port, struct sockaddr_in *mapp
     return -2;
 
   client.sin_addr.s_addr = htonl(INADDR_ANY);
+  if(src_port)
+    client.sin_port = htons(src_port);
 
   int rc = -3;
    if(bind(sock, (struct sockaddr*)&client, sizeof(client)) >= 0)
@@ -538,7 +540,7 @@ static int StunRequest(const char *host, uint16_t port, struct sockaddr_in *mapp
 // Retval:
 // bits 0-7 = STUN tokens set, 8-32 = attempt number
 // Negative return - unable to figure out IP address
-int GetExternalIPbySTUN(uint64_t rnd, struct sockaddr_in *mapped, const char **srv) {
+int GetExternalIPbySTUN(uint64_t rnd, struct sockaddr_in *mapped, const char **srv, uint16_t src_port) {
   randfiller    = rnd;
   uint16_t pos  = rnd;
   uint16_t step; 
@@ -550,7 +552,7 @@ int GetExternalIPbySTUN(uint64_t rnd, struct sockaddr_in *mapped, const char **s
   int attempt; // runs in 8 birs offset, for keep flags in low byte 
   for(attempt = 256; attempt < StunSrvListQty * 2 * 256; attempt += 256) {
     pos = (pos + step) % StunSrvListQty;
-    int rc = StunRequest(*srv = StunSrvList[pos].name, StunSrvList[pos].port, mapped);
+    int rc = StunRequest(*srv = StunSrvList[pos].name, StunSrvList[pos].port, mapped, src_port);
     if(rc > 0)
       return attempt | rc;
   }

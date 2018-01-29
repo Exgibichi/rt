@@ -2170,22 +2170,36 @@ void Discover(boost::thread_group& threadGroup)
 
 /*--------------------------------------------------------------------------*/
 // from file stun.cpp
-int GetExternalIPbySTUN(uint64_t rnd, struct sockaddr_in *mapped, const char **srv);
+int GetExternalIPbySTUN(uint64_t rnd, struct sockaddr_in *mapped, const char **srv, uint16_t src_port);
 
 /*--------------------------------------------------------------------------*/
+static const char *stun_rc_txt[] = {
+  NULL,
+  "MAPPED_ADDRESS",
+  "XOR_MAPPED_ADDRESS",
+  NULL,
+  "XOR_MAPPED_ADDRESS2"
+};
+
 void ThreadGetMyExternalIP_STUN() {
   struct sockaddr_in mapped;
   uint64_t rnd = GetRand(~0LL);
   const char *srv;
-  int rc = GetExternalIPbySTUN(rnd, &mapped, &srv);
+  int src_port = GetArg("-stunsrcport", 0);
+  int rc = GetExternalIPbySTUN(rnd, &mapped, &srv, src_port);
   if(rc > 0) {
     CNetAddr ipRet(mapped.sin_addr);
     AddLocal(ipRet);
+    char rc_decode[100], *p_decode = rc_decode, mask = 4;
+    do {
+      if(rc & mask)
+        p_decode += sprintf(p_decode, "%c%s", (p_decode == rc_decode)? '(' : ',', stun_rc_txt[mask]);
+    } while(mask >>= 1);
 
-    LogPrintf("GetExternalIPbySTUN() returned %s in attempt %u; flags=%x; Server=%s\n",
-        ipRet.ToStringIP(), rc >> 8, (uint8_t)rc, srv);
+    LogPrintf("GetExternalIPbySTUN(%d) returned %s in attempt %u; flags=%x %s); Server=%s\n", src_port,
+        ipRet.ToStringIP(), rc >> 8, (uint8_t)rc, rc_decode, srv);
   } else
-    LogPrintf("GetExternalIPbySTUN() failed\n");
+    LogPrintf("GetExternalIPbySTUN(%d) failed\n", src_port);
 } // GetMyExternalIP_STUN
 
 void GetMyExternalIP_STUN(bool fUse)
