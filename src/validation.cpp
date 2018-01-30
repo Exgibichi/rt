@@ -3206,13 +3206,12 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
        (block.GetBlockVersion() < 4 && nHeight >= consensusParams.BIP65Height) ||
        (block.GetBlockVersion() < 5 && nHeight >= consensusParams.MMHeight) ||
        (block.GetBlockVersion() < 7 && IsV7Enabled(pindexPrev, consensusParams)))
-            return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
-                                 strprintf("rejected nVersion=0x%08x block", block.nVersion));
+            return state.DoS(100, false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
+                             false, strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
     // Check if auxpow is allowed
     if (block.auxpow.get() != NULL && nHeight < consensusParams.MMHeight)
-        return state.DoS(100, error("%s : premature auxpow block", __func__),
-                         REJECT_INVALID, "time-too-new");
+        return state.DoS(100, false, REJECT_INVALID, "premature auxpow block", false, "time-too-new");
 
     return true;
 }
