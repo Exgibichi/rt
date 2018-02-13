@@ -3044,7 +3044,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 
     // Check coinbase timestamp
     if (block.GetBlockTime() > (int64_t)block.vtx[0]->nTime + nMaxClockDrift)
-        return state.DoS(100, false, REJECT_INVALID, "bad-cb-time", false, "coinbase timestamp is too early");
+        return state.DoS(50, false, REJECT_INVALID, "bad-cb-time", false, "coinbase timestamp is too early");
 
     // Check coinstake timestamp
     if (block.IsProofOfStake() && !CheckCoinStakeTimestamp(block.GetBlockTime(), (int64_t)block.vtx[1]->nTime))
