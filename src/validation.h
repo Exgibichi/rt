@@ -581,9 +581,7 @@ bool SignBlock(CBlock& block, const CKeyStore& keystore);
 bool CheckBlockSignature(const CBlock& block, bool fV7Enabled);
 
 // emercoin: check that tx output is not below MIN_TX_AMOUNT
-CAmount GetMinTxOut(int nVersion, CBlockIndex *pindexPrev);
-CAmount GetMinTxOutLOCKED(int nVersion, CBlockIndex *pindexPrev);
-bool CheckMinTxOut(const CTransactionRef& tx, int nVersion, CBlockIndex *pindexPrev);
+bool CheckMinTxOut(const CTransactionRef& tx);
 bool CheckMinTxOut(const CBlock& block, CBlockIndex *pindexPrev);
 
 #endif // BITCOIN_VALIDATION_H

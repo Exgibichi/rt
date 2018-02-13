@@ -160,14 +160,10 @@ CAmount GetNameOpFee(const CBlockIndex* pindex, const int nRentalDays, int op, c
     txMinFee = (txMinFee / CENT) * CENT;
 
     // reduce fee by 100 in 0.7.0emc
-    static int fTestnet = -1;
-    if (fTestnet < 0)
-        fTestnet = Params().NetworkIDString() == CBaseChainParams::TESTNET;
-    bool fLessFee = fTestnet || (pindex->GetBlockVersion() >= 7 && IsV7Enabled(pindex->pprev, Params().GetConsensus()));
-    if (fLessFee) txMinFee = txMinFee / 100;
+    txMinFee = txMinFee / 100;
 
     // Fee should be at least MIN_TX_FEE
-    txMinFee = max(txMinFee, fLessFee ? MIN_TX_FEE : CENT);
+    txMinFee = max(txMinFee, MIN_TX_FEE);
 
     return txMinFee;
 }
@@ -1381,6 +1377,9 @@ void CNamecoinHooks::AddToPendingNames(const CTransactionRef& tx)
 // returns false if tx is invalid name tx
 bool CNamecoinHooks::CheckInputs(const CTransactionRef& tx, const CBlockIndex* pindexBlock, vector<nameTempProxy> &vName, const CDiskTxPos& pos, const CAmount& txFee)
 {
+    if (tx->nVersion != NAMECOIN_TX_VERSION)
+        return false;
+
 //read name tx
     NameTxInfo nti;
     if (!DecodeNameTx(tx, nti))
