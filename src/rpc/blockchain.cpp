@@ -1451,7 +1451,7 @@ UniValue gettxlistfor(const JSONRPCRequest& request)
             throw runtime_error("[type] must be between 0 and 2");
     }
 
-    bool verbose = false;
+    int verbose = 0;
     if (request.params.size() > 4)
     {
         verbose = request.params[4].get_int();
