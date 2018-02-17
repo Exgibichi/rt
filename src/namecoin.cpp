@@ -1495,6 +1495,9 @@ bool CNamecoinHooks::CheckInputs(const CTransactionRef& tx, const CBlockIndex* p
 
 bool CNamecoinHooks::DisconnectInputs(const CTransactionRef& tx)
 {
+    if (tx->nVersion != NAMECOIN_TX_VERSION)
+        return false;
+
     NameTxInfo nti;
     if (!DecodeNameTx(tx, nti))
     {
