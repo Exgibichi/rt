@@ -20,6 +20,7 @@ static const CAmount SUBCENT = 100;
 
 static const CAmount MIN_TX_FEE = SUBCENT;
 static const CAmount TX_DP_AMOUNT = SUBCENT; // DP optimizer unit
+static const CAmount MIN_TXOUT_AMOUNT = MIN_TX_FEE;
 
 extern const std::string CURRENCY_UNIT;
 

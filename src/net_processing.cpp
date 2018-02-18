@@ -1361,6 +1361,13 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             connman.MarkAddressGood(pfrom->addr);
         }
 
+        // ppcoin: relay sync-checkpoint
+        {
+            LOCK(cs_main);
+            if (!CheckpointsSync::checkpointMessage.IsNull())
+                CheckpointsSync::checkpointMessage.RelayTo(pfrom);
+        }
+
         std::string remoteAddr;
         if (fLogIPs)
             remoteAddr = ", peeraddr=" + pfrom->addr.ToString();
@@ -1423,13 +1430,6 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 connman.PushMessage(pfrom, msgMaker.Make(NetMsgType::SENDCMPCT, fAnnounceUsingCMPCTBLOCK, nCMPCTBLOCKVersion));
             nCMPCTBLOCKVersion = 1;
             connman.PushMessage(pfrom, msgMaker.Make(NetMsgType::SENDCMPCT, fAnnounceUsingCMPCTBLOCK, nCMPCTBLOCKVersion));
-        }
-
-        // ppcoin: relay sync-checkpoint
-        {
-            LOCK(cs_main);
-            if (!CheckpointsSync::checkpointMessage.IsNull())
-                CheckpointsSync::checkpointMessage.RelayTo(pfrom);
         }
 
         pfrom->fSuccessfullyConnected = true;
@@ -2621,38 +2621,21 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
     }
 
+    else if (strCommand == NetMsgType::CHECKPOINT)
+    {
+         CSyncCheckpoint checkpoint;
+         vRecv >> checkpoint;
+
+         if (checkpoint.ProcessSyncCheckpoint())
+             g_connman->ForEachNode([&checkpoint](CNode* pnode) {
+                 checkpoint.RelayTo(pnode);
+             });
+    }
+
     else if (strCommand == NetMsgType::NOTFOUND) {
         // We do not care about the NOTFOUND message, but logging an Unknown Command
         // message would be undesirable as we transmit it ourselves.
     }
-
-//emc - add checkpoints?
-    // else if (strCommand == "checkpoint")
-    // {
-    //     CSyncCheckpoint checkpoint;
-    //     vRecv >> checkpoint;
-
-    //     if (checkpoint.ProcessSyncCheckpoint())
-    //     {
-    //         // Relay
-    //         vector<CNode*> vNodesCopy;
-    //         {
-    //             LOCK(cs_vNodes);
-    //             vNodesCopy = vNodes;
-    //             BOOST_FOREACH(CNode* pnode, vNodesCopy) {
-    //                 pnode->AddRef();
-    //             }
-    //         }
-
-    //         pfrom->hashCheckpointKnown = checkpoint.hashCheckpoint;
-    //         BOOST_FOREACH(CNode* pnode, vNodesCopy)
-    //             checkpoint.RelayTo(pnode);
-
-    //         LOCK(cs_vNodes);
-    //         BOOST_FOREACH(CNode* pnode, vNodesCopy)
-    //             pnode->Release();
-    //     }
-    // }
 
     else {
         // Ignore unknown commands for extensibility
