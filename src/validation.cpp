@@ -749,7 +749,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
         bool fSpendsCoinbase = false;
         BOOST_FOREACH(const CTxIn &txin, tx.vin) {
             const CCoins *coins = view.AccessCoins(txin.prevout.hash);
-            if (coins->IsCoinBase()) {
+            if (coins->IsCoinBase() || coins->IsCoinStake()) {
                 fSpendsCoinbase = true;
                 break;
             }
@@ -2097,11 +2097,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     vector<nameTempProxy> vName;
     if (fWriteNames)
         for (unsigned int i=0; i<block.vtx.size(); i++)
-        {
-            const CTransactionRef &tx = block.vtx[i];
-            if (!tx->IsCoinBase())
-                hooks->CheckInputs(tx, pindex, vName, vPos[i].second, vFees[i]); // collect valid name tx to vName
-        }
+            hooks->CheckInputs(block.vtx[i], pindex, vName, vPos[i].second, vFees[i]);
 
     // Write undo information to disk
     if (pindex->GetUndoPos().IsNull() || !pindex->IsValid(BLOCK_VALID_SCRIPTS))
