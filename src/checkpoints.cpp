@@ -130,7 +130,7 @@ bool AcceptPendingSyncCheckpoint()
     checkpointMessagePending.SetNull();
     LogPrintf("AcceptPendingSyncCheckpoint : sync-checkpoint at %s\n", hashSyncCheckpoint.ToString());
     // relay the checkpoint
-    if (!checkpointMessage.IsNull())
+    if (g_connman && !checkpointMessage.IsNull())
         g_connman->ForEachNode([](CNode* pnode) {
             checkpointMessage.RelayTo(pnode);
         });
@@ -252,6 +252,9 @@ bool SetCheckpointPrivKey(std::string strPrivKey)
 
 bool SendSyncCheckpoint(uint256 hashCheckpoint)
 {
+    if (!g_connman)
+        return true;  // P2P disabled - nothing to do
+
     if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0)
         return true; // no one to send to
 
@@ -380,10 +383,9 @@ uint256 CSyncCheckpoint::GetHash() const
 bool CSyncCheckpoint::RelayTo(CNode *pnode) const
 {
     // returns true if wasn't already sent
-    if (pnode->hashCheckpointKnown != hashCheckpoint)
+    if (g_connman && pnode->hashCheckpointKnown != hashCheckpoint)
     {
         pnode->hashCheckpointKnown = hashCheckpoint;
-        //pnode->PushMessage("checkpoint", *this);
         g_connman->PushMessage(pnode, CNetMsgMaker(pnode->GetSendVersion()).Make("checkpoint", *this));
         return true;
     }

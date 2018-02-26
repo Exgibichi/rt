@@ -2627,9 +2627,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
          vRecv >> checkpoint;
 
          if (checkpoint.ProcessSyncCheckpoint())
-             g_connman->ForEachNode([&checkpoint](CNode* pnode) {
-                 checkpoint.RelayTo(pnode);
-             });
+             if (g_connman)
+                 g_connman->ForEachNode([&checkpoint](CNode* pnode) {
+                     checkpoint.RelayTo(pnode);
+                 });
     }
 
     else if (strCommand == NetMsgType::NOTFOUND) {
