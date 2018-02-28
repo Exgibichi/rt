@@ -131,6 +131,11 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "echojson", 9, "arg9" },
 
     // ppcoin:
+    { "sendalert", 2, "minver"},
+    { "sendalert", 3, "maxver"},
+    { "sendalert", 4, "priority"},
+    { "sendalert", 5, "id"},
+    { "sendalert", 6, "cancelupto"},
     { "reservebalance", 0, "reserve" },
     { "reservebalance", 1, "amount" },
 
