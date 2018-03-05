@@ -4674,7 +4674,7 @@ bool SelectPubkeyForBlockSigning(const CBlock& block, vector<valtype>& vSolution
         for (const auto& txout : block.vtx[0]->vout)
         {
             if (!Solver(txout.scriptPubKey, whichType, vSolutions))
-                return false;
+                continue;
             if (whichType == TX_PUBKEY)
                 return true;
         }
