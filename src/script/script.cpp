@@ -269,3 +269,154 @@ std::string CScriptWitness::ToString() const
     }
     return ret + ")";
 }
+
+// namecoin stuff
+
+bool checkNameValues(NameTxInfo& ret)
+{
+    ret.err_msg = "";
+    if (ret.name.size() > MAX_NAME_LENGTH)
+        ret.err_msg.append("name is too long.\n");
+
+    if (ret.value.size() > MAX_VALUE_LENGTH)
+        ret.err_msg.append("value is too long.\n");
+
+    if (ret.op == OP_NAME_NEW && ret.nRentalDays < 1)
+        ret.err_msg.append("rental days must be greater than 0.\n");
+
+    if (ret.op == OP_NAME_UPDATE && ret.nRentalDays < 0)
+        ret.err_msg.append("rental days must be greater or equal 0.\n");
+
+    if (ret.nRentalDays > MAX_RENTAL_DAYS)
+        ret.err_msg.append("rental days value is too large.\n");
+
+    if (ret.err_msg != "")
+        return false;
+    return true;
+}
+
+// read name script and extract name, value and rentalDays
+// returns true/false is script is correct/incorrect
+bool DecodeNameScript(const CScript& script, NameTxInfo& ret, CScript::const_iterator& pc)
+{
+    // script structure:
+    // (name_new | name_update) << OP_DROP << name << days << OP_2DROP << val1 << val2 << .. << valn << OP_DROP2 << OP_DROP2 << ..<< (OP_DROP2 | OP_DROP) << paytoscripthash
+    // or
+    // name_delete << OP_DROP << name << OP_DROP << paytoscripthash
+
+    // NOTE: script structure is strict - it must not contain anything else in the midle of it to be a valid name script. It can, however, contain anything else after the correct structure have been read.
+
+    // read op
+    ret.err_msg = "failed to read op";
+    opcodetype opcode;
+    if (!script.GetOp(pc, opcode))
+        return false;
+    if (opcode < OP_1 || opcode > OP_16)
+        return false;
+    ret.op = opcode - OP_1 + 1;
+
+    if (ret.op != OP_NAME_NEW && ret.op != OP_NAME_UPDATE && ret.op != OP_NAME_DELETE)
+        return false;
+
+    ret.err_msg = "failed to read OP_DROP after op_type";
+    if (!script.GetOp(pc, opcode))
+        return false;
+    if (opcode != OP_DROP)
+        return false;
+
+    vector<unsigned char> vch;
+
+    // read name
+    ret.err_msg = "failed to read name";
+    if (!script.GetOp(pc, opcode, vch))
+        return false;
+    if ((opcode == OP_DROP || opcode == OP_2DROP) || !(opcode >= 0 && opcode <= OP_PUSHDATA4))
+        return false;
+    ret.name = vch;
+
+    // if name_delete - read OP_DROP after name and exit.
+    if (ret.op == OP_NAME_DELETE)
+    {
+        ret.err_msg = "failed to read OP2_DROP in name_delete";
+        if (!script.GetOp(pc, opcode))
+            return false;
+        if (opcode != OP_DROP)
+            return false;
+        ret.err_msg = "";
+
+        return true;
+    }
+
+    // read rental days
+    ret.err_msg = "failed to read rental days";
+    if (!script.GetOp(pc, opcode, vch))
+        return false;
+    if ((opcode == OP_DROP || opcode == OP_2DROP) || !(opcode >= 0 && opcode <= OP_PUSHDATA4))
+        return false;
+    ret.nRentalDays = CScriptNum(vch, false).getint();
+
+    // read OP_2DROP after name and rentalDays
+    ret.err_msg = "failed to read delimeter d in: name << rental << d << value";
+    if (!script.GetOp(pc, opcode))
+        return false;
+    if (opcode != OP_2DROP)
+        return false;
+
+    // read value
+    ret.err_msg = "failed to read value";
+    int valueSize = 0;
+    for (;;)
+    {
+        if (!script.GetOp(pc, opcode, vch))
+            return false;
+        if (opcode == OP_DROP || opcode == OP_2DROP)
+            break;
+        if (!(opcode >= 0 && opcode <= OP_PUSHDATA4))
+            return false;
+        ret.value.insert(ret.value.end(), vch.begin(), vch.end());
+        valueSize++;
+    }
+    pc--;
+
+    // read next delimiter and move the pc after it
+    ret.err_msg = "failed to read correct number of DROP operations after value";
+    int delimiterSize = 0;
+    while (opcode == OP_DROP || opcode == OP_2DROP)
+    {
+        if (!script.GetOp(pc, opcode))
+            break;
+        if (opcode == OP_2DROP)
+            delimiterSize += 2;
+        if (opcode == OP_DROP)
+            delimiterSize += 1;
+    }
+    pc--;
+
+    if (valueSize != delimiterSize)
+        return false;
+
+
+    ret.err_msg = "";     //sucess! we have read name script structure without errors!
+    if (!checkNameValues(ret))
+        return false;
+
+    return true;
+}
+
+bool DecodeNameScript(const CScript& script, NameTxInfo& ret)
+{
+    CScript::const_iterator pc = script.begin();
+    return DecodeNameScript(script, ret, pc);
+}
+
+bool RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut)
+{
+    NameTxInfo nti;
+    CScript::const_iterator pc = scriptIn.begin();
+
+    if (!DecodeNameScript(scriptIn, nti, pc))
+        return false;
+
+    scriptOut = CScript(pc, scriptIn.end());
+    return true;
+}

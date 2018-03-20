@@ -110,7 +110,6 @@ CAmount GetNameOpFee(const CBlockIndex* pindexBlock, const int nRentalDays, int 
 bool DecodeNameTx(const CTransactionRef& tx, NameTxInfo& nti, bool checkAddressAndIfIsMine = false);
 void GetNameList(const CNameVal& nameUniq, std::map<CNameVal, NameTxInfo> &mapNames, std::map<CNameVal, NameTxInfo> &mapPending);
 bool GetNameValue(const CNameVal& name, CNameVal& value);
-bool SignNameSignature(const CKeyStore& keystore, const CTransaction& txFrom, CMutableTransaction& txTo, unsigned int nIn, int nHashType=SIGHASH_ALL);
 
 struct NameTxReturn
 {

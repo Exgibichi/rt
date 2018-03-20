@@ -673,4 +673,36 @@ public:
     virtual ~CReserveScript() {}
 };
 
+// namecoin stuff
+typedef std::vector<unsigned char> CNameVal;
+struct NameTxInfo
+{
+    CNameVal name;
+    CNameVal value;
+    int nRentalDays;
+    int op;
+    int nOut;
+    std::string err_msg; //in case function that takes this as argument have something to say about it
+
+    //used only by DecodeNameScript()
+    std::string strAddress;
+    bool fIsMine;
+
+    //used only by GetNameList()
+    int nExpiresAt;
+
+    NameTxInfo(): nRentalDays(-1), op(-1), nOut(-1), fIsMine(false), nExpiresAt(-1) {}
+    NameTxInfo(CNameVal name, CNameVal value, int nRentalDays, int op, int nOut, std::string err_msg):
+        name(name), value(value), nRentalDays(nRentalDays), op(op), nOut(nOut), err_msg(err_msg), fIsMine(false), nExpiresAt(-1) {}
+};
+
+static const unsigned int MAX_NAME_LENGTH = 512;
+static const unsigned int MAX_VALUE_LENGTH = 20*1024;
+static const int MAX_RENTAL_DAYS = 366000000;  // in days
+
+bool checkNameValues(NameTxInfo& ret);
+bool DecodeNameScript(const CScript& script, NameTxInfo& ret, CScript::const_iterator& pc);
+bool DecodeNameScript(const CScript& script, NameTxInfo& ret);
+bool RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut);
+
 #endif // BITCOIN_SCRIPT_SCRIPT_H

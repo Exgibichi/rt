@@ -37,7 +37,6 @@ public:
     virtual bool ExtractAddress(const CScript& script, string& address);
     virtual bool CheckPendingNames(const CTransactionRef& tx);
     virtual void AddToPendingNames(const CTransactionRef& tx);
-    virtual bool RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut);
     virtual bool IsNameScript(CScript scr);
     virtual bool getNameValue(const string& sName, string& sValue);
     virtual bool DumpToTextFile();
@@ -371,11 +370,6 @@ bool GetNameCurrentAddress(const CNameVal& name, CBitcoinAddress& address, strin
     }
 
     return true;
-}
-
-bool CNamecoinHooks::RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut)
-{
-    return ::RemoveNameScriptPrefix(scriptIn, scriptOut);
 }
 
 UniValue name_list(const JSONRPCRequest& request)

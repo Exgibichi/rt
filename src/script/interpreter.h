@@ -179,14 +179,4 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const C
 
 size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey, const CScriptWitness* witness, unsigned int flags);
 
-// namecoin stuff
-static const unsigned int MAX_NAME_LENGTH = 512;
-static const unsigned int MAX_VALUE_LENGTH = 20*1024;
-static const int MAX_RENTAL_DAYS = 366000000;  // in days
-
-bool checkNameValues(NameTxInfo& ret);
-bool DecodeNameScript(const CScript& script, NameTxInfo& ret, CScript::const_iterator& pc);
-bool DecodeNameScript(const CScript& script, NameTxInfo& ret);
-bool RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut);
-
 #endif // BITCOIN_SCRIPT_INTERPRETER_H

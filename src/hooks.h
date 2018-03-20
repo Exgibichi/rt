@@ -34,7 +34,6 @@ public:
     virtual bool ExtractAddress(const CScript& script, std::string& address) = 0;
     virtual bool CheckPendingNames(const CTransactionRef& tx) = 0;
     virtual void AddToPendingNames(const CTransactionRef& tx) = 0;
-    virtual bool RemoveNameScriptPrefix(const CScript& scriptIn, CScript& scriptOut) = 0;
     virtual bool IsNameScript(CScript scr) = 0;
     virtual bool getNameValue(const string& sName, string& sValue) = 0;
     virtual bool DumpToTextFile() = 0;
