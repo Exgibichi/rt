@@ -214,7 +214,7 @@ bool ComputeNextStakeModifier(const CBlockIndex* pindexCurrent, uint64_t& nStake
     }
 
     reverse(vSortedByTimestamp.begin(), vSortedByTimestamp.end());
-    for(int i = 0; i < vSortedByTimestamp.size() - 1; i++)
+    for(int i = 0; i < (int)vSortedByTimestamp.size() - 1; i++)
 	    SwapSort(vSortedByTimestamp, i);
 
 #if 0

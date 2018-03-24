@@ -2190,7 +2190,8 @@ void ThreadGetMyExternalIP_STUN() {
   if(rc > 0) {
     CNetAddr ipRet(mapped.sin_addr);
     AddLocal(ipRet);
-    char rc_decode[100], *p_decode = rc_decode, mask = 4;
+    char rc_decode[100], *p_decode = rc_decode;
+    int mask = 4;
     do {
       if(rc & mask)
         p_decode += sprintf(p_decode, "%c%s", (p_decode == rc_decode)? '(' : ',', stun_rc_txt[mask]);

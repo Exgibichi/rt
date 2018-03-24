@@ -2315,7 +2315,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
     if(dp[dp_tgt] != 0)  // Found exactly sum without payback
       min_over_utxo = dp[min_over_sum = dp_tgt];
     else
-      if(min_over_sum == ~0)   // Special case: Total bal > nTargetValue, but dp_bal is still less
+      if(min_over_sum == (uint32_t)~0)   // Special case: Total bal > nTargetValue, but dp_bal is still less
        min_over_sum = 0;       // So, skip DP, use the original stochastic algo
 
     while(min_over_sum) {

@@ -908,7 +908,7 @@ int EmcDns::SpfunENUM(uint8_t len, uint8_t **domain_start, uint8_t **domain_end)
       LogPrintf("\tEmcDns::SpfunENUM: ITU-T num=[%s]\n", itut_num);
 
     // Itrrate all available ENUM-records, and build joined answer from them
-    if(!m_verifiers.empty())
+    if(!m_verifiers.empty()) {
       for(int16_t qno = 0; qno >= 0; qno++) {
         char q_str[100];
         sprintf(q_str, "%s:%s:%u", tld, itut_num, qno); 
@@ -922,6 +922,7 @@ int EmcDns::SpfunENUM(uint8_t len, uint8_t **domain_start, uint8_t **domain_end)
         strcpy(m_value, value.c_str());
         Answer_ENUM(q_str);
       } // for 
+    } // if
 
       // If notheing found in the ENUM - try to search in the Toll-Free
       m_ttl = 24 * 3600; // 24h by default
@@ -1005,7 +1006,7 @@ void EmcDns::OutS(const char *p) {
  // Generate ENUM-answers for a single E2U entry
  // E2U+sip=100|10|!^(.*)$!sip:17771234567@in.callcentric.com!
 void EmcDns::HandleE2U(char *e2u) {
-  char *data = strchr(e2u, '='), *p = data;
+  char *data = strchr(e2u, '=');
   if(data == NULL) 
     return;
 
@@ -1020,8 +1021,8 @@ void EmcDns::HandleE2U(char *e2u) {
   if(sscanf(data, "%u | %u | %s", &ord, &pref, re) != 3)
     return;
 
-    if(m_verbose > 3)
-      LogPrintf("\tEmcDns::HandleE2U: Parsed: %u %u %s %s\n", ord, pref, e2u, re);
+  if(m_verbose > 3)
+    LogPrintf("\tEmcDns::HandleE2U: Parsed: %u %u %s %s\n", ord, pref, e2u, re);
 
   if(m_snd + strlen(re) + strlen(e2u) + 24 >= m_bufend)
     return;

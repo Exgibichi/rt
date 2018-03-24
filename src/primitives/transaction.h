@@ -15,8 +15,6 @@
 
 struct CDiskTxPos;
 
-static const int NAMECOIN_TX_VERSION = 0x0666; //0x0666 is initial version
-
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
 static const int WITNESS_SCALE_FACTOR = 4;
