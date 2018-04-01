@@ -46,7 +46,8 @@ public:
     void setModel(WalletModel *walletModel);
     std::vector<unsigned char> importedAsBinaryFile;
     QString               importedAsTextFile;
-
+    void setDisplayedName(const QString & n);
+    void setDisplayedValue(const QString & v);
 private:
     Ui::ManageNamesPage *ui;
     NameTableModel *model;
@@ -82,6 +83,7 @@ private Q_SLOTS:
     void on_cbExpired_stateChanged(int arg1);
     void on_importValueButton_clicked();
     void on_registerValue_textChanged();
+    void onManageDomainsClicked();
 
 Q_SIGNALS:
     void doubleClicked(const QModelIndex&);

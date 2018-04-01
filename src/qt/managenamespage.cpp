@@ -8,6 +8,7 @@
 #include "ui_interface.h"
 #include "validation.h"
 #include "csvmodelwriter.h"
+#include "ManageDnsPage.h"
 
 #include <QMessageBox>
 #include <QMenu>
@@ -93,6 +94,7 @@ ManageNamesPage::ManageNamesPage(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    connect(ui->btnManageDomains, &QPushButton::clicked, this, &ManageNamesPage::onManageDomainsClicked);
     // Context menu actions
     QAction *copyNameAction = new QAction(tr("Copy &Name"), this);
     QAction *copyValueAction = new QAction(tr("Copy &Value"), this);
@@ -114,6 +116,7 @@ ManageNamesPage::ManageNamesPage(QWidget *parent) :
     connect(copyAddressAction, SIGNAL(triggered()), this, SLOT(onCopyAddressAction()));
     connect(copyAllAction, SIGNAL(triggered()), this, SLOT(onCopyAllAction()));
     connect(saveValueAsBinaryAction, SIGNAL(triggered()), this, SLOT(onSaveValueAsBinaryAction()));
+
 
     connect(ui->tableView, SIGNAL(doubleClicked(QModelIndex)), this, SIGNAL(doubleClicked(QModelIndex)));
     connect(ui->tableView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextualMenu(QPoint)));
@@ -163,6 +166,12 @@ ManageNamesPage::~ManageNamesPage()
     delete ui;
 }
 
+void ManageNamesPage::onManageDomainsClicked() {
+    ManageDnsPage manageDnsPage(this);
+    connect(&manageDnsPage, &ManageDnsPage::previewName, this, &ManageNamesPage::setDisplayedName);
+    connect(&manageDnsPage, &ManageDnsPage::previewValue, this, &ManageNamesPage::setDisplayedValue);
+    manageDnsPage.exec();
+}
 void ManageNamesPage::setModel(WalletModel *walletModel)
 {
     this->walletModel = walletModel;
@@ -594,5 +603,18 @@ void ManageNamesPage::on_registerValue_textChanged()
     else
         byteSize = importedAsBinaryFile.size();
 
-    ui->labelValue->setText(tr("value(%1%)").arg(int(100 * byteSize / MAX_VALUE_LENGTH)));
+    QString str = tr("Value(%1%):").arg(int(100 * byteSize / MAX_VALUE_LENGTH));
+    if (byteSize<=0)
+        str = tr("Value:");
+    ui->labelValue->setText(str);
+}
+
+void ManageNamesPage::setDisplayedName(const QString & s)
+{
+    ui->registerName->setText(s);
+}
+
+void ManageNamesPage::setDisplayedValue(const QString & s)
+{
+    ui->registerValue->setPlainText(s);
 }

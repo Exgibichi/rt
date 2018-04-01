@@ -19,6 +19,7 @@
 #include "transactiontablemodel.h"
 #include "transactionview.h"
 #include "walletmodel.h"
+#include "walletframe.h"
 
 #include "ui_interface.h"
 
@@ -30,12 +31,12 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
+WalletView::WalletView(const PlatformStyle *_platformStyle, WalletFrame *parent):
     QStackedWidget(parent),
-    clientModel(0),
-    walletModel(0),
+    walletFrame(parent),
     platformStyle(_platformStyle)
 {
+    Q_ASSERT(walletFrame);
     // Create tabs
     overviewPage = new OverviewPage(platformStyle);
 

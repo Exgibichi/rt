@@ -2,8 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_WALLETVIEW_H
-#define BITCOIN_QT_WALLETVIEW_H
+#pragma once
 
 #include "amount.h"
 
@@ -19,6 +18,7 @@ class ManageNamesPage;
 class SendCoinsRecipient;
 class TransactionView;
 class WalletModel;
+class WalletFrame;
 class AddressBookPage;
 
 QT_BEGIN_NAMESPACE
@@ -37,7 +37,7 @@ class WalletView : public QStackedWidget
     Q_OBJECT
 
 public:
-    explicit WalletView(const PlatformStyle *platformStyle, QWidget *parent);
+    explicit WalletView(const PlatformStyle *platformStyle, WalletFrame *parent);
     ~WalletView();
 
     void setBitcoinGUI(BitcoinGUI *gui);
@@ -56,8 +56,9 @@ public:
     void showOutOfSyncWarning(bool fShow);
 
 private:
-    ClientModel *clientModel;
-    WalletModel *walletModel;
+    WalletFrame *walletFrame = 0;
+    ClientModel *clientModel = 0;
+    WalletModel *walletModel = 0;
 
     OverviewPage *overviewPage;
     QWidget *transactionsPage;
@@ -66,9 +67,7 @@ private:
     ManageNamesPage *manageNamesPage;
     AddressBookPage *usedSendingAddressesPage;
     AddressBookPage *usedReceivingAddressesPage;
-
     TransactionView *transactionView;
-
     QProgressDialog *progressDialog;
     const PlatformStyle *platformStyle;
 
@@ -134,5 +133,3 @@ Q_SIGNALS:
     /** Notify that the out of sync warning icon has been pressed */
     void outOfSyncWarningClicked();
 };
-
-#endif // BITCOIN_QT_WALLETVIEW_H
