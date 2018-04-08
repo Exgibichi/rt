@@ -14,10 +14,9 @@ using namespace std;
 
 
 #define EMCDNS_PORT		5335
-//#define EMCDNS_DAPSIZE		(16 * 1024)
-#define EMCDNS_DAPTRESHOLD	3000	// ~200K/hr limit answer
+#define EMCDNS_DAPTRESHOLD	1024	// ~4req/s - full barrier
 #define EMCDNS_DAPBLOOMSTEP	3	// 3 steps in bloom filter
-#define EMCDNS_DAPSHIFTDECAY	12	// Dap time shift 12 = 4096 secs in decay
+#define EMCDNS_DAPSHIFTDECAY	8	// Dap time shift 8 = 256 secs (~4min) in decay
 
 #define VERMASK_NEW	-1
 #define VERMASK_BLOCKED -2
