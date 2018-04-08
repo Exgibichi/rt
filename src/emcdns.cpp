@@ -875,9 +875,15 @@ int EmcDns::LocalSearch(const uint8_t *key, uint8_t pos, uint8_t step) {
 bool EmcDns::CheckDAP(uint32_t ip_addr, uint32_t packet_size) { 
   if(m_dap_ht == NULL)
     return true; // Filter is inactive
+
+  uint32_t now = time(NULL);
+  if(((now ^ m_daprand) & 0xfffff) == 0) // ~weekly update daprand
+    m_daprand = GetRand(0xffffffff) | 1;
+
   uint16_t inctemp = packet_size >> 5; // 1 degr = 32 bytes unit
   uint32_t hash = m_daprand, mintemp = ~0;
-  uint16_t timestamp = time(NULL) >> EMCDNS_DAPSHIFTDECAY; // time in 4096s ticks
+  uint16_t timestamp = now >> EMCDNS_DAPSHIFTDECAY; // time in 4096s ticks
+
   for(int bloomstep = 0; bloomstep < EMCDNS_DAPBLOOMSTEP; bloomstep++) {
     hash *= ip_addr;
     hash ^= hash >> 16;
@@ -890,9 +896,6 @@ bool EmcDns::CheckDAP(uint32_t ip_addr, uint32_t packet_size) {
     if(new_temp < mintemp) 
       mintemp = new_temp;
   } // for
-
-  if((hash + m_daprand) < (1 << 13)) // ~weekly update daprand
-    m_daprand = GetRand(0xffffffff) | 1;
 
   bool rc = mintemp < m_dap_treshold;
   if(m_verbose > 5)
