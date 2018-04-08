@@ -103,7 +103,9 @@ char *strsep(char **s, const char *ct)
 /*---------------------------------------------------*/
 
 EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
-	  const char *gw_suffix, const char *allowed_suff, const char *local_fname, const char *enums, const char *tollfree, uint8_t verbose) 
+	  const char *gw_suffix, const char *allowed_suff, const char *local_fname, 
+	  uint32_t dapsize, uint32_t daptreshold,
+	  const char *enums, const char *tollfree, uint8_t verbose) 
     : m_status(-1), m_thread(StatRun, this) {
 
     // Clear vars [m_hdr..m_verbose)
@@ -164,10 +166,17 @@ EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
         if(*p == '.') 
 	  m_gw_suf_dots++;
 
-    // Activate DAP only on the public gateways, with some suffixes, like .emergate.net
-    // If no memory, DAP inactive - this is not critical problem
-    m_dap_ht  = (allowed_len && m_gw_suf_len)? (DNSAP*)calloc(EMCDNS_DAPSIZE, sizeof(DNSAP)) : NULL; 
-    m_daprand = GetRand(0xffffffff) | 1; 
+    // Activate DAP only if specidied dapsize
+    // If no memory, DAP is inactive - this is not critical problem
+    m_dap_ht = NULL;
+    if(dapsize) {
+      dapsize <<= 1;
+      do m_dapmask = dapsize; while(dapsize &= dapsize - 1); // compute mask as 2^N
+      m_dap_ht = (DNSAP*)calloc(m_dapmask, sizeof(DNSAP));
+      m_dapmask--;
+      m_daprand = GetRand(0xffffffff) | 1;
+      m_dap_treshold = daptreshold;
+    }
 
     m_value  = (char *)malloc(VAL_SIZE + BUF_SIZE + 2 + 
 	    m_gw_suf_len + allowed_len + local_len + 4);
@@ -342,15 +351,14 @@ void EmcDns::Run() {
 
     DNSAP *dap = NULL;
 
-    if(m_dap_ht == NULL || (dap = CheckDAP(m_clientAddress.sin_addr.s_addr)) != NULL) {
+    if(CheckDAP(m_clientAddress.sin_addr.s_addr, m_rcvlen)) {
       m_buf[BUF_SIZE] = 0; // Set terminal for infinity QNAME
       HandlePacket();
 
       sendto(m_sockfd, (const char *)m_buf, m_snd - m_buf, MSG_NOSIGNAL,
 	             (struct sockaddr *) &m_clientAddress, m_addrLen);
 
-      if(dap != NULL)
-        dap->ed_size += (m_snd - m_buf) >> 6;
+      CheckDAP(m_clientAddress.sin_addr.s_addr, m_snd - m_buf); // update for long answer
     } // dap check
   } // for
 
@@ -621,7 +629,7 @@ uint16_t EmcDns::HandleQuery() {
   { // Extract TTL
     char *tokens[MAX_TOK];
     int ttlqty = Tokenize("TTL", NULL, tokens, strcpy(val2, m_value));
-    m_ttl = ttlqty? atoi(tokens[0]) : 24 * 3600;
+    m_ttl = ttlqty? atoi(tokens[0]) : 3600; // 1 hour default TTL
   }
   
   // List values for ANY:    A NS CNA PTR MX AAAA
@@ -637,9 +645,13 @@ uint16_t EmcDns::HandleQuery() {
       Answer_ALL(qtype, strcpy(val2, m_value));
       if(m_hdr->ANCount != 0)
         break;
-      qtype = 5; // Not found A/AAAA - try lookup for CNAME in the default section
+                 // Not found A/AAAA - try lookup for CNAME in the default section
                  // Quoth RFC 1034, Section 3.6.2:
                  // If a CNAME RR is present at a node, no other data should be present;
+      Answer_ALL(5, strcpy(val2, m_value));
+      if(m_hdr->ANCount != 0)
+        break;
+      qtype = 2; // Not found A/AAAA/CNAME - try lookup for NS in the default section
     default:
       Answer_ALL(qtype, m_value);
       break;
@@ -859,19 +871,35 @@ int EmcDns::LocalSearch(const uint8_t *key, uint8_t pos, uint8_t step) {
 
 
 /*---------------------------------------------------*/
-// Returns x>0 = hash index to update size; x<0 = disable;
-DNSAP *EmcDns::CheckDAP(uint32_t ip_addr) { 
-  uint32_t hash = ip_addr * m_daprand;
-  hash ^= hash >> 16;
-  hash += hash >> 8;
-  DNSAP *dap = m_dap_ht + (hash & (EMCDNS_DAPSIZE - 1));
-  uint16_t timestamp = time(NULL) >> 6; // time in 64s ticks
-  uint16_t dt = timestamp - dap->timestamp;
-  dap->ed_size = (dt > 15? 0 : dap->ed_size >> dt) + 1;
-  dap->timestamp = timestamp;
-  return (dap->ed_size <= EMCDNS_DAPTRESHOLD)? dap : NULL;
-} // EmcDns::CheckDAP 
+// Returns true - can handle packet; false = ignore
+bool EmcDns::CheckDAP(uint32_t ip_addr, uint32_t packet_size) { 
+  if(m_dap_ht == NULL)
+    return true; // Filter is inactive
+  uint16_t inctemp = packet_size >> 5; // 1 degr = 32 bytes unit
+  uint32_t hash = m_daprand, mintemp = ~0;
+  uint16_t timestamp = time(NULL) >> EMCDNS_DAPSHIFTDECAY; // time in 4096s ticks
+  for(int bloomstep = 0; bloomstep < EMCDNS_DAPBLOOMSTEP; bloomstep++) {
+    hash *= ip_addr;
+    hash ^= hash >> 16;
+    hash += hash >> 7;
+    DNSAP *dap = &m_dap_ht[hash & m_dapmask];
+    uint16_t dt = timestamp - dap->timestamp;
+    uint32_t new_temp = (dt > 15? 0 : dap->temp >> dt) + inctemp;
+    dap->temp = (new_temp > 0xffff)? 0xffff : new_temp;
+    dap->timestamp = timestamp;
+    if(new_temp < mintemp) 
+      mintemp = new_temp;
+  } // for
 
+  if((hash + m_daprand) < (1 << 13)) // ~weekly update daprand
+    m_daprand = GetRand(0xffffffff) | 1;
+
+  bool rc = mintemp < m_dap_treshold;
+  if(m_verbose > 5)
+    LogPrintf("\tEmcDns::CheckDAP: IP=%08x packet_size=%u, mintemp=%u dap_treshold=%u rc=%d\n", 
+		    ip_addr, packet_size, mintemp, m_dap_treshold, rc);
+  return rc;
+} // EmcDns::CheckDAP 
 
 /*---------------------------------------------------*/
 // Handle Special function - phone number in the E.164 format

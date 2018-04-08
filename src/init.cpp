@@ -1682,7 +1682,6 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
     // init emcdns. WARNING: this should be done after hooks initialization
     if (GetBoolArg("-emcdns", false))
     {
-        #define EMCDNS_PORT 5335
         int port = GetArg("-emcdnsport", EMCDNS_PORT);
         int verbose = GetArg("-emcdnsverbose", 1);
         if (port <= 0)
@@ -1693,8 +1692,12 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
         string localcf = GetArg("-emcdnslocalcf", "");
         string enums   = GetArg("-enumtrust", "");
         string tf      = GetArg("-enumtollfree", "");
+	uint32_t dapzs = GetArg("-dapsize", 0);
+	uint32_t dapth = GetArg("-daptreshold", EMCDNS_DAPTRESHOLD);
         emcdns = new EmcDns(bind_ip.c_str(), port,
-        suffix.c_str(), allowed.c_str(), localcf.c_str(), enums.c_str(), tf.c_str(), verbose);
+        suffix.c_str(), allowed.c_str(), localcf.c_str(),
+	dapzs, dapth,
+	enums.c_str(), tf.c_str(), verbose);
         LogPrintf("DNS server started\n");
     }
 

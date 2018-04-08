@@ -13,8 +13,11 @@ using namespace std;
 #include "pubkey.h"
 
 
-#define EMCDNS_DAPSIZE     (8 * 1024)
-#define EMCDNS_DAPTRESHOLD 3000 // 200K/min limit answer
+#define EMCDNS_PORT		5335
+//#define EMCDNS_DAPSIZE		(16 * 1024)
+#define EMCDNS_DAPTRESHOLD	3000	// ~200K/hr limit answer
+#define EMCDNS_DAPBLOOMSTEP	3	// 3 steps in bloom filter
+#define EMCDNS_DAPSHIFTDECAY	12	// Dap time shift 12 = 4096 secs in decay
 
 #define VERMASK_NEW	-1
 #define VERMASK_BLOCKED -2
@@ -44,7 +47,7 @@ struct DNSHeader {
 
 struct DNSAP {		// DNS Amplifier Protector ExpDecay structure
   uint16_t timestamp;	// Time in 64s ticks
-  uint16_t ed_size;	// ExpDecay output size in 64-byte units
+  uint16_t temp;	// ExpDecay temperature
 } __attribute__((packed));
 
 struct Verifier {
@@ -68,7 +71,9 @@ class EmcDns {
   public:
      EmcDns(const char *bind_ip, uint16_t port_no,
 	    const char *gw_suffix, const char *allowed_suff, 
-	    const char *local_fname, const char *enums, const char *tollfree, 
+	    const char *local_fname, 
+	    uint32_t dapsize, uint32_t daptreshold,
+	    const char *enums, const char *tollfree, 
 	    uint8_t verbose);
     ~EmcDns();
 
@@ -94,8 +99,7 @@ class EmcDns {
     void HandleE2U(char *e2u);
     bool CheckEnumSig(const char *q_str, char *sig_str);
     void AddTF(char *tf_tok);
-    // Returns x = hash index to update size; x==NULL = disable;
-    DNSAP  *CheckDAP(uint32_t ip_addr);
+    bool CheckDAP(uint32_t ip_addr, uint32_t packet_size);
 
     inline void Out2(uint16_t x) { x = htons(x); memcpy(m_snd, &x, 2); m_snd += 2; }
     inline void Out4(uint32_t x) { x = htonl(x); memcpy(m_snd, &x, 4); m_snd += 4; }
@@ -109,6 +113,7 @@ class EmcDns {
     SOCKET    m_sockfd;
     int       m_rcvlen;
     uint32_t  m_daprand;	// DAP random value for universal hashing
+    uint32_t  m_dapmask, m_dap_treshold;
     uint32_t  m_ttl;
     uint16_t  m_label_ref;
     uint16_t  m_gw_suf_len;
