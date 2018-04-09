@@ -65,6 +65,8 @@ string stringFromNameVal(const CNameVal& nameVal) {
 
 string limitString(const string& inp, unsigned int size, string message = "")
 {
+    if (size == 0)
+        return inp;
     string ret = inp;
     if (inp.size() > size)
     {
@@ -180,16 +182,16 @@ bool CNameDB::ScanNames(const CNameVal& name, unsigned int nMax,
     if (!pcursor)
         return false;
 
-    unsigned int fFlags = DB_SET_RANGE;
+    bool fRange = true;
     while (true)
     {
         // Read next record
         CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-        if (fFlags == DB_SET_RANGE)
+        if (fRange)
             ssKey << make_pair(string("namei"), name);
         CDataStream ssValue(SER_DISK, CLIENT_VERSION);
-        int ret = ReadAtCursor(pcursor, ssKey, ssValue, fFlags);
-        fFlags = DB_NEXT;
+        int ret = ReadAtCursor(pcursor, ssKey, ssValue, fRange);
+        fRange = false;
         if (ret == DB_NOTFOUND)
             break;
         else if (ret != 0)
@@ -245,7 +247,7 @@ bool IsNameFeeEnough(const NameTxInfo& nti, const CBlockIndex* pindexBlock, cons
     //LogPrintf("IsNameFeeEnough(): pindexBlock->nHeight = %d, op = %s, nameSize = %lu, valueSize = %lu, nRentalDays = %d, txFee = %"PRI64d"\n",
     //       lastPoW->nHeight, nameFromOp(nti.op), nti.name.size(), nti.value.size(), nti.nRentalDays, txFee);
     bool txFeePass = false;
-    for (int i = 1; i <= 10; i++)
+    for (int i = 1; i <= 10 && lastPoW->pprev; i++)
     {
         CAmount netFee = GetNameOpFee(lastPoW, nti.nRentalDays, nti.op, nti.name, nti.value);
         //LogPrintf("                 : netFee = %"PRI64d", lastPoW->nHeight = %d\n", netFee, lastPoW->nHeight);
