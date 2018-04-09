@@ -349,8 +349,6 @@ void EmcDns::Run() {
     if(m_rcvlen <= 0)
 	break;
 
-    DNSAP *dap = NULL;
-
     if(CheckDAP(m_clientAddress.sin_addr.s_addr, m_rcvlen)) {
       m_buf[BUF_SIZE] = 0; // Set terminal for infinity QNAME
       HandlePacket();
