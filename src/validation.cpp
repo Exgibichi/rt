@@ -1882,7 +1882,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     if (!CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck, !fJustCheck))
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
 
-    if (!CheckMinTxOut(block, pindex->pprev))
+    if (!CheckMinTxOut(block, fV7Enabled))
         return error("%s: Consensus::CheckTransaction: %s", __func__, "txout.nValue below minimum");
 
     // verify that the view's current state corresponds to the previous block
@@ -3287,6 +3287,9 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
     if (fCheckSign && !CheckBlockSignature(block, fV7Enabled))
         return state.DoS(100, false, REJECT_INVALID, "bad-blk-sign", false, strprintf("%s : bad block signature", __func__));
 
+    if (!CheckMinTxOut(block, fV7Enabled))
+        return state.DoS(100, false, REJECT_INVALID, "txout-too-low", false, strprintf("%s : txout.nValue below minimum", __func__));
+
     return true;
 }
 
@@ -3407,13 +3410,6 @@ static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidation
             setDirtyBlockIndex.insert(pindex);
         }
         return error("%s: %s", __func__, FormatStateMessage(state));
-    }
-
-    if (!CheckMinTxOut(block, pindex->pprev))
-    {
-        pindex->nStatus |= BLOCK_FAILED_VALID;
-        setDirtyBlockIndex.insert(pindex);
-        return error("%s: Consensus::CheckTransaction: %s", __func__, "txout.nValue below minimum");
     }
 
     // ppcoin: check that the block satisfies synchronized checkpoint
@@ -4733,21 +4729,27 @@ bool CheckMinTxOut(const CTransactionRef& tx)
     return true;
 }
 
-bool CheckMinTxOut(const CBlock& block, CBlockIndex *pindexPrev)
+bool CheckMinTxOut(const CBlock& block, bool fV7Enabled)
 {
+    size_t start = 0;
+
     // check coinbase/coinstake transaction
-    int commitpos = block.nVersion >= 7 ? GetWitnessCommitmentIndex(block) : -1;
-    const CTransactionRef& tx0 = block.vtx[0];
-    for (size_t j = 0; j < tx0->vout.size(); j++)
+    if (fV7Enabled)
     {
-        // emercoin: enforce minimum output amount if not witness commitment
-        bool fWC = commitpos >= 0 && (unsigned int)commitpos == j;
-        if (!fWC && !tx0->vout[j].IsEmpty() && tx0->vout[j].nValue < MIN_TXOUT_AMOUNT)
-            return false;
+        int commitpos = block.nVersion >= 7 ? GetWitnessCommitmentIndex(block) : -1;
+        const CTransactionRef& tx0 = block.vtx[0];
+        for (size_t j = 0; j < tx0->vout.size(); j++)
+        {
+            // emercoin: enforce minimum output amount if not witness commitment
+            bool fWC = commitpos >= 0 && (unsigned int)commitpos == j;
+            if (!fWC && !tx0->vout[j].IsEmpty() && tx0->vout[j].nValue < MIN_TXOUT_AMOUNT)
+                return false;
+        }
+        start = 1;
     }
 
     // check all of the remaining transactions
-    for (size_t i = 1; i < block.vtx.size(); i++)
+    for (size_t i = start; i < block.vtx.size(); i++)
         for (const auto& txout : block.vtx[i]->vout)
         {
             // ppcoin: enforce minimum output amount
