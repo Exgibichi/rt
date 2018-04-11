@@ -50,7 +50,7 @@ bool IsStandard(const CScript& scriptPubKey, txnouttype& whichType, const bool w
                (!fAcceptDatacarrier || scriptPubKey.size() > nMaxDatacarrierBytes))
           return false;
 
-    else if (!witnessEnabled && (whichType == TX_WITNESS_V0_KEYHASH || whichType == TX_WITNESS_V0_SCRIPTHASH))
+    else if (!witnessEnabled && (whichType == TX_WITNESS_V0_KEYHASH || whichType == TX_NAME_WITNESS_V0_KEYHASH || whichType == TX_WITNESS_V0_SCRIPTHASH || whichType == TX_NAME_WITNESS_V0_SCRIPTHASH))
         return false;
 
     return whichType != TX_NONSTANDARD;
@@ -136,7 +136,7 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
         if (!Solver(prevScript, whichType, vSolutions))
             return false;
 
-        if (whichType == TX_SCRIPTHASH)
+        if (whichType == TX_SCRIPTHASH || whichType == TX_NAME_SCRIPTHASH)
         {
             std::vector<std::vector<unsigned char> > stack;
             // convert the scriptSig into a stack, so we can inspect the redeemScript
@@ -166,12 +166,13 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
         if (tx.vin[i].scriptWitness.IsNull())
             continue;
 
-        const CTxOut &prev = mapInputs.GetOutputFor(tx.vin[i]);
+        int nVersion;
+        const CTxOut &prev = mapInputs.GetOutputFor(tx.vin[i], nVersion);
 
         // get the scriptPubKey corresponding to this input:
         CScript prevScript = prev.scriptPubKey;
 
-        if (prevScript.IsPayToScriptHash()) {
+        if (prevScript.IsPayToScriptHash(nVersion)) {
             std::vector <std::vector<unsigned char> > stack;
             // If the scriptPubKey is P2SH, we try to extract the redeemScript casually by converting the scriptSig
             // into a stack. We do not check IsPushOnly nor compare the hash as these will be done later anyway.
@@ -187,7 +188,7 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
         std::vector<unsigned char> witnessprogram;
 
         // Non-witness program must not be associated with any witness
-        if (!prevScript.IsWitnessProgram(witnessversion, witnessprogram))
+        if (!prevScript.IsWitnessProgram(witnessversion, witnessprogram, tx.nVersion))
             return false;
 
         // Check P2WSH standard limits

@@ -495,6 +495,7 @@ public:
     double GetPriority(const CTransaction &tx, int nHeight, CAmount &inChainInputValue) const;
 
     const CTxOut &GetOutputFor(const CTxIn& input) const;
+    const CTxOut &GetOutputFor(const CTxIn& input, int &nVersion) const;
 
     friend class CCoinsModifier;
 

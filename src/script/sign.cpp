@@ -86,8 +86,8 @@ static bool SignStep(const BaseSignatureCreator& creator, const CScript& scriptP
     case TX_PUBKEY:
         keyID = CPubKey(vSolutions[0]).GetID();
         return Sign1(keyID, creator, scriptPubKey, ret, sigversion);
-    case TX_NAME:  // name tx is represented as TX_PUBKEYHASH internaly, that is why we do not "break;" before TX_PUBKEYHASH
     case TX_PUBKEYHASH:
+    case TX_NAME_PUBKEYHASH:
         keyID = CKeyID(uint160(vSolutions[0]));
         if (!Sign1(keyID, creator, scriptPubKey, ret, sigversion))
             return false;
@@ -99,6 +99,7 @@ static bool SignStep(const BaseSignatureCreator& creator, const CScript& scriptP
         }
         return true;
     case TX_SCRIPTHASH:
+    case TX_NAME_SCRIPTHASH:
         if (creator.KeyStore().GetCScript(uint160(vSolutions[0]), scriptRet)) {
             ret.push_back(std::vector<unsigned char>(scriptRet.begin(), scriptRet.end()));
             return true;
@@ -110,10 +111,12 @@ static bool SignStep(const BaseSignatureCreator& creator, const CScript& scriptP
         return (SignN(vSolutions, creator, scriptPubKey, ret, sigversion));
 
     case TX_WITNESS_V0_KEYHASH:
+    case TX_NAME_WITNESS_V0_KEYHASH:
         ret.push_back(vSolutions[0]);
         return true;
 
     case TX_WITNESS_V0_SCRIPTHASH:
+    case TX_NAME_WITNESS_V0_SCRIPTHASH:
         CRIPEMD160().Write(&vSolutions[0][0], vSolutions[0].size()).Finalize(h160.begin());
         if (creator.KeyStore().GetCScript(h160, scriptRet)) {
             ret.push_back(std::vector<unsigned char>(scriptRet.begin(), scriptRet.end()));
@@ -148,21 +151,22 @@ bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPu
     std::vector<valtype> result;
     txnouttype whichType;
     solved = SignStep(creator, script, result, whichType, SIGVERSION_BASE);
+    bool fName = whichType == TX_NAME_PUBKEYHASH || whichType == TX_NAME_SCRIPTHASH || whichType == TX_NAME_WITNESS_V0_SCRIPTHASH || whichType == TX_NAME_WITNESS_V0_KEYHASH;
     bool P2SH = false;
     CScript subscript;
     sigdata.scriptWitness.stack.clear();
 
-    if (solved && whichType == TX_SCRIPTHASH)
+    if (solved && (whichType == TX_SCRIPTHASH || whichType == TX_NAME_SCRIPTHASH))
     {
         // Solver returns the subscript that needs to be evaluated;
         // the final scriptSig is the signatures from that
         // and then the serialized subscript:
         script = subscript = CScript(result[0].begin(), result[0].end());
-        solved = solved && SignStep(creator, script, result, whichType, SIGVERSION_BASE) && whichType != TX_SCRIPTHASH;
+        solved = solved && SignStep(creator, script, result, whichType, SIGVERSION_BASE) && whichType != TX_SCRIPTHASH && whichType != TX_NAME_SCRIPTHASH;
         P2SH = true;
     }
 
-    if (solved && whichType == TX_WITNESS_V0_KEYHASH)
+    if (solved && (whichType == TX_WITNESS_V0_KEYHASH || whichType == TX_NAME_WITNESS_V0_KEYHASH))
     {
         CScript witnessscript;
         witnessscript << OP_DUP << OP_HASH160 << ToByteVector(result[0]) << OP_EQUALVERIFY << OP_CHECKSIG;
@@ -171,11 +175,14 @@ bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPu
         sigdata.scriptWitness.stack = result;
         result.clear();
     }
-    else if (solved && whichType == TX_WITNESS_V0_SCRIPTHASH)
+    else if (solved && (whichType == TX_WITNESS_V0_SCRIPTHASH || whichType == TX_NAME_WITNESS_V0_SCRIPTHASH))
     {
         CScript witnessscript(result[0].begin(), result[0].end());
         txnouttype subType;
-        solved = solved && SignStep(creator, witnessscript, result, subType, SIGVERSION_WITNESS_V0) && subType != TX_SCRIPTHASH && subType != TX_WITNESS_V0_SCRIPTHASH && subType != TX_WITNESS_V0_KEYHASH;
+        solved = solved && SignStep(creator, witnessscript, result, subType, SIGVERSION_WITNESS_V0) &&
+                subType != TX_SCRIPTHASH            && subType != TX_NAME_SCRIPTHASH &&
+                subType != TX_WITNESS_V0_SCRIPTHASH && subType != TX_NAME_WITNESS_V0_SCRIPTHASH &&
+                subType != TX_WITNESS_V0_KEYHASH    && subType != TX_NAME_WITNESS_V0_KEYHASH;
         result.push_back(std::vector<unsigned char>(witnessscript.begin(), witnessscript.end()));
         sigdata.scriptWitness.stack = result;
         result.clear();
@@ -187,7 +194,7 @@ bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPu
     sigdata.scriptSig = PushAll(result);
 
     // Test solution
-    return solved && VerifyScript(sigdata.scriptSig, fromPubKey, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, creator.Checker(), nullptr, whichType == TX_NAME);
+    return solved && VerifyScript(sigdata.scriptSig, fromPubKey, fName ? NAMECOIN_TX_VERSION : 0, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, creator.Checker(), nullptr);
 }
 
 SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nIn)
@@ -314,7 +321,6 @@ static Stacks CombineSignatures(const CScript& scriptPubKey, const BaseSignature
     {
     case TX_NONSTANDARD:
     case TX_NULL_DATA:
-    case TX_NAME:
         // Don't know anything about this, assume bigger one is correct:
         if (sigs1.script.size() >= sigs2.script.size())
             return sigs1;

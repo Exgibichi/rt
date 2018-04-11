@@ -33,7 +33,12 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_NULL_DATA: return "nulldata";
     case TX_WITNESS_V0_KEYHASH: return "witness_v0_keyhash";
     case TX_WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
-    case TX_NAME: return "name";
+
+    // names:
+    case TX_NAME_PUBKEYHASH: return "name_pubkeyhash";
+    case TX_NAME_SCRIPTHASH: return "name_scripthash";
+    case TX_NAME_WITNESS_V0_KEYHASH: return "name_witness_v0_keyhash";
+    case TX_NAME_WITNESS_V0_SCRIPTHASH: return "name_witness_v0_scripthash";
     }
     return NULL;
 }
@@ -41,7 +46,7 @@ const char* GetTxnOutputType(txnouttype t)
 /**
  * Return public keys or hashes from scriptPubKey, for 'standard' transaction types.
  */
-bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsigned char> >& vSolutionsRet)
+static bool SolverInner(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsigned char> >& vSolutionsRet)
 {
     // Templates
     static multimap<txnouttype, CScript> mTemplates;
@@ -61,7 +66,7 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
 
     // Shortcut for pay-to-script-hash, which are more constrained than the other types:
     // it is always OP_HASH160 20 [20 byte hash] OP_EQUAL
-    if (scriptPubKey.IsPayToScriptHash())
+    if (scriptPubKey.IsPayToScriptHash(0))  // emercoin: there is no need to check for names here, because caller of this function will do just that
     {
         typeRet = TX_SCRIPTHASH;
         vector<unsigned char> hashBytes(scriptPubKey.begin()+2, scriptPubKey.begin()+22);
@@ -71,7 +76,7 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
 
     int witnessversion;
     std::vector<unsigned char> witnessprogram;
-    if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
+    if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram, 0)) {  // emercoin: there is no need to check for names here, because caller of this function will do just that
         if (witnessversion == 0 && witnessprogram.size() == 20) {
             typeRet = TX_WITNESS_V0_KEYHASH;
             vSolutionsRet.push_back(witnessprogram);
@@ -175,50 +180,32 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
         }
     }
 
-    // emercoin: check for name transaction
-    // note: we only expect pubkeyhash transactions here - perhaps this will change in the future
-    CScript scriptOut;
-    if (RemoveNameScriptPrefix(scriptPubKey, scriptOut))
-    {
-        const CScript& script2 = mTemplates.find(TX_PUBKEYHASH)->second;
-
-        vSolutionsRet.clear();
-
-        opcodetype opcode1, opcode2;
-        vector<unsigned char> vch1, vch2;
-
-        // Compare
-        CScript::const_iterator pc1 = scriptOut.begin();
-        CScript::const_iterator pc2 = script2.begin();
-        while (true)
-        {
-            if (pc1 == scriptOut.end() && pc2 == script2.end())
-            {
-                typeRet = TX_NAME;
-                return true;
-            }
-            if (!scriptOut.GetOp(pc1, opcode1, vch1))
-                break;
-            if (!script2.GetOp(pc2, opcode2, vch2))
-                break;
-
-            if (opcode2 == OP_PUBKEYHASH)
-            {
-                if (vch1.size() != sizeof(uint160))
-                    break;
-                vSolutionsRet.push_back(vch1);
-            }
-            else if (opcode1 != opcode2 || vch1 != vch2)
-            {
-                // Others must match exactly
-                break;
-            }
-        }
-    }
-
     vSolutionsRet.clear();
     typeRet = TX_NONSTANDARD;
     return false;
+}
+
+bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsigned char> >& vSolutionsRet)
+{
+    bool ret = SolverInner(scriptPubKey, typeRet, vSolutionsRet);
+
+    // emercoin: remove name (if any exist) and try again
+    CScript scriptWithoutName;
+    if (!ret && RemoveNameScriptPrefix(scriptPubKey, scriptWithoutName))
+    {
+        ret = SolverInner(scriptWithoutName, typeRet, vSolutionsRet);
+
+        // make return type indicate name for supported tx types
+        if (ret) switch (typeRet) {
+        case TX_PUBKEYHASH: {typeRet = TX_NAME_PUBKEYHASH; break;}
+        case TX_SCRIPTHASH: {typeRet = TX_NAME_SCRIPTHASH; break;}
+        case TX_WITNESS_V0_KEYHASH: {typeRet = TX_NAME_WITNESS_V0_KEYHASH; break;}
+        case TX_WITNESS_V0_SCRIPTHASH: {typeRet = TX_NAME_WITNESS_V0_SCRIPTHASH; break;}
+        default: {typeRet = TX_NONSTANDARD; ret = false; break;}  // unknown name type - don't know how to process this
+        }
+    }
+
+    return ret;
 }
 
 bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
@@ -237,12 +224,12 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         addressRet = pubKey.GetID();
         return true;
     }
-    else if (whichType == TX_PUBKEYHASH || whichType == TX_NAME)
+    else if (whichType == TX_PUBKEYHASH  || whichType == TX_NAME_PUBKEYHASH)
     {
         addressRet = CKeyID(uint160(vSolutions[0]));
         return true;
     }
-    else if (whichType == TX_SCRIPTHASH)
+    else if (whichType == TX_SCRIPTHASH || whichType == TX_NAME_SCRIPTHASH)
     {
         addressRet = CScriptID(uint160(vSolutions[0]));
         return true;
@@ -355,7 +342,7 @@ CScript GetScriptForWitness(const CScript& redeemscript)
             CHash160().Write(&vSolutions[0][0], vSolutions[0].size()).Finalize(h160);
             ret << OP_0 << std::vector<unsigned char>(&h160[0], &h160[20]);
             return ret;
-        } else if (typ == TX_PUBKEYHASH) {
+        } else if (typ == TX_PUBKEYHASH || typ == TX_NAME_PUBKEYHASH) {
            ret << OP_0 << vSolutions[0];
            return ret;
         }

@@ -39,6 +39,7 @@ isminetype IsMineInner(const CKeyStore &keystore, const CScript& scriptPubKey, b
             return ISMINE_WATCH_UNSOLVABLE;
         return ISMINE_NO;
     }
+    fName = whichType == TX_NAME_PUBKEYHASH || whichType == TX_NAME_SCRIPTHASH || whichType == TX_NAME_WITNESS_V0_SCRIPTHASH || whichType == TX_NAME_WITNESS_V0_KEYHASH;
 
     CKeyID keyID;
     switch (whichType)
@@ -56,6 +57,7 @@ isminetype IsMineInner(const CKeyStore &keystore, const CScript& scriptPubKey, b
             return ISMINE_SPENDABLE;
         break;
     case TX_WITNESS_V0_KEYHASH:
+    case TX_NAME_WITNESS_V0_KEYHASH:
     {
         if (!keystore.HaveCScript(CScriptID(CScript() << OP_0 << vSolutions[0]))) {
             // We do not support bare witness outputs unless the P2SH version of it would be
@@ -68,8 +70,8 @@ isminetype IsMineInner(const CKeyStore &keystore, const CScript& scriptPubKey, b
             return ret;
         break;
     }
-    case TX_NAME: fName = true;  // name tx is represented as TX_PUBKEYHASH internaly, that is why we do not "break;" before TX_PUBKEYHASH
     case TX_PUBKEYHASH:
+    case TX_NAME_PUBKEYHASH:
         keyID = CKeyID(uint160(vSolutions[0]));
         if (sigversion != SIGVERSION_BASE) {
             CPubKey pubkey;
@@ -82,6 +84,7 @@ isminetype IsMineInner(const CKeyStore &keystore, const CScript& scriptPubKey, b
             return ISMINE_SPENDABLE;
         break;
     case TX_SCRIPTHASH:
+    case TX_NAME_SCRIPTHASH:
     {
         CScriptID scriptID = CScriptID(uint160(vSolutions[0]));
         CScript subscript;
@@ -93,6 +96,7 @@ isminetype IsMineInner(const CKeyStore &keystore, const CScript& scriptPubKey, b
         break;
     }
     case TX_WITNESS_V0_SCRIPTHASH:
+    case TX_NAME_WITNESS_V0_SCRIPTHASH:
     {
         if (!keystore.HaveCScript(CScriptID(CScript() << OP_0 << vSolutions[0]))) {
             break;

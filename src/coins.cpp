@@ -269,6 +269,14 @@ const CTxOut &CCoinsViewCache::GetOutputFor(const CTxIn& input) const
     return coins->vout[input.prevout.n];
 }
 
+const CTxOut &CCoinsViewCache::GetOutputFor(const CTxIn& input, int& nVersion) const
+{
+    const CCoins* coins = AccessCoins(input.prevout.hash);
+    assert(coins && coins->IsAvailable(input.prevout.n));
+    nVersion = coins->nVersion;
+    return coins->vout[input.prevout.n];
+}
+
 CAmount CCoinsViewCache::GetValueIn(const CTransaction& tx) const
 {
     if (tx.IsCoinBase())

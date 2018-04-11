@@ -468,9 +468,10 @@ unsigned int GetP2SHSigOpCount(const CTransaction& tx, const CCoinsViewCache& in
     unsigned int nSigOps = 0;
     for (unsigned int i = 0; i < tx.vin.size(); i++)
     {
-        const CTxOut &prevout = inputs.GetOutputFor(tx.vin[i]);
-        if (prevout.scriptPubKey.IsPayToScriptHash())
-            nSigOps += prevout.scriptPubKey.GetSigOpCount(tx.vin[i].scriptSig);
+        int nVersion;
+        const CTxOut &prevout = inputs.GetOutputFor(tx.vin[i], nVersion);
+        if (prevout.scriptPubKey.IsPayToScriptHash(nVersion))
+            nSigOps += prevout.scriptPubKey.GetSigOpCount(tx.vin[i].scriptSig, nVersion);
     }
     return nSigOps;
 }
@@ -489,7 +490,7 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
     for (unsigned int i = 0; i < tx.vin.size(); i++)
     {
         const CTxOut &prevout = inputs.GetOutputFor(tx.vin[i]);
-        nSigOps += CountWitnessSigOps(tx.vin[i].scriptSig, prevout.scriptPubKey, &tx.vin[i].scriptWitness, flags);
+        nSigOps += CountWitnessSigOps(tx.vin[i].scriptSig, prevout.scriptPubKey, &tx.vin[i].scriptWitness, flags, tx.nVersion);
     }
     return nSigOps;
 }
@@ -610,9 +611,15 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
     if (isNameTx && !hooks->CheckPendingNames(ptx))
         return state.DoS(0, false, REJECT_NONSTANDARD, "name-op-on-pending-name");
 
+    // Reject names in P2SH transaction before V7 fork
+    if (!witnessEnabled && isNameTx && !GetBoolArg("-prematurewitness",false))
+        for (const auto& out : tx.vout)
+            if (out.scriptPubKey.IsPayToScriptHash(tx.nVersion))
+                return state.DoS(0, false, REJECT_NONSTANDARD, "premature-name-in-p2sh", true);
+
     // Rather not work on nonstandard transactions (unless -testnet/-regtest)
     std::string reason;
-    if (fRequireStandard && !IsStandardTx(tx, reason, witnessEnabled) && !isNameTx)
+    if (!isNameTx && fRequireStandard && !IsStandardTx(tx, reason, witnessEnabled))
         return state.DoS(0, false, REJECT_NONSTANDARD, reason);
 
     // Only accept nLockTime-using transactions that can be mined in the next
@@ -724,7 +731,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
         }
 
         // Check for non-standard pay-to-script-hash in inputs
-        if (fRequireStandard && !isNameTx && !AreInputsStandard(tx, view))
+        if (fRequireStandard && !AreInputsStandard(tx, view))
             return state.Invalid(false, REJECT_NONSTANDARD, "bad-txns-nonstandard-inputs");
 
         // Check for non-standard witness in P2WSH
@@ -1436,7 +1443,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight)
 bool CScriptCheck::operator()() {
     const CScript &scriptSig = ptxTo->vin[nIn].scriptSig;
     const CScriptWitness *witness = &ptxTo->vin[nIn].scriptWitness;
-    if (!VerifyScript(scriptSig, scriptPubKey, witness, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, amount, cacheStore, *txdata), &error, ptxTo->nVersion == NAMECOIN_TX_VERSION)) {
+    if (!VerifyScript(scriptSig, scriptPubKey, ptxTo->nVersion, witness, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, amount, cacheStore, *txdata), &error)) {
         return false;
     }
     return true;
@@ -1490,7 +1497,7 @@ bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoins
         // ppcoin: coin stake tx earns reward instead of paying fee
         uint64_t nCoinAge;
         if (!GetCoinAge(tx, inputs, nCoinAge))
-            return error("CheckInputs() : %s unable to get coin age for coinstake", tx.GetHash().ToString());
+            return error("CheckTxInputs() : %s unable to get coin age for coinstake", tx.GetHash().ToString());
         int64_t nStakeReward = tx.GetValueOut() - nValueIn;
         if (nStakeReward > GetProofOfStakeReward(nCoinAge) - tx.GetMinFee() + MIN_TX_FEE)
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-coinstake-too-large");

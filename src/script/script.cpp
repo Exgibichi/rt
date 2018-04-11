@@ -177,9 +177,9 @@ unsigned int CScript::GetSigOpCount(bool fAccurate) const
     return n;
 }
 
-unsigned int CScript::GetSigOpCount(const CScript& scriptSig) const
+unsigned int CScript::GetSigOpCount(const CScript& scriptSig, int nVersion) const
 {
-    if (!IsPayToScriptHash())
+    if (!IsPayToScriptHash(nVersion))
         return GetSigOpCount(true);
 
     // This is a pay-to-script-hash scriptPubKey;
@@ -201,39 +201,84 @@ unsigned int CScript::GetSigOpCount(const CScript& scriptSig) const
     return subscript.GetSigOpCount(true);
 }
 
-bool CScript::IsPayToScriptHash() const
+static bool IsPayToScriptHashInner(const CScript& scriptPubKey)
 {
     // Extra-fast test for pay-to-script-hash CScripts:
-    return (this->size() == 23 &&
-            (*this)[0] == OP_HASH160 &&
-            (*this)[1] == 0x14 &&
-            (*this)[22] == OP_EQUAL);
+    return (scriptPubKey.size() == 23 &&
+            scriptPubKey[0] == OP_HASH160 &&
+            scriptPubKey[1] == 0x14 &&
+            scriptPubKey[22] == OP_EQUAL);
 }
 
-bool CScript::IsPayToWitnessScriptHash() const
+bool CScript::IsPayToScriptHash(int nVersion) const
+{
+    bool ret = IsPayToScriptHashInner(*this);
+
+    // emercoin: remove name (if any) and try again
+    if (!ret && nVersion == NAMECOIN_TX_VERSION)
+    {
+        CScript scriptRemainder;
+        if (!RemoveNameScriptPrefix(*this, scriptRemainder))
+            return false;
+        ret = IsPayToScriptHashInner(scriptRemainder);
+    }
+    return ret;
+}
+
+static bool IsPayToWitnessScriptHashInner(const CScript& scriptPubKey)
 {
     // Extra-fast test for pay-to-witness-script-hash CScripts:
-    return (this->size() == 34 &&
-            (*this)[0] == OP_0 &&
-            (*this)[1] == 0x20);
+    return (scriptPubKey.size() == 34 &&
+            scriptPubKey[0] == OP_0 &&
+            scriptPubKey[1] == 0x20);
+}
+
+bool CScript::IsPayToWitnessScriptHash(int nVersion) const
+{
+    bool ret = IsPayToWitnessScriptHashInner(*this);
+
+    // emercoin: remove name (if any) and try again
+    if (!ret && nVersion == NAMECOIN_TX_VERSION)
+    {
+        CScript scriptRemainder;
+        if (!RemoveNameScriptPrefix(*this, scriptRemainder))
+            return false;
+        ret = IsPayToWitnessScriptHashInner(scriptRemainder);
+    }
+    return ret;
 }
 
 // A witness program is any valid CScript that consists of a 1-byte push opcode
 // followed by a data push between 2 and 40 bytes.
-bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program) const
+bool IsWitnessProgramInner(const CScript& script, int& version, std::vector<unsigned char>& program)
 {
-    if (this->size() < 4 || this->size() > 42) {
+    if (script.size() < 4 || script.size() > 42) {
         return false;
     }
-    if ((*this)[0] != OP_0 && ((*this)[0] < OP_1 || (*this)[0] > OP_16)) {
+    if (script[0] != OP_0 && (script[0] < OP_1 || script[0] > OP_16)) {
         return false;
     }
-    if ((size_t)((*this)[1] + 2) == this->size()) {
-        version = DecodeOP_N((opcodetype)(*this)[0]);
-        program = std::vector<unsigned char>(this->begin() + 2, this->end());
+    if ((size_t)(script[1] + 2) == script.size()) {
+        version = script.DecodeOP_N((opcodetype)script[0]);
+        program = std::vector<unsigned char>(script.begin() + 2, script.end());
         return true;
     }
     return false;
+}
+
+bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program, int txVersion) const
+{
+    bool ret = IsWitnessProgramInner(*this, version, program);
+
+    // emercoin: remove name (if any) and try again
+    if (!ret && txVersion == NAMECOIN_TX_VERSION)
+    {
+        CScript scriptRemainder;
+        if (!RemoveNameScriptPrefix(*this, scriptRemainder))
+            return false;
+        ret = IsWitnessProgramInner(scriptRemainder, version, program);
+    }
+    return ret;
 }
 
 bool CScript::IsPushOnly(const_iterator pc) const

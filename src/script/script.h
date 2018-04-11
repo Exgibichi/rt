@@ -621,11 +621,11 @@ public:
      * Accurately count sigOps, including sigOps in
      * pay-to-script-hash transactions:
      */
-    unsigned int GetSigOpCount(const CScript& scriptSig) const;
+    unsigned int GetSigOpCount(const CScript& scriptSig, int nVersion) const;
 
-    bool IsPayToScriptHash() const;
-    bool IsPayToWitnessScriptHash() const;
-    bool IsWitnessProgram(int& version, std::vector<unsigned char>& program) const;
+    bool IsPayToScriptHash(int nVersion) const;
+    bool IsPayToWitnessScriptHash(int nVersion) const;
+    bool IsWitnessProgram(int& version, std::vector<unsigned char>& program, int txVersion) const;
 
     /** Called by IsStandardTx and P2SH/BIP62 VerifyScript (which makes it consensus-critical). */
     bool IsPushOnly(const_iterator pc) const;

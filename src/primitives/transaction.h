@@ -197,7 +197,7 @@ public:
         int witnessversion = 0;
         std::vector<unsigned char> witnessprogram;
 
-        if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
+        if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram, 0)) { // emercoin: can be ignored for names
             // sum the sizes of the parts of a transaction input
             // with 75% segwit discount applied to the script size.
             nSize += (32 + 4 + 1 + (107 / WITNESS_SCALE_FACTOR) + 4);

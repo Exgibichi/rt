@@ -1042,7 +1042,7 @@ public:
         if (pwalletMain && pwalletMain->GetCScript(scriptID, subscript)) {
             int witnessversion;
             std::vector<unsigned char> witprog;
-            if (subscript.IsWitnessProgram(witnessversion, witprog)) {
+            if (subscript.IsWitnessProgram(witnessversion, witprog, 0)) {
                 result = scriptID;
                 return true;
             }
@@ -2493,7 +2493,7 @@ UniValue listunspent(const JSONRPCRequest& request)
             if (pwalletMain->mapAddressBook.count(address))
                 entry.push_back(Pair("account", pwalletMain->mapAddressBook[address].name));
 
-            if (scriptPubKey.IsPayToScriptHash()) {
+            if (scriptPubKey.IsPayToScriptHash(out.tx->tx->nVersion)) {
                 const CScriptID& hash = boost::get<CScriptID>(address);
                 CScript redeemScript;
                 if (pwalletMain->GetCScript(hash, redeemScript))

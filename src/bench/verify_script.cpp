@@ -79,6 +79,7 @@ static void VerifyScriptBench(benchmark::State& state)
         bool success = VerifyScript(
             txSpend.vin[0].scriptSig,
             txCredit.vout[0].scriptPubKey,
+            txSpend.nVersion,
             &txSpend.vin[0].scriptWitness,
             flags,
             MutableTransactionSignatureChecker(&txSpend, 0, txCredit.vout[0].nValue),
