@@ -514,7 +514,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
     for (const auto& txout : tx.vout)
     {
         if (txout.IsEmpty() && (!tx.IsCoinBase()) && (!tx.IsCoinStake()))
-            return state.DoS(100, error("CTransaction::CheckTransaction() : txout empty for user transaction"));
+            return state.DoS(100, false, REJECT_INVALID, "empty-txout");
         if (txout.nValue > MAX_MONEY)
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-vout-toolarge");
         nValueOut += txout.nValue;
@@ -1476,8 +1476,7 @@ bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoins
 
             // ppcoin: check transaction timestamp
             if (coins->nTime > tx.nTime)
-                return state.DoS(100, error("CheckInputs() : transaction timestamp earlier than input transaction"),
-                                 REJECT_INVALID, "bad-txns-spent-too-early");
+                return state.DoS(100, false, REJECT_INVALID, "bad-txns-spent-too-early", false, strprintf("%s : transaction timestamp earlier than input transaction", __func__));
 
             // Check for negative or overflow input values
             nValueIn += coins->vout[prevout.n].nValue;
@@ -3061,8 +3060,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
                                  strprintf("Transaction check failed (tx hash %s) %s", tx->GetHash().ToString(), state.GetDebugMessage()));
         // ppcoin: check transaction timestamp
         if (block.GetBlockTime() < (int64_t)tx->nTime)
-            return state.DoS(50, error("CheckBlock() : block timestamp earlier than transaction timestamp"),
-                       REJECT_INVALID, "bad-tx-time");
+            return state.DoS(50, false, REJECT_INVALID, "bad-tx-time", false, strprintf("%s : block timestamp earlier than transaction timestamp", __func__));
     }
 
     unsigned int nSigOps = 0;
@@ -3264,7 +3262,7 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
     // ppcoin: coinbase output should be empty if proof-of-stake block
     //         unless it is segwit block with valid WC output - in this case we allow one additional output
     if (block.IsProofOfStake() && (block.vtx[0]->vout.size() != (fHaveWitness ? 2 : 1) || !block.vtx[0]->vout[0].IsEmpty()))
-        return error("CheckBlock() : coinbase output not empty for proof-of-stake block");
+        return state.DoS(100, false, REJECT_INVALID, "pos-cb-not-empty", false, strprintf("%s : coinbase output not empty for proof-of-stake block", __func__));
 
     // No witness data is allowed in blocks that don't commit to witness data, as this would otherwise leave room for spam
     if (!fHaveWitness) {
@@ -3287,7 +3285,7 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
 
     // ppcoin: check block signature
     if (fCheckSign && !CheckBlockSignature(block, fV7Enabled))
-        return state.DoS(100, error("CheckBlock() : bad block signature"), REJECT_INVALID, "bad-blk-sign");
+        return state.DoS(100, false, REJECT_INVALID, "bad-blk-sign", false, strprintf("%s : bad block signature", __func__));
 
     return true;
 }

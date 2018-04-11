@@ -485,13 +485,14 @@ bool CheckProofOfStake(CValidationState& state, const CTransactionRef& tx, unsig
     CTransactionRef txTmp;
     uint256 hashBlock = uint256();
     if (!GetTransaction(txin.prevout.hash, txTmp, Params().GetConsensus(), hashBlock))
-        return state.DoS(1, error("CheckProofOfStake() : txPrev not found")); // previous transaction not in main chain, may occur during initial download
+        // previous transaction not in main chain, may occur during initial download
+        return state.DoS(1, false, REJECT_INVALID, "prev-tx-not-found", false, strprintf("%s : txPrev not found", __func__));
 
     // Verify signature
     CCoins coins(*txTmp, 0);
     PrecomputedTransactionData txdata(*tx);
     if (!CScriptCheck(coins, *tx, 0, 0, true, &txdata)())
-        return state.DoS(100, error("CheckProofOfStake() : VerifySignature failed on coinstake %s", tx->GetHash().ToString()));
+        return state.DoS(100, false, REJECT_INVALID, "invalid-pos-script", false, strprintf("%s : VerifyScript failed on coinstake %s", __func__, tx->GetHash().ToString()));
 
     // Get transaction index for the previous transaction
     CDiskTxPos postx;
@@ -515,7 +516,8 @@ bool CheckProofOfStake(CValidationState& state, const CTransactionRef& tx, unsig
     }
 
     if (!CheckStakeKernelHash(nBits, header, postx.nTxOffset + CBlockHeader::NORMAL_SERIALIZE_SIZE, txPrev, txin.prevout, tx->nTime, hashProofOfStake, fDebug))
-        return state.DoS(1, error("CheckProofOfStake() : INFO: check kernel failed on coinstake %s, hashProof=%s", tx->GetHash().ToString(), hashProofOfStake.ToString())); // may occur during initial download or if behind on block chain sync
+        // may occur during initial download or if behind on block chain sync
+        return state.DoS(1, false, REJECT_INVALID, "invalid-stake-hash", false, strprintf("%s : INFO: check kernel failed on coinstake %s, hashProof=%s", __func__, tx->GetHash().ToString(), hashProofOfStake.ToString()));
 
     return true;
 }
