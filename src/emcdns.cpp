@@ -878,7 +878,7 @@ bool EmcDns::CheckDAP(uint32_t ip_addr, uint32_t packet_size) {
   if(((now ^ m_daprand) & 0xfffff) == 0) // ~weekly update daprand
     m_daprand = GetRand(0xffffffff) | 1;
 
-  uint16_t inctemp = packet_size >> 5; // 1 degr = 32 bytes unit
+  uint16_t inctemp = (packet_size >> 5) + 1; // 1 degr = 32 bytes unit
   uint32_t hash = m_daprand, mintemp = ~0;
   uint16_t timestamp = now >> EMCDNS_DAPSHIFTDECAY; // time in 4096s ticks
 
