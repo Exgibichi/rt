@@ -1243,6 +1243,7 @@ CAmount GetProofOfWorkReward(unsigned int nBits)
 
     CAmount nSubsidy = bnUpperBound.getuint64();
     nSubsidy = (nSubsidy / CENT) * CENT;
+    //  TODO olegh: ADD TO V7 nSubsidy = (nSubsidy / TX_DP_AMOUNT) * TX_DP_AMOUNT;
     if (fDebug && GetBoolArg("-printcreation", false))
         LogPrintf("GetProofOfWorkReward() : create=%s nBits=0x%08x nSubsidy=%lld\n", FormatMoney(nSubsidy), nBits, nSubsidy);
 
@@ -4666,6 +4667,73 @@ bool GetCoinAge(const CTransaction& tx, const CCoinsViewCache &view, uint64_t& n
     nCoinAge = bnCoinDay.GetLow64();
     return true;
 }
+
+
+
+
+bool GetEmc7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmount &nReward)
+{
+    nReward = 0;
+
+    if (tx.IsCoinBase())
+        return true;
+
+    arith_uint256 bnSatSecond(0);  // coin age in the minimal unit of cent-seconds
+
+    for (const auto& txin : tx.vin)
+    {
+        // First try finding the previous transaction in database
+        const COutPoint &prevout = txin.prevout;
+        CCoins coins;
+
+        if (!view.GetCoins(prevout.hash, coins))
+            continue;  // previous transaction not in main chain
+        if (tx.nTime < coins.nTime)
+            return false;  // Transaction timestamp violation
+
+        // Transaction index is required to get to block header
+        if (!fTxIndex)
+            return false;  // Transaction index not available
+
+        CDiskTxPos postx;
+        CTransactionRef txPrev;
+        if (pblocktree->ReadTxIndex(prevout.hash, postx))
+        {
+            CAutoFile file(OpenBlockFile(postx, true), SER_DISK, CLIENT_VERSION);
+            CBlockHeader header;
+            try {
+                file >> header;
+                fseek(file.Get(), postx.nTxOffset, SEEK_CUR);
+                file >> txPrev;
+            } catch (std::exception &e) {
+                return error("%s() : deserialize or I/O error in GetCoinAge()", __PRETTY_FUNCTION__);
+            }
+            if (txPrev->GetHash() != prevout.hash)
+                return error("%s() : txid mismatch in GetCoinAge()", __PRETTY_FUNCTION__);
+
+            if (header.GetBlockTime() + Params().GetConsensus().nStakeMinAge > tx.nTime)
+                continue; // only count coins meeting min age requirement
+
+            int64_t nValueIn = txPrev->vout[txin.prevout.n].nValue;
+            bnSatSecond += arith_uint256(nValueIn) * (tx.nTime - txPrev->nTime);
+
+            if (fDebug && GetBoolArg("-printcoinage", false))
+                LogPrintf("coin age nValueIn=%-12lld nTimeDiff=%d bnSatSecond=%s\n", nValueIn, tx.nTime - txPrev->nTime, bnSatSecond.ToString());
+        }
+        else
+            return error("%s() : tx missing in tx index in GetCoinAge()", __PRETTY_FUNCTION__);
+    }
+
+    arith_uint256 bnSatYr(bnSatSecond / (365 * 24 * 3600)); // Sat * Sec -> Sat * Yr
+
+    // Apply 6% APY and round to DP-unit
+    nReward = ((bnSatYr * 6 / 100).GetLow64() / TX_DP_AMOUNT) * TX_DP_AMOUNT;
+ 
+    if (fDebug && GetBoolArg("-printcreation", false))
+        LogPrintf("GetProofOfStakeReward(): create=%s nCoinAge=%s\n", FormatMoney(nReward), bnSatYr.ToString());
+
+    return true;
+} // GetEmc7POSReward
 
 typedef std::vector<unsigned char> valtype;
 bool SelectPubkeyForBlockSigning(const CBlock& block, vector<valtype>& vSolutions, bool fV7Enabled)

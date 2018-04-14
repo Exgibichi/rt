@@ -3074,7 +3074,10 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         CCoinsViewCache view(pcoinsTip);
         if (!GetCoinAge(txNew, view, nCoinAge))
             return error("CreateCoinStake : failed to calculate coin age");
-        nCredit += GetProofOfStakeReward(nCoinAge);
+	CAmount nReward = GetProofOfStakeReward(nCoinAge);
+	if(nReward <= 10 * TX_DP_AMOUNT)
+	    return false; // Prevent extra small UTXO
+        nCredit += nReward;
     }
 
     CAmount nMinFee = 0;
@@ -3084,7 +3087,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         if (txNew.vout.size() == 3)
         {
         CAmount vout1 = nCredit / 4 + GetRand(nCredit / 2);
-            txNew.vout[1].nValue = (vout1 / CENT) * CENT;
+            txNew.vout[1].nValue = (vout1 / TX_DP_AMOUNT) * TX_DP_AMOUNT;
             txNew.vout[2].nValue = nCredit - nMinFee - txNew.vout[1].nValue;
         }
         else
