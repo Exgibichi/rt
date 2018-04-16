@@ -1609,11 +1609,21 @@ bool CNamecoinHooks::ConnectBlock(CBlockIndex* pindex, const vector<nameTempProx
 
     BOOST_FOREACH(const nameTempProxy& i, vName)
     {
+        {
+            // remove from pending names list
+            LOCK(cs_main);
+            map<CNameVal, set<uint256> >::iterator mi = mapNamePending.find(i.name);
+            if (mi != mapNamePending.end())
+            {
+                mi->second.erase(i.hash);
+                if (mi->second.empty())
+                    mapNamePending.erase(i.name);
+            }
+        }
+
         CNameRecord nameRec;
         if (dbName.ExistsName(i.name) && !dbName.ReadName(i.name, nameRec))
             return error("ConnectBlockHook() : failed to read from name DB");
-
-        dbName.TxnBegin();
 
         // only first name_new for same name in same block will get written
         if  (i.op == OP_NAME_NEW && sNameNew.count(i.name))
@@ -1644,23 +1654,13 @@ bool CNamecoinHooks::ConnectBlock(CBlockIndex* pindex, const vector<nameTempProx
 
         if (!CalculateExpiresAt(nameRec))
             return error("ConnectBlockHook() : failed to calculate expiration time before writing to name DB for %s", i.hash.GetHex());
+        dbName.TxnBegin();
         if (!dbName.WriteName(i.name, nameRec))
             return error("ConnectBlockHook() : failed to write to name DB");
         if  (i.op == OP_NAME_NEW)
             sNameNew.insert(i.name);
         LogPrintf("ConnectBlockHook(): writing %s %s in block %d to nameindexV2.dat\n", stringFromOp(i.op), stringFromNameVal(i.name), pindex->nHeight);
 
-        {
-            // remove from pending names list
-            LOCK(cs_main);
-            map<CNameVal, set<uint256> >::iterator mi = mapNamePending.find(i.name);
-            if (mi != mapNamePending.end())
-            {
-                mi->second.erase(i.hash);
-                if (mi->second.empty())
-                    mapNamePending.erase(i.name);
-            }
-        }
         if (!dbName.TxnCommit())
             return error("ConnectBlockHook(): failed to write %s to name DB", stringFromNameVal(i.name));
     }
