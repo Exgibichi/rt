@@ -378,7 +378,7 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
  * instead of being performed inline.
  */
 bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsViewCache &view, bool fScriptChecks,
-                 unsigned int flags, bool cacheStore, PrecomputedTransactionData& txdata, std::vector<CScriptCheck> *pvChecks = NULL);
+                 unsigned int flags, bool cacheStore, PrecomputedTransactionData& txdata, bool fV7Enabled, std::vector<CScriptCheck> *pvChecks = NULL);
 
 /** Apply the effects of this transaction on the UTXO set represented by view */
 void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight);
@@ -395,7 +395,7 @@ namespace Consensus {
  * This does not modify the UTXO set. This does not check scripts and sigs.
  * Preconditions: tx.IsCoinBase() is false.
  */
-bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight);
+bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, bool fV7Enabled);
 
 } // namespace Consensus
 
@@ -580,6 +580,7 @@ bool LoadMempool();
 
 // ppcoin:
 bool GetCoinAge(const CTransaction& tx, const CCoinsViewCache &view, uint64_t& nCoinAge);
+bool GetEmc7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmount &nReward);
 bool SignBlock(CBlock& block, const CKeyStore& keystore);
 bool CheckBlockSignature(const CBlock& block, bool fV7Enabled);
 

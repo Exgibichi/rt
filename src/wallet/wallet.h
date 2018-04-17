@@ -816,7 +816,7 @@ public:
                            std::string& strFailReason, const CCoinControl *coinControl = NULL, bool sign = true);
     bool CreateNameTx(const CRecipient& recipient, const CWalletTx& wtxNameIn, const CAmount& nFeeInput, CWalletTx& wtxNew, CReserveKey& reservekey,
                       CAmount& nFeeRet, int& nChangePosInOut, std::string& strFailReason, const CCoinControl *coinControl = NULL, bool sign = true);
-    bool CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int64_t nSearchInterval, CMutableTransaction &txNew);
+    bool CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int64_t nSearchInterval, CMutableTransaction &txNew, bool fV7Enabled);
     bool CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey, CConnman* connman, CValidationState& state);
 
     void ListAccountCreditDebit(const std::string& strAccount, std::list<CAccountingEntry>& entries);

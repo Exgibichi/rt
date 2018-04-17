@@ -2887,7 +2887,7 @@ bool CWallet::CreateNameTx(const CRecipient& recipient, const CWalletTx& wtxName
 
 // ppcoin: create coin stake transaction
 typedef std::vector<unsigned char> valtype;
-bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int64_t nSearchInterval, CMutableTransaction& txNew)
+bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int64_t nSearchInterval, CMutableTransaction& txNew, bool fV7Enabled)
 {
     // Transaction index is required to get to block header
     if (!fTxIndex)
@@ -3070,13 +3070,22 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     }
     // Calculate coin age reward
     {
-        uint64_t nCoinAge;
+        CAmount nReward = 0;
         CCoinsViewCache view(pcoinsTip);
-        if (!GetCoinAge(txNew, view, nCoinAge))
-            return error("CreateCoinStake : failed to calculate coin age");
-	CAmount nReward = GetProofOfStakeReward(nCoinAge);
-	if(nReward <= 10 * TX_DP_AMOUNT)
-	    return false; // Prevent extra small UTXO
+        if (fV7Enabled)
+        {
+            if (!GetEmc7POSReward(txNew, view, nReward))
+                return error("CreateCoinStake() : %s unable to get coin reward for coinstake", txNew.GetHash().ToString());
+        }
+        else
+        {
+            uint64_t nCoinAge;
+            if (!GetCoinAge(txNew, view, nCoinAge))
+                return error("CreateCoinStake : failed to calculate coin age");
+            nReward = GetProofOfStakeReward(nCoinAge);
+        }
+        if (nReward <= 10 * TX_DP_AMOUNT)
+            return false; // Prevent extra small UTXO
         nCredit += nReward;
     }
 

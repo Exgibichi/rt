@@ -952,13 +952,13 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
         // Check against previous transactions
         // This is done last to help prevent CPU exhaustion denial-of-service attacks.
         PrecomputedTransactionData txdata(tx);
-        if (!CheckInputs(tx, state, view, true, scriptVerifyFlags, true, txdata)) {
+        if (!CheckInputs(tx, state, view, true, scriptVerifyFlags, true, txdata, witnessEnabled)) {
             // SCRIPT_VERIFY_CLEANSTACK requires SCRIPT_VERIFY_WITNESS, so we
             // need to turn both off, and compare against just turning off CLEANSTACK
             // to see if the failure is specifically due to witness validation.
             CValidationState stateDummy; // Want reported failures to be from first CheckInputs
-            if (!tx.HasWitness() && CheckInputs(tx, stateDummy, view, true, scriptVerifyFlags & ~(SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_CLEANSTACK), true, txdata) &&
-                !CheckInputs(tx, stateDummy, view, true, scriptVerifyFlags & ~SCRIPT_VERIFY_CLEANSTACK, true, txdata)) {
+            if (!tx.HasWitness() && CheckInputs(tx, stateDummy, view, true, scriptVerifyFlags & ~(SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_CLEANSTACK), true, txdata, witnessEnabled) &&
+                !CheckInputs(tx, stateDummy, view, true, scriptVerifyFlags & ~SCRIPT_VERIFY_CLEANSTACK, true, txdata, witnessEnabled)) {
                 // Only the witness is missing, so the transaction itself may be fine.
                 state.SetCorruptionPossible();
             }
@@ -974,7 +974,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
         // There is a similar check in CreateNewBlock() to prevent creating
         // invalid blocks, however allowing such transactions into the mempool
         // can be exploited as a DoS attack.
-        if (!CheckInputs(tx, state, view, true, MANDATORY_SCRIPT_VERIFY_FLAGS, true, txdata))
+        if (!CheckInputs(tx, state, view, true, MANDATORY_SCRIPT_VERIFY_FLAGS, true, txdata, witnessEnabled))
         {
             return error("%s: BUG! PLEASE REPORT THIS! ConnectInputs failed against MANDATORY but not STANDARD flags %s, %s",
                 __func__, hash.ToString(), FormatStateMessage(state));
@@ -1458,7 +1458,7 @@ int GetSpendHeight(const CCoinsViewCache& inputs)
 }
 
 namespace Consensus {
-bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight)
+bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, bool fV7Enabled)
 {
         // This doesn't trigger the DoS code on purpose; if it did, it would make it easier
         // for an attacker to attempt to split the network.
@@ -1496,11 +1496,21 @@ bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoins
     if (tx.IsCoinStake())
     {
         // ppcoin: coin stake tx earns reward instead of paying fee
-        uint64_t nCoinAge;
-        if (!GetCoinAge(tx, inputs, nCoinAge))
-            return error("CheckTxInputs() : %s unable to get coin age for coinstake", tx.GetHash().ToString());
-        int64_t nStakeReward = tx.GetValueOut() - nValueIn;
-        if (nStakeReward > GetProofOfStakeReward(nCoinAge) - tx.GetMinFee() + MIN_TX_FEE)
+        CAmount nLimit = 0;
+        if (fV7Enabled)
+        {
+            if (!GetEmc7POSReward(tx, inputs, nLimit))
+                return error("CheckTxInputs() : %s unable to get coin reward for coinstake", tx.GetHash().ToString());
+        }
+        else
+        {
+            uint64_t nCoinAge;
+            if (!GetCoinAge(tx, inputs, nCoinAge))
+                return error("CheckTxInputs() : %s unable to get coin age for coinstake", tx.GetHash().ToString());
+            nLimit = GetProofOfStakeReward(nCoinAge);
+        }
+        CAmount nStakeReward = tx.GetValueOut() - nValueIn;
+        if (nStakeReward > nLimit - tx.GetMinFee() + MIN_TX_FEE)
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-coinstake-too-large");
     }
     else
@@ -1524,11 +1534,11 @@ bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoins
 }
 }// namespace Consensus
 
-bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsViewCache &inputs, bool fScriptChecks, unsigned int flags, bool cacheStore, PrecomputedTransactionData& txdata, std::vector<CScriptCheck> *pvChecks)
+bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsViewCache &inputs, bool fScriptChecks, unsigned int flags, bool cacheStore, PrecomputedTransactionData& txdata, bool fV7Enabled, std::vector<CScriptCheck> *pvChecks)
 {
     if (!tx.IsCoinBase())
     {
-        if (!Consensus::CheckTxInputs(tx, state, inputs, GetSpendHeight(inputs)))
+        if (!Consensus::CheckTxInputs(tx, state, inputs, GetSpendHeight(inputs), fV7Enabled))
             return false;
 
         if (pvChecks)
@@ -2071,7 +2081,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
             std::vector<CScriptCheck> vChecks;
             bool fCacheResults = fJustCheck; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
-            if (!CheckInputs(tx, state, view, fScriptChecks, flags, fCacheResults, txdata[i], nScriptCheckThreads ? &vChecks : NULL))
+            if (!CheckInputs(tx, state, view, fScriptChecks, flags, fCacheResults, txdata[i], fV7Enabled, nScriptCheckThreads ? &vChecks : NULL))
                 return error("ConnectBlock(): CheckInputs on %s failed with %s",
                     tx.GetHash().ToString(), FormatStateMessage(state));
             control.Add(vChecks);
@@ -4668,9 +4678,7 @@ bool GetCoinAge(const CTransaction& tx, const CCoinsViewCache &view, uint64_t& n
     return true;
 }
 
-
-
-
+// combination of GetCoinAge() and GetProofOfStakeReward()
 bool GetEmc7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmount &nReward)
 {
     nReward = 0;
@@ -4730,7 +4738,7 @@ bool GetEmc7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmou
     nReward = ((bnSatYr * 6 / 100).GetLow64() / TX_DP_AMOUNT) * TX_DP_AMOUNT;
  
     if (fDebug && GetBoolArg("-printcreation", false))
-        LogPrintf("GetProofOfStakeReward(): create=%s nCoinAge=%s\n", FormatMoney(nReward), bnSatYr.ToString());
+        LogPrintf("GetEmc7POSReward(): create=%s nCoinAge=%s\n", FormatMoney(nReward), bnSatYr.ToString());
 
     return true;
 } // GetEmc7POSReward

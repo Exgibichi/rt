@@ -157,6 +157,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     LOCK(cs_main);
     CBlockIndex* pindexPrev = chainActive.Tip();
 
+    bool fV7Enabled = IsV7Enabled(pindexPrev, chainparams.GetConsensus());
+
     if (pwallet)  // attemp to find a coinstake
     {
         *pfPoSCancel = true;
@@ -165,7 +167,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         int64_t nSearchTime = txCoinStake.nTime; // search to current time
         if (nSearchTime > nLastCoinStakeSearchTime)
         {
-            if (pwallet->CreateCoinStake(*pwallet, pblock->nBits, nSearchTime-nLastCoinStakeSearchTime, txCoinStake))
+            if (pwallet->CreateCoinStake(*pwallet, pblock->nBits, nSearchTime-nLastCoinStakeSearchTime, txCoinStake, fV7Enabled))
             {
                 if (txCoinStake.nTime >= std::max(pindexPrev->GetMedianTimePast()+1, pindexPrev->GetBlockTime() - nMaxClockDrift))
                 {   // make sure coinstake would meet timestamp protocol
@@ -207,7 +209,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // -promiscuousmempoolflags is used.
     // TODO: replace this with a call to main to assess validity of a mempool
     // transaction (which in most cases can be a no-op).
-    fIncludeWitness = IsV7Enabled(pindexPrev, chainparams.GetConsensus()) && fMineWitnessTx;
+    fIncludeWitness = fV7Enabled && fMineWitnessTx;
 
     addTxs();
 

@@ -737,8 +737,9 @@ void CTxMemPool::check(const CCoinsViewCache *pcoins) const
             waitingOnDependants.push_back(&(*it));
         else {
             CValidationState state;
+            bool fV7Enabled = true; // emercoin: there should be no PoS transactions in mempool, so we don't care if this flag is correct/incorrect
             bool fCheckResult = tx.IsCoinBase() ||
-                Consensus::CheckTxInputs(tx, state, mempoolDuplicate, nSpendHeight);
+                Consensus::CheckTxInputs(tx, state, mempoolDuplicate, nSpendHeight, fV7Enabled);
             assert(fCheckResult);
             UpdateCoins(tx, mempoolDuplicate, 1000000);
         }
@@ -753,8 +754,9 @@ void CTxMemPool::check(const CCoinsViewCache *pcoins) const
             stepsSinceLastRemove++;
             assert(stepsSinceLastRemove < waitingOnDependants.size());
         } else {
+            bool fV7Enabled = true; // emercoin: there should be no PoS transactions in mempool, so we don't care if this flag is correct/incorrect
             bool fCheckResult = entry->GetTx().IsCoinBase() ||
-                Consensus::CheckTxInputs(entry->GetTx(), state, mempoolDuplicate, nSpendHeight);
+                Consensus::CheckTxInputs(entry->GetTx(), state, mempoolDuplicate, nSpendHeight, fV7Enabled);
             assert(fCheckResult);
             UpdateCoins(entry->GetTx(), mempoolDuplicate, 1000000);
             stepsSinceLastRemove = 0;
