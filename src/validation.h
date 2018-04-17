@@ -291,7 +291,7 @@ bool GetTransaction(const CDiskTxPos& postx, CTransactionRef &txOut);
 bool ActivateBestChain(CValidationState& state, const CChainParams& chainparams, std::shared_ptr<const CBlock> pblock = std::shared_ptr<const CBlock>());
 
 // emercoin: reward for blocks
-CAmount GetProofOfWorkReward(unsigned int nBits);
+CAmount GetProofOfWorkReward(unsigned int nBits, bool fV7Enabled);
 CAmount GetProofOfStakeReward(int64_t nCoinAge);
 
 /** Guess verification progress (as a fraction between 0.0=genesis and 1.0=current tip). */

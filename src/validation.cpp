@@ -1207,7 +1207,7 @@ double GetDifficulty(unsigned int nBits)
     return dDiff;
 }
 
-CAmount GetProofOfWorkReward(unsigned int nBits)
+CAmount GetProofOfWorkReward(unsigned int nBits, bool fV7Enabled)
 {
     const Consensus::Params& params = Params().GetConsensus();
 
@@ -1242,8 +1242,7 @@ CAmount GetProofOfWorkReward(unsigned int nBits)
     }
 
     CAmount nSubsidy = bnUpperBound.getuint64();
-    nSubsidy = (nSubsidy / CENT) * CENT;
-    //  TODO olegh: ADD TO V7 nSubsidy = (nSubsidy / TX_DP_AMOUNT) * TX_DP_AMOUNT;
+    nSubsidy = fV7Enabled ? (nSubsidy / TX_DP_AMOUNT) * TX_DP_AMOUNT : (nSubsidy / CENT) * CENT;
     if (fDebug && GetBoolArg("-printcreation", false))
         LogPrintf("GetProofOfWorkReward() : create=%s nBits=0x%08x nSubsidy=%lld\n", FormatMoney(nSubsidy), nBits, nSubsidy);
 
@@ -3065,11 +3064,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     if (block.IsProofOfStake() && !CheckCoinStakeTimestamp(block.GetBlockTime(), (int64_t)block.vtx[1]->nTime))
         return state.DoS(50, false, REJECT_INVALID, "bad-cs-time", false, "coinstake timestamp violation");
 
-    // Check coinbase reward
-    CAmount powLimit = block.IsProofOfWork() ? GetProofOfWorkReward(block.nBits) - block.vtx[0]->GetMinFee() + MIN_TX_FEE : 0;
-    if (block.vtx[0]->GetValueOut() > powLimit)
-        return state.DoS(100, false, REJECT_INVALID, "bad-cb-amount", false, "coinbase pays too much");
-
     // Check transactions
     for (const auto& tx : block.vtx)
     {
@@ -3223,6 +3217,11 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
     // Start enforcing BIP113 (Median Time Past)
     int nLockTimeFlags = 0;
     bool fV7Enabled = block.GetBlockVersion() >= 7 && IsV7Enabled(pindexPrev, consensusParams);
+
+    // Check coinbase reward
+    CAmount powLimit = block.IsProofOfWork() ? GetProofOfWorkReward(block.nBits, fV7Enabled) - block.vtx[0]->GetMinFee() + MIN_TX_FEE : 0;
+    if (block.vtx[0]->GetValueOut() > powLimit)
+        return state.DoS(100, false, REJECT_INVALID, "bad-cb-amount", false, "coinbase pays too much");
 
     if (fV7Enabled) {
         nLockTimeFlags |= LOCKTIME_MEDIAN_TIME_PAST;

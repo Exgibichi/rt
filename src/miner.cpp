@@ -221,7 +221,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Compute final coinbase transaction.
     if (pblock->IsProofOfWork())
-        coinbaseTx.vout[0].nValue = GetProofOfWorkReward(pblock->nBits);
+        coinbaseTx.vout[0].nValue = GetProofOfWorkReward(pblock->nBits, fV7Enabled);
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     if (fIncludeWitness)
