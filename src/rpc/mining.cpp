@@ -757,6 +757,8 @@ UniValue getauxblock(const JSONRPCRequest& request)
     if (IsInitialBlockDownload())
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
 
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+
     static map<uint256, std::shared_ptr<CBlock>> mapNewBlock;
 
     if (request.params.size() == 0)
@@ -781,7 +783,7 @@ UniValue getauxblock(const JSONRPCRequest& request)
             // Create new block with nonce = 0 and extraNonce = 1
             boost::shared_ptr<CReserveScript> coinbase_script;
             {
-                LOCK(pwalletMain->cs_wallet);
+//                LOCK(pwalletMain->cs_wallet);
                 pwalletMain->GetScriptForMining(coinbase_script);
             }
             pblocktemplate = BlockAssembler(Params()).CreateNewBlock(coinbase_script->reserveScript, true);
@@ -830,7 +832,7 @@ UniValue getauxblock(const JSONRPCRequest& request)
 
         bool fBlockPresent = false;
         {
-            LOCK(cs_main);
+//            LOCK(cs_main);
             BlockMap::iterator mi = mapBlockIndex.find(hash);
             if (mi != mapBlockIndex.end()) {
                 CBlockIndex *pindex = mi->second;
@@ -841,12 +843,6 @@ UniValue getauxblock(const JSONRPCRequest& request)
                 // Otherwise, we might only have the header - process the block before returning
                 fBlockPresent = true;
             }
-        }
-
-        {
-            CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION);
-            ssBlock << *pblock;
-            LogPrintf("blockhex = %s\n", HexStr(ssBlock.begin(), ssBlock.end()));
         }
 
         // check block before attempting to sign it.

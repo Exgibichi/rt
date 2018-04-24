@@ -1206,9 +1206,8 @@ NameTxReturn name_operation(const int op, const CNameVal& name, CNameVal value, 
         }
 
     // set fee and send!
-        bool fV7Enabled = chainActive.Tip()->GetBlockVersion() >= 7 && IsV7Enabled(chainActive.Tip(), Params().GetConsensus());
         CAmount nameFee = GetNameOpFee(chainActive.Tip(), nRentalDays, op, name, value);
-        SendName(nameScript, fV7Enabled ? MIN_TXOUT_AMOUNT : CENT, wtx, wtxIn, nameFee);
+        SendName(nameScript, MIN_TXOUT_AMOUNT, wtx, wtxIn, nameFee);
     }
 
     //success! collect info and return
