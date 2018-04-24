@@ -235,13 +235,13 @@
         <bool>true</bool>
        </property>
        <property name="toolTip">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enter new owner address, or leave blank to keep current ownership.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enter address/name of new owner, or leave blank to send to yourself.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
        <property name="text">
         <string notr="true"/>
        </property>
        <property name="placeholderText">
-        <string>Enter address of the owner of name-value pair</string>
+        <string>Enter address/name of new owner of this name-value pair</string>
        </property>
       </widget>
      </item>

@@ -618,3 +618,27 @@ void ManageNamesPage::setDisplayedValue(const QString & s)
 {
     ui->registerValue->setPlainText(s);
 }
+
+void ManageNamesPage::on_registerAddress_editingFinished()
+{
+    QString name = ui->registerAddress->text();
+    if (name.isEmpty())
+        return;
+
+    std::string strName = name.toStdString();
+    std::vector<unsigned char> vchName(strName.begin(), strName.end());
+
+    std::string error;
+    CBitcoinAddress address;
+    if (!GetNameCurrentAddress(vchName, address, error))
+        return;
+
+    QString qstrAddress = QString::fromStdString(address.ToString());
+
+    if (QMessageBox::Yes != QMessageBox::question(this, tr("Confirm name as address"),
+            tr("This name exist and still active. Do you wish to use address of its current owner - %1?").arg(qstrAddress),
+            QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel))
+        return;
+    else
+        ui->registerAddress->setText(qstrAddress);
+}

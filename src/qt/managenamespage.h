@@ -84,6 +84,7 @@ private Q_SLOTS:
     void on_importValueButton_clicked();
     void on_registerValue_textChanged();
     void onManageDomainsClicked();
+    void on_registerAddress_editingFinished();
 
 Q_SIGNALS:
     void doubleClicked(const QModelIndex&);
