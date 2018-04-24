@@ -1368,7 +1368,7 @@
         <translation>Suma</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter a Emercoin address or name (e.g. %1)</source>
         <translation>Zadajte emercoin adresu (napr. %1)</translation>
     </message>
     <message>

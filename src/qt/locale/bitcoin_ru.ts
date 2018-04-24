@@ -1380,8 +1380,8 @@
         <translation>Сумма</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
-        <translation>Введите адрес Emercoin (например, %1)</translation>
+        <source>Enter a Emercoin address or name (e.g. %1)</source>
+        <translation>Введите адрес Emercoin или имя (например, %1)</translation>
     </message>
     <message>
         <source>%1 d</source>

@@ -1366,7 +1366,7 @@
         <translation>金额</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter a Emercoin address or name (e.g. %1)</source>
         <translation>请输入一个比特币地址 (例如 %1)</translation>
     </message>
     <message>

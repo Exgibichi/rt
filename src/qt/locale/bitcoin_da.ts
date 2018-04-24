@@ -1380,7 +1380,7 @@
         <translation>Beløb</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter a Emercoin address or name (e.g. %1)</source>
         <translation>Indtast en Emercoin-adresse (fx %1)</translation>
     </message>
     <message>
