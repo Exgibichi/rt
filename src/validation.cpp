@@ -4722,10 +4722,13 @@ bool GetEmc7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmou
                 continue; // only count coins meeting min age requirement
 
             int64_t nValueIn = txPrev->vout[txin.prevout.n].nValue;
-            bnSatSecond += arith_uint256(nValueIn) * (tx.nTime - txPrev->nTime);
+	    int64_t dt = tx.nTime - txPrev->nTime;
+	    if(dt < 0)
+	        return false; // Sanity check to preserve value overflow
+            bnSatSecond += arith_uint256(nValueIn) * dt;
 
             if (fDebug && GetBoolArg("-printcoinage", false))
-                LogPrintf("coin age nValueIn=%-12lld nTimeDiff=%d bnSatSecond=%s\n", nValueIn, tx.nTime - txPrev->nTime, bnSatSecond.ToString());
+                LogPrintf("coin age nValueIn=%-12lld nTimeDiff=%d bnSatSecond=%s\n", nValueIn, dt, bnSatSecond.ToString());
         }
         else
             return error("%s() : tx missing in tx index in GetCoinAge()", __PRETTY_FUNCTION__);
