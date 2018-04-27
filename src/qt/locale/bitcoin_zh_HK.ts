@@ -440,7 +440,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter a Emercoin address or name (e.g. %1)</source>
         <translation>輸入一個 Emercoin 位址 (例如 %1)</translation>
     </message>
     <message>

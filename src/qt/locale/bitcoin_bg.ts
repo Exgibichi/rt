@@ -1136,7 +1136,7 @@
         <translation>Сума</translation>
     </message>
     <message>
-        <source>Enter a Emercoin address (e.g. %1)</source>
+        <source>Enter a Emercoin address or name (e.g. %1)</source>
         <translation>Въведете Емеркойн адрес (например: %1)</translation>
     </message>
     <message>
