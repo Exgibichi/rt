@@ -4019,6 +4019,11 @@ bool RewindBlockIndex(const CChainParams& params)
             pindexIter->nSequenceId = 0;
             // Make sure it gets written.
             setDirtyBlockIndex.insert(pindexIter);
+            if (pindexIter->nVersion & BLOCK_VERSION_AUXPOW) {
+                CDiskBlockIndex diskblockindex;
+                pblocktree->ReadDiskBlockIndex(pindexIter->GetBlockHash(), diskblockindex);
+                mapDirtyAuxPow.insert(std::make_pair(pindexIter->GetBlockHash(), diskblockindex.auxpow));
+            }
             // Update indexes
             setBlockIndexCandidates.erase(pindexIter);
             std::pair<std::multimap<CBlockIndex*, CBlockIndex*>::iterator, std::multimap<CBlockIndex*, CBlockIndex*>::iterator> ret = mapBlocksUnlinked.equal_range(pindexIter->pprev);
