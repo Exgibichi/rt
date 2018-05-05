@@ -391,7 +391,9 @@ void EmcDns::HandlePacket() {
   // Clear answer counters - maybe contains junk from client
   //* m_hdr->ANCount = m_hdr->NSCount = m_hdr->ARCount = 0;
   m_hdr->ANCount = m_hdr->NSCount = m_hdr->ARCount = 0;
-  m_hdr->Bits   |= m_hdr->QR_MASK; // Change Q->R
+  //m_hdr->Bits   |= m_hdr->QR_MASK; // Change Q->R
+  //m_hdr->Bits   &= ~(RD_MASK | RA_MASK);
+  m_hdr->Bits = m_hdr->QR_MASK | m_hdr->AA_MASK;
 
   do {
     // check flags QR=0 and TC=0
@@ -632,7 +634,8 @@ uint16_t EmcDns::HandleQuery() {
   
   // List values for ANY:    A NS CNA PTR MX AAAA
   const uint16_t q_all[] = { 1, 2, 5, 12, 15, 28, 0 };
-  
+  uint16_t ancount;
+
   switch(qtype) {
     case 0xff:	// ALL
       for(const uint16_t *q = q_all; *q; q++)
@@ -641,15 +644,20 @@ uint16_t EmcDns::HandleQuery() {
     case 1:	// A
     case 28:	// AAAA
       Answer_ALL(qtype, strcpy(val2, m_value));
-      if(m_hdr->ANCount != 0)
-        break;
-                 // Not found A/AAAA - try lookup for CNAME in the default section
-                 // Quoth RFC 1034, Section 3.6.2:
-                 // If a CNAME RR is present at a node, no other data should be present;
-      Answer_ALL(5, strcpy(val2, m_value));
-      if(m_hdr->ANCount != 0)
-        break;
-      qtype = 2; // Not found A/AAAA/CNAME - try lookup for NS in the default section
+      // Not found A/AAAA - try lookup for CNAME in the default section
+      // Quoth RFC 1034, Section 3.6.2:
+      // If a CNAME RR is present at a node, no other data should be present;
+      // Not found A/AAAA/CNAME - try lookup for CNAME in the default section
+      if(m_hdr->ANCount == 0)
+        Answer_ALL(5, strcpy(val2, m_value));
+      // Add Authority section here - NSes
+      ancount = m_hdr->ANCount;
+      Answer_ALL(2, m_value);
+      m_hdr->NSCount = m_hdr->ANCount - ancount;
+      m_hdr->ANCount = ancount;
+      if(m_hdr->NSCount != 0)
+	 m_hdr->Bits &= ~m_hdr->AA_MASK;
+      break;
     default:
       Answer_ALL(qtype, m_value);
       break;
