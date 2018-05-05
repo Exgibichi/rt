@@ -389,11 +389,9 @@ void EmcDns::HandlePacket() {
   uint16_t zCount = m_hdr->ANCount | m_hdr->NSCount | (m_hdr->Bits & (m_hdr->QR_MASK | m_hdr->TC_MASK));
 
   // Clear answer counters - maybe contains junk from client
-  //* m_hdr->ANCount = m_hdr->NSCount = m_hdr->ARCount = 0;
   m_hdr->ANCount = m_hdr->NSCount = m_hdr->ARCount = 0;
-  //m_hdr->Bits   |= m_hdr->QR_MASK; // Change Q->R
-  //m_hdr->Bits   &= ~(RD_MASK | RA_MASK);
-  m_hdr->Bits = m_hdr->QR_MASK | m_hdr->AA_MASK;
+  m_hdr->Bits &= m_hdr->RD_MASK;
+  m_hdr->Bits |= m_hdr->QR_MASK | m_hdr->AA_MASK;
 
   do {
     // check flags QR=0 and TC=0
