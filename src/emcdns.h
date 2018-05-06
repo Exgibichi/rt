@@ -87,7 +87,7 @@ class EmcDns {
     int  Tokenize(const char *key, const char *sep2, char **tokens, char *buf);
     void Answer_ALL(uint16_t qtype, char *buf);
     void Fill_RD_IP(char *ipddrtxt, int af);
-    void Fill_RD_DName(char *txt, uint8_t mxsz, int8_t txtcor);
+    int  Fill_RD_DName(char *txt, uint8_t mxsz, int8_t txtcor); // return ref to name
     int  TryMakeref(uint16_t label_ref);
 
     // Handle Special function - phone number in the E.164 format

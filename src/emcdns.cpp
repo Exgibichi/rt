@@ -648,14 +648,13 @@ uint16_t EmcDns::HandleQuery() {
       // Not found A/AAAA/CNAME - try lookup for CNAME in the default section
       if(m_hdr->ANCount == 0)
         Answer_ALL(5, strcpy(val2, m_value));
-      // Add Authority section here - NSes
-      ancount = m_hdr->ANCount;
-      Answer_ALL(2, m_value);
-      m_hdr->NSCount = m_hdr->ANCount - ancount;
-      m_hdr->ANCount = ancount;
-      if(m_hdr->NSCount != 0)
-	 m_hdr->Bits &= ~m_hdr->AA_MASK;
-      break;
+      if(m_hdr->ANCount != 0)
+	break;
+      // Add Authority/Additional section here, if still no answer
+      // Fill AUTH+ADDL section according https://www.ietf.org/rfc/rfc1034.txt, sec 6.2.6
+//      m_hdr->Bits &= ~m_hdr->AA_MASK;
+      qtype = 2 | 0x80;
+      // go to default below
     default:
       Answer_ALL(qtype, m_value);
       break;
@@ -737,6 +736,9 @@ int EmcDns::Tokenize(const char *key, const char *sep2, char **tokens, char *buf
 
 void EmcDns::Answer_ALL(uint16_t qtype, char *buf) {
   const char *key;
+  uint16_t needed_addl = qtype & 0x80;
+  qtype ^= needed_addl;
+
   switch(qtype) {
       case  1 : key = "A";      break;
       case  2 : key = "NS";     break;
@@ -748,6 +750,7 @@ void EmcDns::Answer_ALL(uint16_t qtype, char *buf) {
       default: return;
   } // switch
 
+  uint16_t addl_refs[MAX_TOK];
   char *tokens[MAX_TOK];
   int tokQty = Tokenize(key, ",", tokens, buf);
 
@@ -774,13 +777,31 @@ void EmcDns::Answer_ALL(uint16_t qtype, char *buf) {
 	case 28: Fill_RD_IP(tokens[tok_no], AF_INET6); break;
 	case 2 :
 	case 5 :
-	case 12: Fill_RD_DName(tokens[tok_no], 0, 0); break; // NS,CNAME,PTR
+	case 12: addl_refs[tok_no] = Fill_RD_DName(tokens[tok_no], 0, 0); break; // NS,CNAME,PTR
 	case 15: Fill_RD_DName(tokens[tok_no], 2, 0); break; // MX
 	case 16: Fill_RD_DName(tokens[tok_no], 0, 1); break; // TXT
 	default: break;
       } // swithc
   } // for
-  m_hdr->ANCount += tokQty;
+
+  if(needed_addl) { // Foll ADDL section (NS in NSCount)
+    m_hdr->NSCount += tokQty;
+#if 0
+    for(int tok_no = 0; tok_no < tokQty; tok_no++) {
+      Out2(addl_refs[tok_no]);
+      Out2(1); // PTR record, or maybe something else
+      Out2(1); //  INET
+      Out4(m_ttl);
+      //Out2(2); // out.sz
+      //Out2(addl_refs[tok_no]);
+      Out2(4); // out.sz
+      inet_pton(AF_INET, "91.217.137.1", m_snd);
+      m_snd += 4;
+      m_hdr->ARCount++;
+    } // for
+#endif
+  } else
+    m_hdr->ANCount += tokQty;
 } // EmcDns::Answer_ALL 
 
 /*---------------------------------------------------*/
@@ -801,7 +822,7 @@ void EmcDns::Fill_RD_IP(char *ipddrtxt, int af) {
 
 /*---------------------------------------------------*/
 
-void EmcDns::Fill_RD_DName(char *txt, uint8_t mxsz, int8_t txtcor) {
+int EmcDns::Fill_RD_DName(char *txt, uint8_t mxsz, int8_t txtcor) {
   uint8_t *snd0 = m_snd;
   m_snd += 3 + mxsz; // skip SZ and sz0
   uint8_t *tok_sz = m_snd - 1;
@@ -812,6 +833,8 @@ void EmcDns::Fill_RD_DName(char *txt, uint8_t mxsz, int8_t txtcor) {
 
   if(m_bufend < bufend)
     bufend = m_bufend;
+
+  int label_ref = (tok_sz - m_buf - (m_rcvend - m_rcv)) | 0xc000;
 
   do {
     c = *m_snd++ = *txt++;
@@ -837,6 +860,7 @@ void EmcDns::Fill_RD_DName(char *txt, uint8_t mxsz, int8_t txtcor) {
     *snd0++ = mx_pri >> 8;
     *snd0++ = mx_pri;
   }
+  return label_ref;
 } // EmcDns::Fill_RD_DName
 
 /*---------------------------------------------------*/
