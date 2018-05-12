@@ -840,13 +840,9 @@ void PoSMiner(CWallet *pwallet)
             if (Params().MiningRequiresPeers()) {
                 // Busy-wait for the network to come online so we don't waste time mining
                 // on an obsolete chain. In regtest mode we expect to fly solo.
-                do {
-                    bool fIsConnected = g_connman ? g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) : false;
-                    if (fIsConnected && !IsInitialBlockDownload())
-                        break;
-                    MilliSleep(5000);
-                } while (true);
-            }
+		while(g_connman == NULL || g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0 || IsInitialBlockDownload())
+		    MilliSleep(5 * 60 * 1000);
+           }
 
             while (pwallet->IsLocked())
             {
