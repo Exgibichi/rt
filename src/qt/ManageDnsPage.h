@@ -1,6 +1,7 @@
 ﻿//ManageDnsPage.h by emercoin developers
 #pragma once
 #include <QDialog>
+#include <QLineEdit>
 class QLineEdit;
 class QFormLayout;
 class QString;
@@ -11,9 +12,11 @@ class ManageDnsPage: public QDialog {
 	    ManageDnsPage(QWidget*parent);
 
         QLineEdit* _editName = 0;
-        QLineEdit* _editA = 0;
-        QLineEdit* _editAAAA = 0;
-        QLineEdit* _editMx = 0;
+        struct LineEdit: public QLineEdit {
+            QString _dnsRecord;
+        };
+        QList<LineEdit*> _edits;
+
         QLineEdit* _resultingName = 0;
         QLineEdit* _resultingValue = 0;
     Q_SIGNALS:
@@ -21,5 +24,5 @@ class ManageDnsPage: public QDialog {
         void previewValue(const QString & s);
     protected:
         void recalcValue();
-        void addHtmlRow(QFormLayout*form, QString text, QLineEdit*w, QString tooltip);
+        LineEdit* addLineEdit(QFormLayout*form, QString dnsParam, QString text, QString tooltipq);
 };

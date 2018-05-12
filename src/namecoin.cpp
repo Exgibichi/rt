@@ -688,6 +688,7 @@ UniValue name_mempool(const JSONRPCRequest& request)
     string outputType = request.params.size() > 0 ? request.params[0].get_str() : "";
 
     UniValue res(UniValue::VARR);
+    LOCK(mempool.cs);
     BOOST_FOREACH(const PAIRTYPE(CNameVal, set<uint256>) &pairPending, mapNamePending)
     {
         string sName = stringFromNameVal(pairPending.first);
@@ -696,7 +697,7 @@ UniValue name_mempool(const JSONRPCRequest& request)
             if (!mempool.exists(hash))
                 continue;
 
-            const CTransactionRef& tx = mempool.mapTx.find(hash)->GetSharedTx();
+            const CTransactionRef& tx = mempool.get(hash);
             NameTxInfo nti;
             if (!DecodeNameTx(tx, nti, true))
                 throw JSONRPCError(RPC_DATABASE_ERROR, "failed to decode name transaction");
@@ -762,8 +763,11 @@ UniValue name_filter(const JSONRPCRequest& request)
 
     CNameVal name;
     vector<pair<CNameVal, pair<CNameIndex,int> > > nameScan;
-    if (!dbName.ScanNames(name, 100000000, nameScan))
-        throw JSONRPCError(RPC_WALLET_ERROR, "scan failed");
+    {
+        LOCK(cs_main);
+        if (!dbName.ScanNames(name, 100000000, nameScan))
+            throw JSONRPCError(RPC_WALLET_ERROR, "scan failed");
+    }
 
     // compile regex once
     using namespace boost::xpressive;
@@ -856,8 +860,11 @@ UniValue name_scan(const JSONRPCRequest& request)
     UniValue oRes(UniValue::VARR);
 
     vector<pair<CNameVal, pair<CNameIndex,int> > > nameScan;
-    if (!dbName.ScanNames(name, nMax, nameScan))
-        throw JSONRPCError(RPC_WALLET_ERROR, "scan failed");
+    {
+        LOCK(cs_main);
+        if (!dbName.ScanNames(name, nMax, nameScan))
+            throw JSONRPCError(RPC_WALLET_ERROR, "scan failed");
+    }
 
     pair<CNameVal, pair<CNameIndex,int> > pairScan;
     BOOST_FOREACH(pairScan, nameScan)
