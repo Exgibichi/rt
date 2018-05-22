@@ -1628,12 +1628,12 @@ static const CRPCCommand commands[] =
     { "hidden",             "waitforblockheight",     &waitforblockheight,     true,  {"height","timeout"} },
 
     // emercoin commands
-    { "blockchain",         "name_scan",              &name_scan,              true,  {} },
-    { "blockchain",         "name_filter",            &name_filter,            true,  {} },
-    { "blockchain",         "name_show",              &name_show,              true,  {} },
-    { "blockchain",         "name_history",           &name_history,           true,  {} },
-    { "blockchain",         "name_mempool",           &name_mempool,           true,  {} },
-    { "blockchain",         "gettxlistfor",           &gettxlistfor,           true,  {} },
+    { "blockchain",         "name_scan",              &name_scan,              true,  {"start-name","max-returned","max-value-length","valuetype"} },
+    { "blockchain",         "name_filter",            &name_filter,            true,  {"regexp","maxage","from","nb","stat","valuetype"} },
+    { "blockchain",         "name_show",              &name_show,              true,  {"name","valuetype","filepath"} },
+    { "blockchain",         "name_history",           &name_history,           true,  {"name","fullhistory","valuetype"} },
+    { "blockchain",         "name_mempool",           &name_mempool,           true,  {"valuetype"} },
+    { "blockchain",         "gettxlistfor",           &gettxlistfor,           true,  {"fromblock","toblock","address","type","verbose"} },
     { "hidden",             "name_dump",              &name_dump,              true,  {} },
 };
 
