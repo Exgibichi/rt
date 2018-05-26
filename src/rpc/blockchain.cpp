@@ -1589,6 +1589,7 @@ UniValue gettxlistfor(const JSONRPCRequest& request)
 }
 
 extern UniValue name_scan(const JSONRPCRequest& request);
+extern UniValue name_scan_address(const JSONRPCRequest& request);
 extern UniValue name_filter(const JSONRPCRequest& request);
 extern UniValue name_show(const JSONRPCRequest& request);
 extern UniValue name_history(const JSONRPCRequest& request);
@@ -1629,6 +1630,7 @@ static const CRPCCommand commands[] =
 
     // emercoin commands
     { "blockchain",         "name_scan",              &name_scan,              true,  {"start-name","max-returned","max-value-length","valuetype"} },
+    { "blockchain",         "name_scan_address",      &name_scan_address,      true,  {"address","max-value-length","valuetype"} },
     { "blockchain",         "name_filter",            &name_filter,            true,  {"regexp","maxage","from","nb","stat","valuetype"} },
     { "blockchain",         "name_show",              &name_show,              true,  {"name","valuetype","filepath"} },
     { "blockchain",         "name_history",           &name_history,           true,  {"name","fullhistory","valuetype"} },

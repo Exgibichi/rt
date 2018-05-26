@@ -66,7 +66,7 @@ public:
 class CNameDB : public CDB
 {
 public:
-    CNameDB(const char* pszMode="r+") : CDB("nameindexV2.dat", pszMode) {}
+    CNameDB(const char* pszMode="r+") : CDB("nameindex/nameindexV2.dat", pszMode) {}
 
     bool WriteName(const CNameVal& name, const CNameRecord& rec)
     {
@@ -91,9 +91,69 @@ public:
                     CNameVal,
                     std::pair<CNameIndex, int>
                 >
-            > &nameScan
-            );
+            > &nameScan);
     bool DumpToTextFile();
+};
+
+
+// secondary index for (address -> name) pairs
+// names listed here maybe expired
+// names that have OP_NAME_DELETE as their last operation are not listed here
+class CNameAddressDB : public CDB
+{
+public:
+    CNameAddressDB(const char* pszMode="r+") : CDB("nameindex/nameaddress.dat", pszMode) {}
+
+    bool WriteAddress(const std::string& address, const std::set<CNameVal>& names)
+    {
+        return Write(make_pair(std::string("addressi"), address), names);
+    }
+
+    bool ReadAddress(const std::string& address, std::set<CNameVal>& names)
+    {
+        return Read(make_pair(std::string("addressi"), address), names);
+    }
+
+    bool ExistsAddress(const std::string& address)
+    {
+        return Exists(make_pair(std::string("addressi"), address));
+    }
+
+    bool EraseAddress(const std::string& address)
+    {
+        return Erase(make_pair(std::string("addressi"), address));
+    }
+
+    // this will fail if you try to add a name that already exist
+    bool WriteSingleName(const std::string& address, const CNameVal& name)
+    {
+        std::set<CNameVal> names;
+        ReadAddress(address, names); // note: address will not exist if this is the first time we are writting it
+        return names.insert(name).second && Write(make_pair(std::string("addressi"), address), names);
+    }
+
+    // this will fail if you try to erase a name that does not exist
+    bool EraseSingleName(const std::string& address, const CNameVal& name)
+    {
+        std::set<CNameVal> names;
+        if (ReadAddress(address, names)) // note: address should always exist, because we are trying to erase name from existing record
+            return names.erase(name) && Write(make_pair(std::string("addressi"), address), names);
+        return false;
+    }
+
+    // removes name from old address and adds it to new address
+    bool MoveName(const std::string& oldAddress, const std::string& newAddress, const CNameVal& name)
+    {
+        if (newAddress == oldAddress) // nothing to do
+            return true;
+
+        bool ret = true;
+        if (oldAddress != "")
+            ret = ret && EraseSingleName(oldAddress, name);
+        if (newAddress != "")
+            ret = ret && WriteSingleName(newAddress, name);
+        return ret;
+    }
 };
 
 extern std::map<CNameVal, std::set<uint256> > mapNamePending;
@@ -107,7 +167,7 @@ std::string stringFromOp(int op);
 
 CAmount GetNameOpFee(const CBlockIndex* pindexBlock, const int nRentalDays, int op, const CNameVal& name, const CNameVal& value);
 
-bool DecodeNameTx(const CTransactionRef& tx, NameTxInfo& nti, bool checkAddressAndIfIsMine = false);
+bool DecodeNameTx(const CTransactionRef& tx, NameTxInfo& nti, bool fExtractAddress = false, bool fCheckIsMineAddress = true);
 void GetNameList(const CNameVal& nameUniq, std::map<CNameVal, NameTxInfo> &mapNames, std::map<CNameVal, NameTxInfo> &mapPending);
 bool GetNameValue(const CNameVal& name, CNameVal& value);
 
@@ -129,6 +189,8 @@ struct nameTempProxy
     int op;
     uint256 hash;
     CNameIndex ind;
+    std::string address;
+    std::string prev_address;
 };
 
 #endif

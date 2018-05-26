@@ -1425,7 +1425,8 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
                 if (fReindex)
                 {
                     boost::system::error_code err;
-                    boost::filesystem::remove(GetDataDir() / "nameindexV2.dat", err);
+                    boost::filesystem::remove(GetDataDir() / "nameindex/nameindexV2.dat", err);
+                    boost::filesystem::remove(GetDataDir() / "nameindex/nameaddress.dat", err);
                 }
                 pblocktree = new CBlockTreeDB(nBlockTreeDBCache, false, fReindex);
                 pcoinsdbview = new CCoinsViewDB(nCoinDBCache, false, fReindex || fReindexChainState);
@@ -1557,12 +1558,24 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
     }
     LogPrintf(" block index %15dms\n", GetTimeMillis() - nStart);
 
+    if (!boost::filesystem::exists(GetDataDir() / "nameindex"))
+        boost::filesystem::create_directory(GetDataDir() / "nameindex");
+
     // emercoin: check in nameindex need to be created or recreated
     // we should have block index fully loaded by now
     extern bool createNameIndexFile();
-    if (!boost::filesystem::exists(GetDataDir() / "nameindexV2.dat") && !createNameIndexFile())
+    if (!boost::filesystem::exists(GetDataDir() / "nameindex" / "nameindexV2.dat") && !createNameIndexFile())
     {
         LogPrintf("Fatal error: Failed to create nameindex.\n");
+        return false;
+    }
+
+    // emercoin: create secondary (address -> name) index
+    // it should only be created if primary index already exists
+    extern bool createNameAddressFile();
+    if (!boost::filesystem::exists(GetDataDir() / "nameindex" / "nameaddress.dat") && !createNameAddressFile())
+    {
+        LogPrintf("Fatal error: Failed to create secondary index nameaddress.dat.\n");
         return false;
     }
 

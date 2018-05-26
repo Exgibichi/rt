@@ -144,6 +144,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "name_update", 2, "days" },
     { "name_scan", 1, "max-returned" },
     { "name_scan", 2, "max-value-length" },
+    { "name_scan_address", 1, "max-value-length" },
     { "name_filter", 1, "maxage" },
     { "name_filter", 2, "from" },
     { "name_filter", 3, "nb" },
