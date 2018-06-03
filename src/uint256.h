@@ -35,11 +35,30 @@ public:
     explicit base_blob(const std::vector<unsigned char>& vch);
 
     bool IsNull() const
-    {
-        for (int i = 0; i < WIDTH; i++)
-            if (data[i] != 0)
-                return false;
-        return true;
+    {   
+	switch(BITS) {
+	    case 256: { // uint256_t
+                uint64_t *v = (uint64_t*)data;
+		if(v[0] != 0) return false;
+		if(v[1] != 0) return false;
+		if(v[2] != 0) return false;
+		if(v[3] != 0) return false;
+                return true;
+	    }
+	    case 160: { // uint160_t
+                uint64_t *v = (uint64_t*)data;
+		if(v[0] != 0) return false;
+		if(v[1] != 0) return false;
+		uint32_t *w = (uint32_t*)data + 4;
+		if(w[0] != 0) return false;
+                return true;
+	    }
+	    default:
+                for (int i = 0; i < WIDTH; i++)
+                    if(data[i] != 0)
+                        return false;
+            return true;
+	} // switch
     }
 
     void SetNull()
