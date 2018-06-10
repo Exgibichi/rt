@@ -503,10 +503,13 @@ uint16_t EmcDns::HandleQuery() {
     *key_end++ = '.'; // Set DOT at domain end
   } //  while(dom_len)
 
-  if(!CheckDAP(quasiIP, 0))
-    return 0xdead; // Botnet detected, abort query processing
-
   *--key_end = 0; // Remove last dot, set EOLN
+
+  if(!CheckDAP(quasiIP, 0)) {
+    if(m_verbose > 5)
+      LogPrintf("\tEmcDns::HandleQuery: Aborted domain %s by DAP\n", key);
+    return 0xdead; // Botnet detected, abort query processing
+  }
 
   if(m_verbose > 3) 
     LogPrintf("EmcDns::HandleQuery: Translated domain name: [%s]; DomainsQty=%d\n", key, (int)(domain_ndx_p - domain_ndx));
