@@ -14,9 +14,9 @@ using namespace std;
 
 
 #define EMCDNS_PORT		5335
-#define EMCDNS_DAPTRESHOLD	1024	// ~4req/s - full barrier
-#define EMCDNS_DAPBLOOMSTEP	3	// 3 steps in bloom filter
-#define EMCDNS_DAPSHIFTDECAY	8	// Dap time shift 8 = 256 secs (~4min) in decay
+#define EMCDNS_DAPBLOOMSTEP	3					// 3 steps in bloom filter
+#define EMCDNS_DAPSHIFTDECAY	8					// Dap time shift 8 = 256 secs (~4min) in decay
+#define EMCDNS_DAPTRESHOLD	((1 << EMCDNS_DAPSHIFTDECAY) * 4 * 2)	// ~4req/s - full barrier
 
 #define VERMASK_NEW	-1
 #define VERMASK_BLOCKED -2
@@ -80,7 +80,7 @@ class EmcDns {
 
   private:
     static void StatRun(void *p);
-    void HandlePacket();
+    int  HandlePacket();
     uint16_t HandleQuery();
     int  Search(uint8_t *key);
     int  LocalSearch(const uint8_t *key, uint8_t pos, uint8_t step);

@@ -170,7 +170,7 @@ EmcDns::EmcDns(const char *bind_ip, uint16_t port_no,
     // If no memory, DAP is inactive - this is not critical problem
     m_dap_ht = NULL;
     if(dapsize) {
-      dapsize <<= 1;
+      dapsize += dapsize - 1;
       do m_dapmask = dapsize; while(dapsize &= dapsize - 1); // compute mask as 2^N
       m_dap_ht = (DNSAP*)calloc(m_dapmask, sizeof(DNSAP));
       m_dapmask--;
@@ -351,12 +351,12 @@ void EmcDns::Run() {
 
     if(CheckDAP(m_clientAddress.sin_addr.s_addr, m_rcvlen)) {
       m_buf[BUF_SIZE] = 0; // Set terminal for infinity QNAME
-      HandlePacket();
-
-      sendto(m_sockfd, (const char *)m_buf, m_snd - m_buf, MSG_NOSIGNAL,
+      if(HandlePacket() == 0) {
+        sendto(m_sockfd, (const char *)m_buf, m_snd - m_buf, MSG_NOSIGNAL,
 	             (struct sockaddr *) &m_clientAddress, m_addrLen);
 
-      CheckDAP(m_clientAddress.sin_addr.s_addr, m_snd - m_buf); // update for long answer
+        CheckDAP(m_clientAddress.sin_addr.s_addr, m_snd - m_buf); // update for long answer
+      }
     } // dap check
   } // for
 
@@ -366,7 +366,7 @@ void EmcDns::Run() {
 
 /*---------------------------------------------------*/
 
-void EmcDns::HandlePacket() {
+int EmcDns::HandlePacket() {
   if(m_verbose > 2) LogPrintf("EmcDns::HandlePacket: Handle packet_len=%d\n", m_rcvlen);
 
   m_hdr = (DNSHeader *)m_buf;
@@ -443,6 +443,8 @@ void EmcDns::HandlePacket() {
         LogPrintf("\tEmcDns::HandlePacket: qno=%u m_hdr->QDCount=%u\n", qno, m_hdr->QDCount);
       uint16_t rc = HandleQuery();
       if(rc) {
+	if(rc == 0xdead)
+	  return rc; // DAP or another error - lookup interrupted, don't answer
 	m_hdr->Bits |= rc;
 	break;
       }
@@ -468,6 +470,7 @@ void EmcDns::HandlePacket() {
   }
   // Encode output header into network format
   m_hdr->Transcode();
+  return 0; // answer ready
 } // EmcDns::HandlePacket
 
 /*---------------------------------------------------*/
@@ -485,16 +488,23 @@ uint16_t EmcDns::HandleQuery() {
   // Convert DNS request (QNAME) to dot-separated printed domaon name in LC
   // Fill domain_ndx - indexes for domain entries
   uint8_t dom_len;
+  uint32_t quasiIP = 0xDeadBeef; // pseudo-IP to DAP-check searched domains - mitigate botnets C2
   while((dom_len = *m_rcv++) != 0) {
     // wrong domain length | key too long, over BUF_SIZE | too mant domains, max is MAX_DOM
     if((dom_len & 0xc0) || key_end >= key + BUF_SIZE || domain_ndx_p >= domain_ndx + MAX_DOM)
       return 1; // Invalid request
     *domain_ndx_p++ = key_end;
+    quasiIP ^= m_daprand * dom_len;
     do {
-      *key_end++ = 040 | *m_rcv++;
+      char c = 040 | *m_rcv++; // tolower char
+      quasiIP = ((quasiIP << 6) | (quasiIP >> (32 - 6))) + c;
+      *key_end++ = c;
     } while(--dom_len);
     *key_end++ = '.'; // Set DOT at domain end
   } //  while(dom_len)
+
+  if(!CheckDAP(quasiIP, 0))
+    return 0xdead; // Botnet detected, abort query processing
 
   *--key_end = 0; // Remove last dot, set EOLN
 
@@ -910,7 +920,7 @@ bool EmcDns::CheckDAP(uint32_t ip_addr, uint32_t packet_size) {
 
   uint16_t inctemp = (packet_size >> 5) + 1; // 1 degr = 32 bytes unit
   uint32_t hash = m_daprand, mintemp = ~0;
-  uint16_t timestamp = now >> EMCDNS_DAPSHIFTDECAY; // time in 4096s ticks
+  uint16_t timestamp = now >> EMCDNS_DAPSHIFTDECAY; // time in 256s (~4 min)
 
   for(int bloomstep = 0; bloomstep < EMCDNS_DAPBLOOMSTEP; bloomstep++) {
     hash *= ip_addr;
