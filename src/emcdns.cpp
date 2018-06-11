@@ -443,7 +443,7 @@ int EmcDns::HandlePacket() {
         LogPrintf("\tEmcDns::HandlePacket: qno=%u m_hdr->QDCount=%u\n", qno, m_hdr->QDCount);
       uint16_t rc = HandleQuery();
       if(rc) {
-	if(rc == 0xdead)
+	if(rc == 0xDead)
 	  return rc; // DAP or another error - lookup interrupted, don't answer
 	m_hdr->Bits |= rc;
 	break;
@@ -508,7 +508,7 @@ uint16_t EmcDns::HandleQuery() {
   if(!CheckDAP(quasiIP, 0)) {
     if(m_verbose > 5)
       LogPrintf("\tEmcDns::HandleQuery: Aborted domain %s by DAP\n", key);
-    return 0xdead; // Botnet detected, abort query processing
+    return 0xDead; // Botnet detected, abort query processing
   }
 
   if(m_verbose > 3) 

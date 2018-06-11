@@ -14,13 +14,13 @@ using namespace std;
 
 
 #define EMCDNS_PORT		5335
-#define EMCDNS_DAPBLOOMSTEP	3					// 3 steps in bloom filter
-#define EMCDNS_DAPSHIFTDECAY	8					// Dap time shift 8 = 256 secs (~4min) in decay
-#define EMCDNS_DAPTRESHOLD	((1 << EMCDNS_DAPSHIFTDECAY) * 4 * 2)	// ~4req/s - full barrier
+#define EMCDNS_DAPBLOOMSTEP	3				// 3 steps in bloom filter
+#define EMCDNS_DAPSHIFTDECAY	8				// Dap time shift 8 = 256 secs (~4min) in decay
+#define EMCDNS_DAPTRESHOLD	(4 << EMCDNS_DAPSHIFTDECAY)	// ~4r/s found name, ~1 r/s - clien IP
 
 #define VERMASK_NEW	-1
 #define VERMASK_BLOCKED -2
-#define VERMASK_NOSRL	(1 << 24)
+#define VERMASK_NOSRL	(1 << 24)	// ENUM: undef/missing mask for Signature Revocation List
 
 struct DNSHeader {
   static const uint32_t QR_MASK = 0x8000;
