@@ -645,7 +645,6 @@ uint16_t EmcDns::HandleQuery() {
   
   // List values for ANY:    A NS CNA PTR MX AAAA
   const uint16_t q_all[] = { 1, 2, 5, 12, 15, 28, 0 };
-  uint16_t ancount;
 
   switch(qtype) {
     case 0xff:	// ALL
@@ -763,7 +762,7 @@ void EmcDns::Answer_ALL(uint16_t qtype, char *buf) {
       default: return;
   } // switch
 
-  uint16_t addl_refs[MAX_TOK];
+  //uint16_t addl_refs[MAX_TOK];
   char *tokens[MAX_TOK];
   int tokQty = Tokenize(key, ",", tokens, buf);
 
@@ -790,7 +789,8 @@ void EmcDns::Answer_ALL(uint16_t qtype, char *buf) {
 	case 28: Fill_RD_IP(tokens[tok_no], AF_INET6); break;
 	case 2 :
 	case 5 :
-	case 12: addl_refs[tok_no] = Fill_RD_DName(tokens[tok_no], 0, 0); break; // NS,CNAME,PTR
+    //case 12: addl_refs[tok_no] = Fill_RD_DName(tokens[tok_no], 0, 0); break; // NS,CNAME,PTR
+    case 12: Fill_RD_DName(tokens[tok_no], 0, 0); break; // NS,CNAME,PTR
 	case 15: Fill_RD_DName(tokens[tok_no], 2, 0); break; // MX
 	case 16: Fill_RD_DName(tokens[tok_no], 0, 1); break; // TXT
 	default: break;
