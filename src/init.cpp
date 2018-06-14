@@ -1561,16 +1561,25 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
     if (!boost::filesystem::exists(GetDataDir() / "nameindex"))
         boost::filesystem::create_directory(GetDataDir() / "nameindex");
 
-    // emercoin: check in nameindex need to be created or recreated
+    // emercoin: check if indexes need to be created or recreated
     // we should have block index fully loaded by now
-    extern bool createNameIndexFile();
-    if (!boost::filesystem::exists(GetDataDir() / "nameindex" / "nameindexV2.dat") && !createNameIndexFile())
+    boost::filesystem::path pathNameIndex = GetDataDir() / "nameindex" / "nameindexV2.dat";
+    boost::filesystem::path pathNameAddress = GetDataDir() / "nameindex" / "nameaddress.dat";
+    extern bool createNameIndexes();
+    if (!boost::filesystem::exists(pathNameIndex))
     {
-        LogPrintf("Fatal error: Failed to create nameindex.\n");
-        return false;
+        // emercoin: remove secondary index if we are re-creating first one (both will be re-created)
+        if (boost::filesystem::exists(pathNameAddress))
+            boost::filesystem::remove(pathNameAddress);
+
+        if (!createNameIndexes())
+        {
+            LogPrintf("Fatal error: Failed to create name indexes.\n");
+            return false;
+        }
     }
 
-    // emercoin: create secondary (address -> name) index
+    // emercoin: recreate secondary (address -> name) index if it was deleted
     // it should only be created if primary index already exists
     extern bool createNameAddressFile();
     if (!boost::filesystem::exists(GetDataDir() / "nameindex" / "nameaddress.dat") && !createNameAddressFile())

@@ -1280,21 +1280,22 @@ NameTxReturn name_operation(const int op, const CNameVal& name, CNameVal value, 
     return ret;
 }
 
-bool createNameIndexFile()
+bool createNameIndexes()
 {
     if (!fTxIndex)
-        return error("createNameIndexFile() : transaction index not available");
+        return error("createNameIndexes() : transaction index not available");
 
     LogPrintf("Scanning blockchain for names to create fast index...\n");
     LOCK(cs_main);
     CNameDB dbName("cr+");
+    CNameAddressDB dbNameAddress("cr+");
     int maxHeight = chainActive.Height();
     for (int nHeight=0; nHeight<=maxHeight; nHeight++)
     {
         CBlockIndex* pindex = chainActive[nHeight];
         CBlock block;
         if (!ReadBlockFromDisk(block, pindex, Params().GetConsensus()))
-            return error("createNameIndexFile() : *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
+            return error("createNameIndexes() : *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
 
         // collect name tx from block
         vector<nameTempProxy> vName;
@@ -1315,7 +1316,7 @@ bool createNameIndexFile()
                 CTransactionRef txPrev;
                 uint256 hashBlock = uint256();
                 if (!GetTransaction(txin.prevout.hash, txPrev, Params().GetConsensus(), hashBlock))
-                    return error("createNameIndexFile() : prev transaction not found");
+                    return error("createNameIndexes() : prev transaction not found");
 
                 input += txPrev->vout[txin.prevout.n].nValue;
             }
@@ -1326,7 +1327,8 @@ bool createNameIndexFile()
         }
 
         // execute name operations, if any
-        hooks->ConnectBlock(pindex, vName);
+        if (!vName.empty())
+            hooks->ConnectBlock(pindex, vName);
     }
     return true;
 }

@@ -2168,7 +2168,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     hashPrevBestCoinBase = block.vtx[0]->GetHash();
 
     // emercoin: add names to nameindex.dat
-    if (fWriteNames)
+    if (fWriteNames && !vName.empty())
         hooks->ConnectBlock(pindex, vName);
 
     if (block.nVersion & BLOCK_VERSION_AUXPOW)
