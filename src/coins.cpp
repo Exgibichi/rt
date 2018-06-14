@@ -9,6 +9,8 @@
 
 #include <assert.h>
 
+const uint256 randpaytx(std::vector<unsigned char>(32,0xEC));
+
 /**
  * calculate number of bytes for the bitmask, and its number of non-zero bytes
  * each bit in the bitmask represents the availability of one output, but the
@@ -58,7 +60,26 @@ CCoinsViewCursor *CCoinsViewBacked::Cursor() const { return base->Cursor(); }
 
 SaltedTxidHasher::SaltedTxidHasher() : k0(GetRand(std::numeric_limits<uint64_t>::max())), k1(GetRand(std::numeric_limits<uint64_t>::max())) {}
 
-CCoinsViewCache::CCoinsViewCache(CCoinsView *baseIn) : CCoinsViewBacked(baseIn), hasModifier(false), cachedCoinsUsage(0) { }
+CCoinsViewCache::CCoinsViewCache(CCoinsView *baseIn) : CCoinsViewBacked(baseIn), hasModifier(false), cachedCoinsUsage(0)
+{
+    // emercoin: insert special randpay utxo that can be spent unlimited number of times
+    // you can only spent 0 emc from it
+    std::pair<CCoinsMap::iterator, bool> ret = cacheCoins.insert(std::make_pair(randpaytx, CCoinsCacheEntry()));
+    if (!ret.second)
+        throw std::logic_error("Failed to insert randpay utxo!");
+
+    CCoins& coins = ret.first->second.coins;
+    coins.fCoinBase = false;
+    coins.fCoinStake = false;
+    coins.nHeight = 0;
+    coins.nVersion = 1;
+    coins.nTime = 0;
+
+    CTxOut txout = CTxOut();
+    txout.nValue = 0;
+    coins.vout.push_back(txout);
+    ret.first->second.flags = CCoinsCacheEntry::DIRTY;   // set DIRTY/FRESH flags
+}
 
 CCoinsViewCache::~CCoinsViewCache()
 {

@@ -154,6 +154,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "gettxlistfor", 1, "toblock" },
     { "gettxlistfor", 3, "type" },
     { "gettxlistfor", 4, "verbose" },
+    { "createrandpaytx", 1, "amount"},
+    { "createrandpaytx", 2, "timio"},
+    { "createrandpaytx", 3, "veraddr"},
 };
 
 class CRPCConvertTable

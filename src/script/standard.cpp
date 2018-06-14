@@ -352,3 +352,12 @@ CScript GetScriptForWitness(const CScript& redeemscript)
     ret << OP_0 << ToByteVector(hash);
     return ret;
 }
+
+// emercoin: scriptPubKey should come from vout[0]
+CScript GenerateScriptForRandPay(const CScript& scriptPubKey)
+{
+    CTxDestination address;
+    if (ExtractDestination(scriptPubKey, address))
+        return GetScriptForDestination(address);
+    else return scriptPubKey;
+}

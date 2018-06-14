@@ -831,7 +831,9 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
             TxInErrorToJSON(txin, vErrors, "Input not found or already spent");
             continue;
         }
-        const CScript& prevPubKey = coins->vout[txin.prevout.n].scriptPubKey;
+        const CScript& prevPubKey = txin.prevout.hash != randpaytx ?
+                    coins->vout[txin.prevout.n].scriptPubKey :
+                    GenerateScriptForRandPay(mergedTx.vout[0].scriptPubKey);
         const CAmount& amount = coins->vout[txin.prevout.n].nValue;
 
         SignatureData sigdata;
@@ -934,6 +936,82 @@ UniValue sendrawtransaction(const JSONRPCRequest& request)
     return hashTx.GetHex();
 }
 
+UniValue createrandpayaddr(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() > 1)
+        throw runtime_error(
+            "createrandpayaddr ( \"encryptionkey\" )\n"
+            "\nGenerates privkey and correcponding address. Command does not change anything in the wallet or databases.\n"
+            "\nArguments:\n"
+            "1. \"encryptionkey\"   (string, optional) Encrypt privkey output with this key by AES/ECB)\n"
+            "\nResult:\n"
+            "\"address\"            (string) Emercoin address.\n"
+            "\"addrhex\"            (string) Raw 160-bit hex of address (binary, without checksum, result of MD4 of pubkey).\n"
+            "\"privkey\"            (string) Privkey for this address.\n"
+            //emc add examples:
+            //"\nExamples:\n"
+            //"\nCreate an address\n"
+            //+ HelpExampleCli("createrandpayaddr", "") +
+        );
+
+    CKey key;
+    key.MakeNewKey(true);
+
+    CPrivKey vchPrivKey = key.GetPrivKey();
+    CKeyID keyID = key.GetPubKey().GetID();
+    UniValue result(UniValue::VOBJ);
+
+    result.push_back(Pair("address", CBitcoinAddress(keyID).ToString()));
+    result.push_back(Pair("addrhex", HexStr(keyID)));
+    result.push_back(Pair("privkey", HexStr<CPrivKey::iterator>(vchPrivKey.begin(), vchPrivKey.end())));
+    return result;
+}
+
+UniValue createrandpaytx(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 4)
+        throw runtime_error(
+            "createrandpaytx \"addrhex\" amount ( timio=60 ) ( veraddr=true )\n"
+            "\nGenerates privkey and correcponding address. Command does not change anything in the wallet or databases.\n"
+            "\nArguments:\n"
+            "1. \"addrhex\"     (string, required) Raw 160-bit hex of address (binary, without checksum, result of MD4 of pubkey).\n"
+            "2. amount          (numeric, optional) Amount of emc to send.\n"
+            "3. timio           (numeric, optional) Mark all used input UTXOs as \"blocked\" for timio seconds, to prevent possible double spend.\n"
+            "4. veraddr         (boolean, optional) Set vin[0] to 0:0.\n"
+            "\nResult:\n"
+            "\"transaction\"    (string) Hex string of the transaction.\n"
+            //emc add examples:
+            //"\nExamples:\n"
+            //"\nCreate an address\n"
+            //+ HelpExampleCli("createrandpayaddr", "") +
+        );
+
+    //emc implement this command
+    return "";
+}
+
+UniValue sendrandpaytx(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 3)
+        throw runtime_error(
+            "createrandpaytx \"hexstring\" \"privkey\" ( \"encryptionkey\" )\n"
+            "\nGenerates privkey and correcponding address. Command does not change anything in the wallet or databases.\n"
+            "\nArguments:\n"
+            "1. \"hexstring\"      (string, required) The hex string of the randpay transaction).\n"
+            "2. \"privkey\"        (string, required) .\n"
+            "3. \"encryptionkey\"  (string, optional) Decode privkey with specified encryption key.\n"
+            "\nResult:\n"
+            "\"transaction\"    (string) hex string of the transaction\n"
+            //emc add examples:
+            //"\nExamples:\n"
+            //"\nCreate an address\n"
+            //+ HelpExampleCli("createrandpayaddr", "") +
+        );
+
+    //emc implement this command
+    return "";
+}
+
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         okSafeMode
   //  --------------------- ------------------------  -----------------------  ----------
@@ -943,6 +1021,11 @@ static const CRPCCommand commands[] =
     { "rawtransactions",    "decodescript",           &decodescript,           true,  {"hexstring"} },
     { "rawtransactions",    "sendrawtransaction",     &sendrawtransaction,     false, {"hexstring","allowhighfees"} },
     { "rawtransactions",    "signrawtransaction",     &signrawtransaction,     false, {"hexstring","prevtxs","privkeys","sighashtype"} }, /* uses wallet if enabled */
+
+    // emercoin: randpay commands
+    { "hidden",    "createrandpayaddr",               &createrandpayaddr,      true,  {"encryptionkey"} },
+    { "hidden",    "createrandpaytx",                 &createrandpaytx,        true,  {"addrhex","amount","timio","veraddr"} },
+    { "hidden",    "submitrandpaytx",                 &sendrandpaytx,          false, {"hexstring","privkey","encryptionkey"} },
 
     { "blockchain",         "gettxoutproof",          &gettxoutproof,          true,  {"txids", "blockhash"} },
     { "blockchain",         "verifytxoutproof",       &verifytxoutproof,       true,  {"proof"} },

@@ -508,4 +508,6 @@ private:
     CCoinsViewCache(const CCoinsViewCache &);
 };
 
+extern const uint256 randpaytx;
+
 #endif // BITCOIN_COINS_H

@@ -1412,6 +1412,10 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
     if (!tx.IsCoinBase()) {
         txundo.vprevout.reserve(tx.vin.size());
         BOOST_FOREACH(const CTxIn &txin, tx.vin) {
+            // emercoin: skip special randpay utxo, because we don't record undo information for it
+            if (txin.prevout.hash == randpaytx)
+                continue;
+
             CCoinsModifier coins = inputs.ModifyCoins(txin.prevout.hash);
             unsigned nPos = txin.prevout.n;
 
@@ -1443,7 +1447,11 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight)
 bool CScriptCheck::operator()() {
     const CScript &scriptSig = ptxTo->vin[nIn].scriptSig;
     const CScriptWitness *witness = &ptxTo->vin[nIn].scriptWitness;
-    if (!VerifyScript(scriptSig, scriptPubKey, ptxTo->nVersion, witness, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, amount, cacheStore, *txdata), &error)) {
+    const CScript& scriptPubKey2 = ptxTo->vin[nIn].prevout.hash != randpaytx ?
+                scriptPubKey :
+                (assert(ptxTo->vin[nIn].prevout.n == 0), GenerateScriptForRandPay(ptxTo->vout[0].scriptPubKey));
+
+    if (!VerifyScript(scriptSig, scriptPubKey2, ptxTo->nVersion, witness, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, amount, cacheStore, *txdata), &error)) {
         return false;
     }
     return true;
@@ -1749,10 +1757,18 @@ bool DisconnectBlock(const CBlock& block, CValidationState& state, const CBlockI
         // restore inputs
         if (i > 0) { // not coinbases
             const CTxUndo &txundo = blockUndo.vtxundo[i-1];
-            if (txundo.vprevout.size() != tx.vin.size())
+            // emercoin: skip special randpay utxo, because we don't record undo information for it
+            vector<reference_wrapper<const CTxIn>> vinWithoutRandpay;
+            vinWithoutRandpay.reserve(tx.vin.size());
+            for (const CTxIn& txin : tx.vin)
+                if (txin.prevout.hash != uint256())
+                    vinWithoutRandpay.push_back(txin);
+
+            if (txundo.vprevout.size() != vinWithoutRandpay.size())
                 return error("DisconnectBlock(): transaction and undo data inconsistent");
-            for (unsigned int j = tx.vin.size(); j-- > 0;) {
-                const COutPoint &out = tx.vin[j].prevout;
+
+            for (unsigned int j = vinWithoutRandpay.size(); j-- > 0;) {
+                const COutPoint &out = vinWithoutRandpay[j].get().prevout;
                 const CTxInUndo &undo = txundo.vprevout[j];
                 if (!ApplyTxInUndo(undo, view, out))
                     fClean = false;
@@ -3073,6 +3089,18 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         // ppcoin: check transaction timestamp
         if (block.GetBlockTime() < (int64_t)tx->nTime)
             return state.DoS(50, false, REJECT_INVALID, "bad-tx-time", false, strprintf("%s : block timestamp earlier than transaction timestamp", __func__));
+
+        // emercoin: only one randpay utxo is allowed per transaction
+        bool found = false;
+        for (const CTxIn& txin : tx->vin)
+        {
+            if (txin.prevout.hash == randpaytx)
+            {
+                if (found)
+                    return state.DoS(100, false, REJECT_INVALID, "multiple-randpay-utxo", false, "more that one randpay utxo in a single transaction");
+                found = true;
+            }
+        }
     }
 
     unsigned int nSigOps = 0;
@@ -3232,10 +3260,16 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
                               : block.GetBlockTime();
 
     // Check that all transactions are finalized
+    // emercoin: also forbid randpay until v7 fork
     for (const auto& tx : block.vtx) {
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
             return state.DoS(10, false, REJECT_INVALID, "bad-txns-nonfinal", false, "non-final transaction");
         }
+
+        if (!fV7Enabled)
+            for (const CTxIn& txin : tx->vin)
+                if (txin.prevout.hash == randpaytx)
+                    return state.DoS(100, false, REJECT_INVALID, "early-randpaytx", false, "randpay tx before v7 fork");
     }
 
     // Enforce rule that the coinbase starts with serialized block height
