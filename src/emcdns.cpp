@@ -925,7 +925,7 @@ bool EmcDns::CheckDAP(uint32_t ip_addr, uint32_t packet_size) {
   uint32_t hash = m_daprand, mintemp = ~0;
   uint16_t timestamp = now >> EMCDNS_DAPSHIFTDECAY; // time in 256s (~4 min)
 
-  uint32_t used_ndx[EMCDNS_DAPBLOOMSTEP];
+  int used_ndx[EMCDNS_DAPBLOOMSTEP];
   for(int bloomstep = 0; bloomstep < EMCDNS_DAPBLOOMSTEP; bloomstep++) {
     int ndx, att = 0;
     do {
@@ -933,7 +933,7 @@ bool EmcDns::CheckDAP(uint32_t ip_addr, uint32_t packet_size) {
       hash *= ip_addr;
       hash ^= hash >> 16;
       hash += hash >> 7;
-      ndx = (hash ^ att) & m_dapmask;
+      ndx = (hash ^ att) & m_dapmask; // always positive
       for(int i = 0; i < bloomstep; i++)
 	if(ndx == used_ndx[i])
 	  ndx = -1;
