@@ -925,11 +925,21 @@ bool EmcDns::CheckDAP(uint32_t ip_addr, uint32_t packet_size) {
   uint32_t hash = m_daprand, mintemp = ~0;
   uint16_t timestamp = now >> EMCDNS_DAPSHIFTDECAY; // time in 256s (~4 min)
 
+  uint32_t used_ndx[EMCDNS_DAPBLOOMSTEP];
   for(int bloomstep = 0; bloomstep < EMCDNS_DAPBLOOMSTEP; bloomstep++) {
-    hash *= ip_addr;
-    hash ^= hash >> 16;
-    hash += hash >> 7;
-    DNSAP *dap = &m_dap_ht[hash & m_dapmask];
+    int ndx, att = 0;
+    do {
+      ++att;
+      hash *= ip_addr;
+      hash ^= hash >> 16;
+      hash += hash >> 7;
+      ndx = (hash ^ att) & m_dapmask;
+      for(int i = 0; i < bloomstep; i++)
+	if(ndx == used_ndx[i])
+	  ndx = -1;
+    } while(ndx < 0);
+
+    DNSAP *dap = &m_dap_ht[used_ndx[bloomstep] = ndx];
     uint16_t dt = timestamp - dap->timestamp;
     uint32_t new_temp = (dt > 15? 0 : dap->temp >> dt) + inctemp;
     dap->temp = (new_temp > 0xffff)? 0xffff : new_temp;
