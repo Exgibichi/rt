@@ -2205,7 +2205,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
 
     static int sortir = -1;
     if(sortir < 0)
-       GetArg("-sortir", 0);
+       sortir = GetArg("-sortir", 0);
 
     switch(sortir) {
        case 1:
