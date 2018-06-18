@@ -94,7 +94,7 @@ public:
 
     void SetNull()
     {
-        nVersion = CBlockHeader::CURRENT_VERSION | (AUXPOW_CHAIN_ID * BLOCK_VERSION_CHAIN_START);
+        SetBlockVersion(CBlockHeader::CURRENT_VERSION);
         hashPrevBlock.SetNull();
         hashMerkleRoot.SetNull();
         nTime = 0;
@@ -125,6 +125,10 @@ public:
     int32_t GetBlockVersion() const
     {
         return nVersion & 0xff;
+    }
+    void SetBlockVersion(int32_t nBlockVersion)
+    {
+        nVersion = nBlockVersion | (AUXPOW_CHAIN_ID * BLOCK_VERSION_CHAIN_START);
     }
 };
 
