@@ -359,5 +359,5 @@ CScript GenerateScriptForRandPay(const CScript& scriptPubKey)
     CTxDestination address;
     if (ExtractDestination(scriptPubKey, address))
         return GetScriptForDestination(address);
-    else return scriptPubKey;
+    else return CScript() << OP_RETURN;
 }
