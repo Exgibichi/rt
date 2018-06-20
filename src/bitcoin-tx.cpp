@@ -616,7 +616,10 @@ static void MutateTxSign(CMutableTransaction& tx, const std::string& flagStr)
             fComplete = false;
             continue;
         }
-        const CScript& prevPubKey = coins->vout[txin.prevout.n].scriptPubKey;
+        const CScript& prevPubKey = txin.prevout.hash != randpaytx ?
+                    coins->vout[txin.prevout.n].scriptPubKey :
+                    GenerateScriptForRandPay(mergedTx.vout[0].scriptPubKey);
+
         const CAmount& amount = coins->vout[txin.prevout.n].nValue;
 
         SignatureData sigdata;
