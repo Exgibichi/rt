@@ -2327,19 +2327,16 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
       if(min_over_sum == (uint32_t)~0)   // Special case: Total bal > nTargetValue, but dp_bal is still less
        min_over_sum = 0;       // So, skip DP, use the original stochastic algo
 
+    int remain = 0;
     while(min_over_sum) {
       uint16_t utxo_no = min_over_utxo - 1;
       if (fDebug && GetBoolArg("-printselectcoin", false))
         LogPrintf("SelectCoins() DP Added #%u: Val=%s\n", utxo_no, FormatMoney(vValue[utxo_no].first));
       setCoinsRet.insert(vValue[utxo_no].second);
-      nValueRet += vValue[utxo_no].first;
-      min_over_sum -= vValue[utxo_no].first / TX_DP_AMOUNT;
-      if((int32_t)min_over_sum <= 0)
-          break;
+      nValueRet    += vValue[utxo_no].first;
+      min_over_sum -= vValue[utxo_no].first / TX_DP_AMOUNT + (vValue[utxo_no].first % TX_DP_AMOUNT > remain);
       min_over_utxo = dp[min_over_sum];
-
-      if(min_over_utxo == 0)
-        min_over_utxo = dp[min_over_sum - 1];
+      remain        = remains[min_over_sum];
     }
 
     free(dp);
