@@ -2334,7 +2334,12 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
       setCoinsRet.insert(vValue[utxo_no].second);
       nValueRet += vValue[utxo_no].first;
       min_over_sum -= vValue[utxo_no].first / TX_DP_AMOUNT;
+      if((int32_t)min_over_sum <= 0)
+          break;
       min_over_utxo = dp[min_over_sum];
+
+      if(min_over_utxo == 0)
+        min_over_utxo = dp[min_over_sum - 1];
     }
 
     free(dp);
