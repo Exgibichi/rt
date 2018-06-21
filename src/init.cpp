@@ -821,8 +821,14 @@ ServiceFlags nLocalServices = NODE_NETWORK;
     std::terminate();
 };
 
+static void TrigerABRT(int x)
+{
+    fprintf(stderr, "Function ABRT triger\n");
+}
+
 bool AppInitBasicSetup()
 {
+ signal(SIGABRT, TrigerABRT);
     // ********************************************************* Step 1: setup
 #ifdef _MSC_VER
     // Turn off Microsoft heap dump noise

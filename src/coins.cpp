@@ -286,6 +286,10 @@ unsigned int CCoinsViewCache::GetCacheSize() const {
 const CTxOut &CCoinsViewCache::GetOutputFor(const CTxIn& input) const
 {
     const CCoins* coins = AccessCoins(input.prevout.hash);
+    if(coins == NULL) {
+           fprintf(stderr, "CCoinsViewCache::GetOutputFor: coins == NULL TXID=%s\n", input.prevout.hash.ToString().c_str());
+    }
+
     assert(coins && coins->IsAvailable(input.prevout.n));
     return coins->vout[input.prevout.n];
 }
