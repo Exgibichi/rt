@@ -828,7 +828,7 @@ static void TrigerABRT(int x)
 
 bool AppInitBasicSetup()
 {
- signal(SIGABRT, TrigerABRT);
+// signal(SIGABRT, TrigerABRT);
     // ********************************************************* Step 1: setup
 #ifdef _MSC_VER
     // Turn off Microsoft heap dump noise
