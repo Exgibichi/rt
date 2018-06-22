@@ -2289,7 +2289,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
     dp[dp_tgt + 1] = dp[0] = 0; // Zero CENTs can be reached anyway, and set right barrier
     
     int32_t min_over_utxo =  -1;
-    uint32_t min_over_sum  = ~0;
+    uint32_t min_over_sum  = ~0, min_over_sumrem;
 
     // Apply UTXOs to DP array, until exact sum will be found
     for(int32_t utxo_no = 0;  dp[dp_tgt] < 0 && utxo_no < vValue.size(); utxo_no++) {
@@ -2308,7 +2308,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
 	}
         if(nxt <= dp_tgt) {
            if(dp[nxt] < 0) {
-             dp[nxt] = (utxo_no << 8) | (uint8_t)sumrem;
+             dp[nxt] = (utxo_no << 8) | sumrem;
 	     int rval = ~nxt;
 	     while(dp[++nxt] < 0)
                dp[nxt] = rval;
@@ -2319,15 +2319,17 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
           if(nxt < min_over_sum) {
              min_over_sum = nxt;
              min_over_utxo = utxo_no;
+	     min_over_sumrem = sumrem;
           }
       } while(ndx != 0 && carma >= 0);
     } // for
 
-    int remain = 0;
+    int remain;
     if(dp[dp_tgt] >= 0) { // Found exactly sum without payback
       min_over_utxo = dp[min_over_sum = dp_tgt] >> 8;
       remain = (uint8_t)dp[dp_tgt];
     } else {
+      remain = min_over_sumrem;
       if(min_over_sum == (uint32_t)~0)   // Special case: Total bal > nTargetValue, but dp_bal is still less
         min_over_sum = 0;       // So, skip DP, use the original stochastic algo
     }
