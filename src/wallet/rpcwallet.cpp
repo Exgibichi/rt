@@ -2866,11 +2866,11 @@ UniValue bumpfee(const JSONRPCRequest& request)
     } else {
         // if user specified a confirm target then don't consider any global payTxFee
         if (specifiedConfirmTarget) {
-            nNewFee = CWallet::GetMinimumFee(maxNewTxSize, newConfirmTarget, mempool, CAmount(0));
+            nNewFee = CWallet::GetMinimumFee(maxNewTxSize, CAmount(0));
         }
         // otherwise use the regular wallet logic to select payTxFee or default confirm target
         else {
-            nNewFee = CWallet::GetMinimumFee(maxNewTxSize, newConfirmTarget, mempool);
+            nNewFee = CWallet::GetMinimumFee(maxNewTxSize);
         }
 
         nNewFeeRate = CFeeRate(nNewFee, maxNewTxSize);
