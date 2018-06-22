@@ -874,10 +874,7 @@ void PoSMiner(CWallet *pwallet)
                 {
                     LOCK2(cs_main, pwalletMain->cs_wallet);
                     if (!SignBlock(*pblock, *pwallet))
-                    {
-                        strMintWarning = strMintMessage;
                         continue;
-                    }
                 }
                 strMintWarning = "";
                 LogPrintf("CPUMiner : proof-of-stake block found %s\n", pblock->GetHash().ToString());
