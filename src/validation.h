@@ -219,7 +219,6 @@ static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
 static const CAmount MAX_MINT_PROOF_OF_WORK = 5020 * COIN;
 static const int64_t nMaxClockDrift = 2 * 60 * 60;       // two hours
 extern std::map<uint256, std::shared_ptr<CAuxPow>> mapDirtyAuxPow;
-extern std::string strMintWarning;
 extern int64_t nLastCoinStakeSearchInterval;
 
 /** 

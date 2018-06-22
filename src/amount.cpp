@@ -25,16 +25,8 @@ CAmount CFeeRate::GetFee(size_t nBytes_) const
     assert(nBytes_ <= uint64_t(std::numeric_limits<int64_t>::max()));
     int64_t nSize = int64_t(nBytes_);
 
-    CAmount nFee = nSatoshisPerK * nSize / 1000;
-
-    if (nFee == 0 && nSize != 0) {
-        if (nSatoshisPerK > 0)
-            nFee = CAmount(1);
-        if (nSatoshisPerK < 0)
-            nFee = CAmount(-1);
-    }
-
-    return std::max(nFee, GetMinFee(nSize));
+    CAmount nMinFeePer10KiB = std::max(nSatoshisPerK * 10 / MIN_TX_FEE, CAmount(1)); // should not be below 1
+    return nMinFeePer10KiB * GetMinFee(nSize);
 }
 
 std::string CFeeRate::ToString() const

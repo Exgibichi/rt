@@ -2797,11 +2797,12 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
                 }
 
                 CAmount nFeeNeeded = GetMinimumFee(nBytes);
-                if (coinControl && nFeeNeeded > 0 && coinControl->nMinimumTotalFee > nFeeNeeded) {
-                    nFeeNeeded = coinControl->nMinimumTotalFee;
-                }
-                if (coinControl && coinControl->fOverrideFeeRate)
-                    nFeeNeeded = coinControl->nFeeRate.GetFee(nBytes);
+                // emercoin: disabled
+//                if (coinControl && nFeeNeeded > 0 && coinControl->nMinimumTotalFee > nFeeNeeded) {
+//                    nFeeNeeded = coinControl->nMinimumTotalFee;
+//                }
+//                if (coinControl && coinControl->fOverrideFeeRate)
+//                    nFeeNeeded = coinControl->nFeeRate.GetFee(nBytes);
 
                 // If we made it here and we aren't even able to meet the relay fee on the next pass, give up
                 // because we must be at the maximum allowed fee.
