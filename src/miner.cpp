@@ -838,9 +838,8 @@ void PoSMiner(CWallet *pwallet)
             if (Params().MiningRequiresPeers()) {
                 // Busy-wait for the network to come online so we don't waste time mining
                 // on an obsolete chain. In regtest mode we expect to fly solo.
-		while(g_connman == NULL || g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0 || IsInitialBlockDownload()) {
+		while(g_connman == NULL || g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0 || IsInitialBlockDownload())
 		    MilliSleep(5 * 60 * 1000);
-		}
            }
 
             while (pwallet->IsLocked())
@@ -877,10 +876,7 @@ void PoSMiner(CWallet *pwallet)
                 {
                     LOCK2(cs_main, pwalletMain->cs_wallet);
                     if (!SignBlock(*pblock, *pwallet))
-                    {
-                        //strMintWarning = strMintMessage;
                         continue;
-                    }
                 }
                 LogPrintf("CPUMiner : proof-of-stake block found %s\n", pblock->GetHash().ToString());
                 ProcessBlockFound(pblock);
