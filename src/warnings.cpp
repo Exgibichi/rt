@@ -10,6 +10,7 @@
 #include "warnings.h"
 #include "rpc/server.h"
 #include "checkpoints.h"
+#include "miner.h"
 
 CCriticalSection cs_warnings;
 std::string strMiscWarning;
@@ -46,7 +47,6 @@ bool GetfLargeWorkInvalidChainFound()
     return fLargeWorkInvalidChainFound;
 }
 
-extern std::string strMintWarning;
 std::string GetWarnings(const std::string& strFor)
 {
     int nPriority = 0;
