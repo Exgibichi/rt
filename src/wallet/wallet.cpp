@@ -2291,13 +2291,12 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
     int32_t min_over_utxo =  -1;
     uint32_t min_over_sum  = ~0;
 
-    int max_col = dp_tgt * 4;
-
     // Apply UTXOs to DP array, until exact sum will be found
-    for(int32_t utxo_no = 0; utxo_no < vValue.size() && dp[dp_tgt] < 0 && max_col > 0; utxo_no++) {
+    for(int32_t utxo_no = 0;  dp[dp_tgt] < 0 && utxo_no < vValue.size(); utxo_no++) {
       uint32_t offset = vValue[utxo_no].first / TX_DP_AMOUNT;
       int      remain = vValue[utxo_no].first % TX_DP_AMOUNT;
       int ndx = dp_tgt + 1;
+      int carma = 10 + (int)sqrt(vValue.size());
       do {
         if(dp[--ndx] < 0)
           ndx = ~dp[ndx]; // skip gap
@@ -2313,14 +2312,15 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
 	     int rval = ~nxt;
 	     while(dp[++nxt] < 0)
                dp[nxt] = rval;
+	     carma+= 2;
 	   } else
-	     max_col--;
+	     carma--;
         } else
           if(nxt < min_over_sum) {
              min_over_sum = nxt;
              min_over_utxo = utxo_no;
           }
-      } while (ndx != 0);
+      } while(ndx != 0 && carma >= 0);
     } // for
 
     if(dp[dp_tgt] >= 0)  // Found exactly sum without payback
