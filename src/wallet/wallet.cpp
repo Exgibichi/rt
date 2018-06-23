@@ -2283,7 +2283,8 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
       nMaxDP = GetArg("-maxdp", 128 * 1024 * 1024);
 
   int32_t *dp; 
-  uint32_t dp_tgt = (nTargetValue + TX_DP_AMOUNT / 2) / TX_DP_AMOUNT;
+  int tgt_shift = -(nTargetValue % TX_DP_AMOUNT > TX_DP_AMOUNT / 2);
+  uint32_t dp_tgt = nTargetValue / TX_DP_AMOUNT - tgt_shift;
   if(dp_tgt < nMaxDP && (dp = (int32_t *)malloc((dp_tgt + 2) * sizeof(int32_t))) != NULL) {
     memset(dp, ~0, (dp_tgt + 1) * sizeof(int32_t));
     dp[dp_tgt + 1] = dp[0] = 0; // Zero CENTs can be reached anyway, and set right barrier
@@ -2292,6 +2293,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
 
     // Apply UTXOs to DP array, until exact sum will be found
     for(int32_t utxo_no = 0;  dp[dp_tgt] < 0 && utxo_no < vValue.size(); utxo_no++) {
+      int32_t saved_tgt = dp[dp_tgt]; // Saved for possible revert, if problem in fraction of TX_DP_AMOUNT
       uint32_t offset = vValue[utxo_no].first / TX_DP_AMOUNT;
       int      remain = vValue[utxo_no].first % TX_DP_AMOUNT;
       int ndx = dp_tgt + 1;
@@ -2321,6 +2323,8 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
 	     min_over_txrem = sumrem;
           }
       } while(ndx != 0 && carma > 0);
+      if(dp[dp_tgt] >= 0 && (carma = (int)(uint8_t)dp[dp_tgt] - nTargetValue % TX_DP_AMOUNT) && (carma ^ tgt_shift) < 0)
+         dp[dp_tgt] = saved_tgt; // Rollback target, if subcent fraction is not enough/over
     } // for
 
     if(dp[dp_tgt] >= 0) // Found exactly sum without payback
