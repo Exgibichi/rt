@@ -2283,13 +2283,12 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
       nMaxDP = GetArg("-maxdp", 128 * 1024 * 1024);
 
   int32_t *dp; 
-  uint32_t dp_tgt = nTargetValue / TX_DP_AMOUNT;
-  if(dp_tgt < nMaxDP && (dp = (int*)malloc((dp_tgt + 2) * sizeof(int32_t))) != NULL) {
+  uint32_t dp_tgt = (nTargetValue + TX_DP_AMOUNT / 2) / TX_DP_AMOUNT;
+  if(dp_tgt < nMaxDP && (dp = (int32_t *)malloc((dp_tgt + 2) * sizeof(int32_t))) != NULL) {
     memset(dp, ~0, (dp_tgt + 1) * sizeof(int32_t));
     dp[dp_tgt + 1] = dp[0] = 0; // Zero CENTs can be reached anyway, and set right barrier
     
-    int32_t min_over_utxo =  -1;
-    uint32_t min_over_sum  = ~0, min_over_sumrem;
+    uint32_t min_over_sum  = ~0, min_over_txrem;
 
     // Apply UTXOs to DP array, until exact sum will be found
     for(int32_t utxo_no = 0;  dp[dp_tgt] < 0 && utxo_no < vValue.size(); utxo_no++) {
@@ -2306,43 +2305,39 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
 	  nxt++;
           sumrem -= TX_DP_AMOUNT;
 	}
+	sumrem |= utxo_no << 8;
         if(nxt <= dp_tgt) {
            if(dp[nxt] < 0) {
-             dp[nxt] = (utxo_no << 8) | sumrem;
+             dp[nxt] = sumrem;
 	     int rval = ~nxt;
 	     while(dp[++nxt] < 0)
                dp[nxt] = rval;
-	     carma+= 2;
+	     carma += 2;
 	   } else
 	     carma--;
         } else
           if(nxt < min_over_sum) {
              min_over_sum = nxt;
-             min_over_utxo = utxo_no;
-	     min_over_sumrem = sumrem;
+	     min_over_txrem = sumrem;
           }
-      } while(ndx != 0 && carma >= 0);
+      } while(ndx != 0 && carma > 0);
     } // for
 
-    int remain;
-    if(dp[dp_tgt] >= 0) { // Found exactly sum without payback
-      min_over_utxo = dp[min_over_sum = dp_tgt] >> 8;
-      remain = (uint8_t)dp[dp_tgt];
-    } else {
-      remain = min_over_sumrem;
+    if(dp[dp_tgt] >= 0) // Found exactly sum without payback
+       min_over_txrem = dp[min_over_sum = dp_tgt];
+    else
       if(min_over_sum == (uint32_t)~0)   // Special case: Total bal > nTargetValue, but dp_bal is still less
         min_over_sum = 0;       // So, skip DP, use the original stochastic algo
-    }
 
     while(min_over_sum) {
-      uint32_t utxo_no = min_over_utxo;
+      uint32_t utxo_no = min_over_txrem >> 8;
+      uint8_t  remain  = min_over_txrem;
       if (fDebug && GetBoolArg("-printselectcoin", false))
         LogPrintf("SelectCoins() DP Added #%u: Val=%s\n", utxo_no, FormatMoney(vValue[utxo_no].first));
       setCoinsRet.insert(vValue[utxo_no].second);
       nValueRet    += vValue[utxo_no].first;
       min_over_sum -= vValue[utxo_no].first / TX_DP_AMOUNT + (vValue[utxo_no].first % TX_DP_AMOUNT > remain);
-      min_over_utxo = dp[min_over_sum] >> 8;
-      remain        = (uint8_t)dp[min_over_sum];
+      min_over_txrem = dp[min_over_sum];
     }
 
     free(dp);
