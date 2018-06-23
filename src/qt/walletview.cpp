@@ -352,13 +352,14 @@ extern std::string strMintWarning;
 
 void WalletView::on_labelWalletEncryptionIcon_clicked()
 {
-    if(!walletModel)
+    if (!walletModel)
         return;
 
     if (walletModel->getEncryptionStatus() == WalletModel::Unlocked)
     {
+        strMintWarning = "Info: Minting suspended due to locked wallet.";
         walletModel->setWalletLocked(true);
-        QMetaObject::invokeMethod(clientModel, "updateAlert", Qt::QueuedConnection);
+        Q_EMIT clientModel->alertsChanged(clientModel->getStatusBarWarnings());
     }
     else
     {
@@ -366,7 +367,8 @@ void WalletView::on_labelWalletEncryptionIcon_clicked()
         dlg.setModel(walletModel);
         if (dlg.exec() == QDialog::Accepted)
         {
-            QMetaObject::invokeMethod(clientModel, "updateAlert", Qt::QueuedConnection);
+            strMintWarning = "";
+            Q_EMIT clientModel->alertsChanged(clientModel->getStatusBarWarnings());
         }
     }
 }

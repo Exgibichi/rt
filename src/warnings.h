@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string>
 
+extern std::string strMintWarning;
+
 void SetMiscWarning(const std::string& strWarning);
 void SetfLargeWorkForkFound(bool flag);
 bool GetfLargeWorkForkFound();

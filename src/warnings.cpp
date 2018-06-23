@@ -10,12 +10,12 @@
 #include "warnings.h"
 #include "rpc/server.h"
 #include "checkpoints.h"
-#include "miner.h"
 
 CCriticalSection cs_warnings;
 std::string strMiscWarning;
 bool fLargeWorkForkFound = false;
 bool fLargeWorkInvalidChainFound = false;
+std::string strMintWarning;
 
 void SetMiscWarning(const std::string& strWarning)
 {

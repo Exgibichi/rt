@@ -25,6 +25,7 @@
 #include "utilmoneystr.h"
 #include "validationinterface.h"
 #include "wallet/wallet.h"
+#include "warnings.h"
 
 #include <algorithm>
 #include <boost/thread.hpp>
@@ -48,7 +49,6 @@ uint64_t nLastBlockTx = 0;
 uint64_t nLastBlockSize = 0;
 uint64_t nLastBlockWeight = 0;
 int64_t nLastCoinStakeSearchInterval = 0;
-std::string strMintWarning;
 
 class ScoreCompare
 {
@@ -835,21 +835,16 @@ void PoSMiner(CWallet *pwallet)
             throw std::runtime_error("No coinbase script available (mining requires a wallet)");
 
         while (true) {
-	    strMintWarning.clear();
-            if (Params().MiningRequiresPeers()) {
-                // Busy-wait for the network to come online so we don't waste time mining
-                // on an obsolete chain. In regtest mode we expect to fly solo.
-		while(g_connman == NULL || g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0 || IsInitialBlockDownload())
-		    MilliSleep(5 * 60 * 1000);
-           }
-
-            while (pwallet->IsLocked())
-            {
+            while (pwallet->IsLocked()) {
                 strMintWarning = strMintMessage;
                 MilliSleep(5000);
             }
-
-	    strMintWarning.clear();
+            if (Params().MiningRequiresPeers()) {
+                // Busy-wait for the network to come online so we don't waste time mining
+                // on an obsolete chain. In regtest mode we expect to fly solo.
+                while(g_connman == NULL || g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0 || IsInitialBlockDownload())
+                    MilliSleep(5 * 60 * 1000);
+            }
 
             //
             // Create new block
