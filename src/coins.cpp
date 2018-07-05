@@ -285,18 +285,17 @@ unsigned int CCoinsViewCache::GetCacheSize() const {
 
 const CTxOut &CCoinsViewCache::GetOutputFor(const CTxIn& input) const
 {
-    int nVersion;
-    return GetOutputFor(input, nVersion);
+    const CCoins* coins = AccessCoins(input.prevout.hash);
+    assert(coins && coins->IsAvailable(input.prevout.n));
+    return coins->vout[input.prevout.n];
 }
 
 const CTxOut &CCoinsViewCache::GetOutputFor(const CTxIn& input, int& nVersion) const
 {
-   const CCoins* coins = AccessCoins(input.prevout.hash);
-   if(coins && coins->IsAvailable(input.prevout.n)) {
-       nVersion = coins->nVersion;
-       return coins->vout[input.prevout.n];
-   }
-   assert(false);
+    const CCoins* coins = AccessCoins(input.prevout.hash);
+    assert(coins && coins->IsAvailable(input.prevout.n));
+    nVersion = coins->nVersion;
+    return coins->vout[input.prevout.n];
 }
 
 CAmount CCoinsViewCache::GetValueIn(const CTransaction& tx) const

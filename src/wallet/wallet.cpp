@@ -2277,7 +2277,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
   // If possible, solve subset sum by dynamic programming
   // Adeed by olegarch
 
-  // Maximap DP array size. Default=0.5G (12,800EMC)
+  // Maximap DP array size. Default=256MB (12,800EMC)
   static uint32_t nMaxDP = 0;
   if(nMaxDP == 0)
       nMaxDP = GetArg("-maxdp", 128 * 1024 * 1024);

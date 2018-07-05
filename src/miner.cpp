@@ -640,11 +640,6 @@ void BlockAssembler::addTxs()
         if (iter->GetTx().nTime > GetAdjustedTime() || (pblock->IsProofOfStake() && iter->GetTx().nTime > pblock->vtx[1]->nTime))
             continue;
 
-        if(!view.HaveInputs(iter->GetTx())) {
-            LogPrintf("CCoinsViewCache ERR: TX=%s does not have cached inputs, ignored\n", iter->GetTx().GetHash().ToString().c_str());
-            continue;
-	}
-
         // ppcoin: simplify transaction fee
         CAmount nTxFees = view.GetValueIn(iter->GetTx()) - iter->GetTx().GetValueOut();
         CAmount nMinFee = iter->GetTx().GetMinFee();
