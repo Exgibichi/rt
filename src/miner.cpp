@@ -640,12 +640,6 @@ void BlockAssembler::addTxs()
         if (iter->GetTx().nTime > GetAdjustedTime() || (pblock->IsProofOfStake() && iter->GetTx().nTime > pblock->vtx[1]->nTime))
             continue;
 
-        // ppcoin: simplify transaction fee
-        CAmount nTxFees = view.GetValueIn(iter->GetTx()) - iter->GetTx().GetValueOut();
-        CAmount nMinFee = iter->GetTx().GetMinFee();
-        if (nTxFees < nMinFee)
-            continue;
-
         // If this tx fits in the block add it, otherwise keep looping
         if (TestForBlock(iter)) {
             AddToBlock(iter);
