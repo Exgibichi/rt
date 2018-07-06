@@ -2292,7 +2292,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
     uint32_t min_over_sum  = ~0, min_over_txrem;
 
     // Apply UTXOs to DP array, until exact sum will be found
-    for(int32_t utxo_no = 0;  dp[dp_tgt] < 0 && utxo_no < vValue.size(); utxo_no++) {
+    for(int32_t utxo_no = 0;  dp[dp_tgt] < 0 && utxo_no < (int32_t)vValue.size(); utxo_no++) {
       int32_t saved_tgt = dp[dp_tgt]; // Saved for possible revert, if problem in fraction of TX_DP_AMOUNT
       uint32_t offset = vValue[utxo_no].first / TX_DP_AMOUNT;
       int      remain = vValue[utxo_no].first % TX_DP_AMOUNT;

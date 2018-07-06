@@ -293,7 +293,6 @@ bool BlockAssembler::TestPackage(uint64_t packageSize, int64_t packageSigOpsCost
 bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& package)
 {
     uint64_t nPotentialBlockSize = nBlockSize; // only used with fNeedSizeAccounting
-    CCoinsViewCache view(pcoinsTip);
     BOOST_FOREACH (const CTxMemPool::txiter it, package) {
         if (!IsFinalTx(it->GetTx(), nHeight, nLockTimeCutoff))
             return false;
@@ -309,12 +308,6 @@ bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& packa
 
         // ppcoin: timestamp limit
         if (it->GetTx().nTime > GetAdjustedTime() || (pblock->IsProofOfStake() && it->GetTx().nTime > pblock->vtx[1]->nTime))
-            return false;
-
-        // ppcoin: simplify transaction fee
-        CAmount nTxFees = view.GetValueIn(it->GetTx()) - it->GetTx().GetValueOut();
-        CAmount nMinFee = it->GetTx().GetMinFee();
-        if (nTxFees < nMinFee)
             return false;
     }
     return true;
@@ -614,7 +607,6 @@ void BlockAssembler::addTxs()
         stack.push(mempool.mapTx.project<0>((++mi).base()));
 
     CTxMemPool::txiter iter;
-    CCoinsViewCache view(pcoinsTip);
     while (!stack.empty() && !blockFinished) { // add a tx from stack to fill the nBlockTxSize
         iter = stack.top();
         stack.pop();
@@ -697,7 +689,6 @@ void BlockAssembler::addPriorityTxs()
     std::make_heap(vecPriority.begin(), vecPriority.end(), pricomparer);
 
     CTxMemPool::txiter iter;
-    CCoinsViewCache view(pcoinsTip);
     while (!vecPriority.empty() && !blockFinished) { // add a tx from priority queue to fill the blockprioritysize
         iter = vecPriority.front().second;
         actualPriority = vecPriority.front().first;
@@ -723,12 +714,6 @@ void BlockAssembler::addPriorityTxs()
 
         // ppcoin: timestamp limit
         if (iter->GetTx().nTime > GetAdjustedTime() || (pblock->IsProofOfStake() && iter->GetTx().nTime > pblock->vtx[1]->nTime))
-            continue;
-
-        // ppcoin: simplify transaction fee
-        CAmount nTxFees = view.GetValueIn(iter->GetTx()) - iter->GetTx().GetValueOut();
-        CAmount nMinFee = iter->GetTx().GetMinFee();
-        if (nTxFees < nMinFee)
             continue;
 
         // If this tx fits in the block add it, otherwise keep looping
