@@ -16,6 +16,91 @@
 
 #include "chainparamsseeds.h"
 
+#include "arith_uint256.h"
+bool CheckProofOfWork2(uint256 hash, unsigned int nBits, const Consensus::Params& params)
+{
+    bool fNegative;
+    bool fOverflow;
+    arith_uint256 bnTarget;
+
+    bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
+
+    // Check range
+    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > UintToArith256(params.powLimit))
+        return false;
+
+    // Check proof of work matches claimed amount
+    if (UintToArith256(hash) > bnTarget)
+        return false;
+
+    return true;
+}
+
+struct thread_data {
+   CBlock block;
+   int32_t nTime;
+   arith_uint256 target;
+   Consensus::Params consensus;
+};
+
+void *SolveBlock(void *threadarg)
+{
+    struct thread_data *my_data;
+    my_data = (struct thread_data *) threadarg;
+    CBlock& block = my_data->block;
+    int32_t& nTime = my_data->nTime;
+    arith_uint256& target = my_data->target;
+
+    block.nTime = nTime;
+    block.nNonce = 0;
+    bool ret;
+    while (UintToArith256(block.GetHash()) > target) {
+        if (block.nNonce == 2147483647)
+            break;
+        ++block.nNonce;
+    }
+    ret = CheckProofOfWork2(block.GetHash(), block.nBits, my_data->consensus);
+    printf("!!!solved: ret=%d nNonce=%d, nTime=%d\n", ret, block.nNonce, block.nTime);
+    assert(false);
+    pthread_exit(NULL);
+}
+
+void MineGenesisBlock(const CBlock& genesis, const Consensus::Params& consensus)
+{
+    const int NUM_THREADS = 8;
+
+    pthread_t threads[NUM_THREADS];
+    struct thread_data td[NUM_THREADS];
+    pthread_attr_t attr;
+    void *status;
+    int rc;
+    int i = 0;
+
+    // Initialize and set thread joinable
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+    for( i = 0; i < NUM_THREADS; i++ ) {
+       printf("main() : creating thread\n");
+       td[i].block = genesis;
+       td[i].nTime = genesis.nTime+i;
+       td[i].target = UintToArith256(consensus.bnInitialHashTarget);
+       td[i].consensus = consensus;
+       rc = pthread_create(&threads[i], &attr, SolveBlock, (void *)&td[i]);
+
+       if (rc) {
+          printf("Error:unable to create thread\n");
+          exit(-1);
+       }
+    }
+
+    // free attribute and wait for the other threads
+    pthread_attr_destroy(&attr);
+    for( i = 0; i < NUM_THREADS; i++ ) {
+       rc = pthread_join(threads[i], &status);
+    }
+}
+
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTimeTx, uint32_t nTimeBlock, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
     CMutableTransaction txNew;
@@ -172,11 +257,11 @@ public:
     CTestNetParams() {
         strNetworkID = "test";
         //consensus.nSubsidyHalvingInterval = 210000;
-        consensus.BIP34Height = 141;
+        consensus.BIP34Height = 0;
         consensus.BIP34Hash = uint256S("0x00000000097af4fce19ca3c9aa688a81a5440f054243112e7d348e8350697827");
-        consensus.BIP65Height = 368;
-        consensus.BIP66Height = 141;
-        consensus.MMHeight = 2189;
+        consensus.BIP65Height = 0;
+        consensus.BIP66Height = 0;
+        consensus.MMHeight = 0;
         consensus.powLimit = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~arith_uint256(0) >> 28;
         consensus.bnInitialHashTarget = uint256S("00000007ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); //~uint256(0) >> 29;
         consensus.nTargetTimespan = 7 * 24 * 60 * 60; // two week
@@ -201,8 +286,8 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00");
 
-        consensus.nRejectBlockOutdatedMajority = 65;
-        consensus.nToCheckBlockUpgradeMajority = 100;
+        consensus.nRejectBlockOutdatedMajority = 450;
+        consensus.nToCheckBlockUpgradeMajority = 500;
 
         pchMessageStart[0] = 0xcb;
         pchMessageStart[1] = 0xf2;
@@ -211,10 +296,10 @@ public:
         nDefaultPort = 6663;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateGenesisBlock(1386627289, 1386628033, 18330017, 0x1d0fffff, 1, 0);
+        genesis = CreateGenesisBlock(1386627290, 1386628036, 38942574, 0x1d0fffff, 1, 0);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x0000000810da236a5c9239aa1c49ab971de289dbd41d08c4120fc9c8920d2212"));
-        assert(genesis.hashMerkleRoot == uint256S("0xd8eee032f95716d0cf14231dc7a238b96bbf827e349e75344c9a88e849262ee0"));
+        assert(consensus.hashGenesisBlock == uint256S("0x0000000642cfda7d39a8281e1f8791ceb240ce2f5ed9082f60040fe4210c6a58"));
+        assert(genesis.hashMerkleRoot == uint256S("0xbb898f6696fd0bc265978aa375b61a82aacfe6a95267d12605c82d11971d220e"));
 
         vFixedSeeds.clear();
         vSeeds.clear();
