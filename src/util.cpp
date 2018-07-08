@@ -849,5 +849,5 @@ int GetNumCores()
 
 std::string CopyrightHolders(const std::string& strPrefix)
 {
-    return "Copyright (С) Bitcoin, PPCoin, Namecoin, Unobtanium Developers";
+    return "Copyright (С) Emercoin, Bitcoin, PPCoin, Namecoin, Unobtanium Developers";
 }
