@@ -201,6 +201,7 @@ void Shutdown()
     RenameThread("emercoin-shutoff");
     mempool.AddTransactionsUpdated(1);
 
+    GenerateEmercoins(false, 0, Params());
     StopHTTPRPC();
     StopREST();
     StopRPC();
@@ -214,7 +215,6 @@ void Shutdown()
     peerLogic.reset();
     g_connman.reset();
 
-    GenerateEmercoins(false, 0, Params());
     StopTorControl();
     UnregisterNodeSignals(GetNodeSignals());
     if (fDumpMempoolLater)
