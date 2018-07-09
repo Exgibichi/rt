@@ -36,7 +36,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// BitcoinMiner
+// EmercoinMiner
 //
 
 //
@@ -761,8 +761,7 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
 }
 
-#ifdef ENABLE_WALLET
-static bool ProcessBlockFound(const CBlock* pblock)
+static bool ProcessBlockFound(const CBlock* pblock, const CChainParams& chainparams)
 {
     LogPrintf("%s\n", pblock->ToString());
     LogPrintf("generated %s\n", FormatMoney(pblock->vtx[0]->vout[0].nValue));
@@ -771,7 +770,7 @@ static bool ProcessBlockFound(const CBlock* pblock)
     {
         LOCK(cs_main);
         if (pblock->hashPrevBlock != chainActive.Tip()->GetBlockHash())
-            return error("BitcoinMiner: generated block is stale");
+            return error("EmercoinMiner: generated block is stale");
     }
 
     // Inform about the new block
@@ -785,6 +784,7 @@ static bool ProcessBlockFound(const CBlock* pblock)
     return true;
 }
 
+#ifdef ENABLE_WALLET
 void PoSMiner(CWallet *pwallet)
 {
     LogPrintf("CPUMiner started for proof-of-stake\n");
@@ -821,7 +821,7 @@ void PoSMiner(CWallet *pwallet)
             if (Params().MiningRequiresPeers()) {
                 // Busy-wait for the network to come online so we don't waste time mining
                 // on an obsolete chain. In regtest mode we expect to fly solo.
-                while(g_connman == NULL || g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0 || IsInitialBlockDownload())
+                while(g_connman == nullptr || g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0 || IsInitialBlockDownload())
                     MilliSleep(5 * 60 * 1000);
             }
 
@@ -831,7 +831,7 @@ void PoSMiner(CWallet *pwallet)
             CBlockIndex* pindexPrev = chainActive.Tip();
 
             bool fPoSCancel = false;
-            std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, true, pwalletMain, &fPoSCancel));
+            std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, true, pwallet, &fPoSCancel));
             if (!pblocktemplate.get())
             {
                 if (fPoSCancel == true)
@@ -849,7 +849,7 @@ void PoSMiner(CWallet *pwallet)
             if (pblock->IsProofOfStake())
             {
                 {
-                    LOCK2(cs_main, pwalletMain->cs_wallet);
+                    LOCK2(cs_main, pwallet->cs_wallet);
                     if (!SignBlock(*pblock, *pwallet))
                     {
                         LogPrintf("PoSMiner(): failed to sign PoS block");
@@ -857,7 +857,7 @@ void PoSMiner(CWallet *pwallet)
                     }
                 }
                 LogPrintf("CPUMiner : proof-of-stake block found %s\n", pblock->GetHash().ToString());
-                ProcessBlockFound(pblock);
+                ProcessBlockFound(pblock, Params());
                 // Rest for ~3 minutes after successful block to preserve close quick
                 MilliSleep(60 * 1000 + GetRand(4 * 60 * 1000));
             }
@@ -903,3 +903,180 @@ void MintStake(boost::thread_group& threadGroup, CWallet* pwallet)
     threadGroup.create_thread(boost::bind(&ThreadStakeMinter, pwallet));
 }
 #endif // ENABLE_WALLET
+
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// Internal miner
+//
+
+//
+// ScanHash scans nonces looking for a hash with at least some zero bits.
+// The nonce is usually preserved between calls, but periodically or if the
+// nonce is 0xffff0000 or above, the block is rebuilt and nNonce starts over at
+// zero.
+//
+bool static ScanHash(const CBlockHeader *pblock, uint32_t& nNonce, uint256 *phash)
+{
+    // Write the first 76 bytes of the block header to a double-SHA256 state.
+    CHash256 hasher;
+    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+    ss << *pblock;
+    assert(ss.size() == 80);
+    hasher.Write((unsigned char*)&ss[0], 76);
+
+    while (true) {
+        nNonce++;
+
+        // Write the last 4 bytes of the block header (the nonce) to a copy of
+        // the double-SHA256 state, and compute the result.
+        CHash256(hasher).Write((unsigned char*)&nNonce, 4).Finalize((unsigned char*)phash);
+
+        // Return the nonce if the hash has at least some zero bits,
+        // caller will check if it has enough to reach the target
+        if (((uint16_t*)phash)[15] == 0)
+            return true;
+
+        // If nothing found after trying for a while, return -1
+        if ((nNonce & 0xfff) == 0)
+            return false;
+    }
+}
+
+void static EmercoinMiner(const CChainParams& chainparams)
+{
+    LogPrintf("EmercoinMiner started\n");
+    RenameThread("emercoin-miner");
+
+    unsigned int nExtraNonce = 0;
+
+    boost::shared_ptr<CReserveScript> coinbaseScript;
+    GetMainSignals().ScriptForMining(coinbaseScript);
+
+    try {
+        // Throw an error if no script was provided.  This can happen
+        // due to some internal error but also if the keypool is empty.
+        // In the latter case, already the pointer is NULL.
+        if (!coinbaseScript || coinbaseScript->reserveScript.empty())
+            throw std::runtime_error("No coinbase script available (mining requires a wallet)");
+
+        while (true) {
+            if (chainparams.MiningRequiresPeers()) {
+                // Busy-wait for the network to come online so we don't waste time mining
+                // on an obsolete chain. In regtest mode we expect to fly solo.
+                while(g_connman == nullptr || g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0)
+                    MilliSleep(1000);
+            }
+
+            //
+            // Create new block
+            //
+            unsigned int nTransactionsUpdatedLast = mempool.GetTransactionsUpdated();
+            CBlockIndex* pindexPrev = chainActive.Tip();
+
+            std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, true, nullptr, nullptr));
+            if (!pblocktemplate.get())
+            {
+                LogPrintf("Error in EmercoinMiner: Keypool ran out, please call keypoolrefill before restarting the mining hread\n");
+                return;
+            }
+            CBlock *pblock = &pblocktemplate->block;
+            IncrementExtraNonce(pblock, pindexPrev, nExtraNonce);
+
+            LogPrintf("Running EmercoinMiner with %u transactions in block (%u bytes)\n", pblock->vtx.size(),
+                ::GetSerializeSize(*pblock, SER_NETWORK, PROTOCOL_VERSION));
+
+            //
+            // Search
+            //
+            int64_t nStart = GetTime();
+            arith_uint256 hashTarget = arith_uint256().SetCompact(pblock->nBits);
+            uint256 hash;
+            uint32_t nNonce = 0;
+            while (true) {
+                // Check if something found
+                if (ScanHash(pblock, nNonce, &hash))
+                {
+                    if (UintToArith256(hash) <= hashTarget)
+                    {
+                        // Found a solution
+                        pblock->nNonce = nNonce;
+                        assert(hash == pblock->GetHash());
+
+                        LOCK2(cs_main, pwalletMain->cs_wallet);
+                        if (!SignBlock(*pblock, *pwalletMain))
+                        {
+                            LogPrintf("PoSMiner(): failed to sign PoS block");
+                            continue;
+                        }
+
+                        LogPrintf("EmercoinMiner:\n");
+                        LogPrintf("proof-of-work found  \n  hash: %s  \ntarget: %s\n", hash.GetHex(), hashTarget.GetHex());
+                        ProcessBlockFound(pblock, chainparams);
+                        coinbaseScript->KeepScript();
+
+                        // In regression test mode, stop mining after a block is found.
+                        if (chainparams.MineBlocksOnDemand())
+                            throw boost::thread_interrupted();
+
+                        break;
+                    }
+                }
+
+                // Check for stop or if block needs to be rebuilt
+                boost::this_thread::interruption_point();
+                // Regtest mode doesn't require peers
+                if ((g_connman == nullptr || g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0) && chainparams.MiningRequiresPeers())
+                    break;
+                if (nNonce >= 0xffff0000)
+                    break;
+                if (mempool.GetTransactionsUpdated() != nTransactionsUpdatedLast && GetTime() - nStart > 60)
+                    break;
+                if (pindexPrev != chainActive.Tip())
+                    break;
+
+                // Update nTime every few seconds
+                if (UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev) < 0)
+                    break; // Recreate the block if the clock has run backwards,
+                           // so that we can use the correct time.
+                if (chainparams.GetConsensus().fPowAllowMinDifficultyBlocks)
+                {
+                    // Changing pblock->nTime can change work required on testnet:
+                    hashTarget.SetCompact(pblock->nBits);
+                }
+            }
+        }
+    }
+    catch (const boost::thread_interrupted&)
+    {
+        LogPrintf("EmercoinMiner terminated\n");
+        throw;
+    }
+    catch (const std::runtime_error &e)
+    {
+        LogPrintf("EmercoinMiner runtime error: %s\n", e.what());
+        return;
+    }
+}
+
+void GenerateEmercoins(bool fGenerate, int nThreads, const CChainParams& chainparams)
+{
+    static boost::thread_group* minerThreads = NULL;
+
+    if (nThreads < 0)
+        nThreads = GetNumCores();
+
+    if (minerThreads != NULL)
+    {
+        minerThreads->interrupt_all();
+        delete minerThreads;
+        minerThreads = NULL;
+    }
+
+    if (nThreads == 0 || !fGenerate)
+        return;
+
+    minerThreads = new boost::thread_group();
+    for (int i = 0; i < nThreads; i++)
+        minerThreads->create_thread(boost::bind(&EmercoinMiner, boost::cref(chainparams)));
+}
