@@ -605,16 +605,22 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
         return state.DoS(0, false, REJECT_NONSTANDARD, "no-witness-yet", true);
     }
 
-    // Rather not accept more than one name op on the same name
+    // emercoin: rather not accept more than one name op on the same name
     bool isNameTx = tx.nVersion == NAMECOIN_TX_VERSION;
     if (isNameTx && !hooks->CheckPendingNames(ptx))
         return state.DoS(0, false, REJECT_NONSTANDARD, "name-op-on-pending-name");
 
-    // Reject names in P2SH transaction before V7 fork
+    // emercoin: reject names in P2SH transaction before V7 fork
     if (!witnessEnabled && isNameTx && !GetBoolArg("-prematurewitness",false))
         for (const auto& out : tx.vout)
             if (out.scriptPubKey.IsPayToScriptHash(tx.nVersion))
                 return state.DoS(0, false, REJECT_NONSTANDARD, "premature-name-in-p2sh", true);
+
+    // emercoin: reject randpay until v7 fork
+    if (!witnessEnabled)
+        for (const CTxIn& txin : tx.vin)
+            if (txin.prevout.hash == randpaytx)
+                return state.DoS(100, false, REJECT_INVALID, "early-randpaytx", false, "randpay tx before v7 fork");
 
     // Rather not work on nonstandard transactions (unless -testnet/-regtest)
     std::string reason;
