@@ -1933,7 +1933,7 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(request.fHelp))
         return NullUniValue;
 
-    if (pwalletMain->IsCrypted() && (request.fHelp || request.params.size() < 2 || request.params.size() > 2))
+    if (pwalletMain->IsCrypted() && (request.fHelp || request.params.size() < 2 || request.params.size() > 3))
         throw runtime_error(
             "walletpassphrase \"passphrase\" timeout\n"
             "walletpassphrase \"passphrase\" timeout [mintonly]\n"
@@ -3127,7 +3127,7 @@ static const CRPCCommand commands[] =
 
     // emercoin commands
     { "wallet",             "makekeypair",              &makekeypair,              true,   {"prefix"} },
-    { "wallet",             "reservebalance",           &reservebalance,           true,   {"prefix"} },
+    { "wallet",             "reservebalance",           &reservebalance,           true,   {"reserve", "amount"} },
     { "wallet",             "name_new",                 &name_new,                 false,  {"name","value","days","toaddress","valuetype"} },
     { "wallet",             "name_update",              &name_update,              false,  {"name","value","days","toaddress","valuetype"} },
     { "wallet",             "name_delete",              &name_delete,              false,  {"name"} },

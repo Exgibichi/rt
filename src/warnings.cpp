@@ -55,6 +55,7 @@ std::string GetWarnings(const std::string& strFor)
     std::string strGUI;
     const std::string uiAlertSeperator = "<hr />";
 
+    bool fCheckpointIsTooOld = CheckpointsSync::IsSyncCheckpointTooOld(60 * 60 * 24 * 10);
     LOCK(cs_warnings);
 
     if (!CLIENT_VERSION_IS_RELEASE) {
@@ -75,7 +76,7 @@ std::string GetWarnings(const std::string& strFor)
     // ppcoin: should not enter safe mode for longer invalid chain
     //         if sync-checkpoint is too old do not enter safe mode
     std::string statusmessage;
-    if (!RPCIsInWarmup(&statusmessage) && CheckpointsSync::IsSyncCheckpointTooOld(60 * 60 * 24 * 10))
+    if (!RPCIsInWarmup(&statusmessage) && fCheckpointIsTooOld)
     {
         nPriority = 100;
         strStatusBar = "WARNING: Checkpoint is too old. Wait for block chain to download, or notify developers of the issue.";

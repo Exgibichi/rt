@@ -1200,6 +1200,20 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
             return InitError(_("Unable to start HTTP server. See debug log for details."));
     }
 
+    // emercoin: allow user to set checkpoint pubkey
+    string ck = GetArg("-checkpointpubkey", "1");
+    if (ck == "1")
+    {
+        if (Params().NetworkIDString() == "main")
+            strMasterPubKey = "046fbfdd8aac1671681dfe257a65cb1a87056814955ae1faeefa20c158a66ad5514c77f858a417da79f56c69e97ece8c5363dbd41994db22435596f84a002736b0";
+        else if (Params().NetworkIDString() == "test")
+            strMasterPubKey = "041c32801975f33eb97da5ff06c6f5281afc7f68635c459d0c44d81370c3ef3f25805197b844f5bda6fabf43c4e39762ac753c8532a2ae18a30805f939415e5865";
+    }
+    else if (ck == "0")
+        strMasterPubKey = "";
+    else if (IsHex(ck))
+        strMasterPubKey = ck;
+
     int64_t nStart;
 
     // DEBUG from olegarch - exchange test
