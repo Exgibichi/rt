@@ -293,6 +293,9 @@ bool IsSyncCheckpointTooOld(unsigned int nSeconds)
 {
     if (strMasterPubKey == "") return false;  // no public key == no checkpoints
 
+    if (Params().NetworkIDString() == "test")  // requested by Olegh
+        return false;
+
     LOCK(cs_main);
     // sync-checkpoint should always be accepted block
     assert(mapBlockIndex.count(hashSyncCheckpoint));
