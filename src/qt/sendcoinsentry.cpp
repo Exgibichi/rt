@@ -102,18 +102,24 @@ void SendCoinsEntry::setModel(WalletModel *_model)
 
     // emercoin: initialize exchange box
     // initialize with refund address:
-    std::string sAddress;
-    if (this->model)
-    {
-        if (this->model->getAddressForChange(sAddress))
-            this->eBox.Reset(sAddress);
-        else
-        {
-            ui->checkBoxExch->setDisabled(true);
-            ui->exchWidget->setVisible(false);
-            ui->exchWidget->setDisabled(true);
-        }
-    }
+//    std::string sAddress;
+//    if (this->model)
+//    {
+//        if (this->model->getAddressForChange(sAddress))
+//            this->eBox.Reset(sAddress);
+//        else
+//        {
+//            ui->checkBoxExch->setDisabled(true);
+//            ui->exchWidget->setVisible(false);
+//            ui->exchWidget->setDisabled(true);
+//        }
+//    }
+
+    // emercoin: disabled in this version
+    ui->checkBoxExch->setVisible(false);
+    ui->toggleExchLabel->setVisible(false);
+    ui->checkBoxExch->setDisabled(true);
+    ui->toggleExchLabel->setDisabled(true);
 }
 
 void SendCoinsEntry::clear()
