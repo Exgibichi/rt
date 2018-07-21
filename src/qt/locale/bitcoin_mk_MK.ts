@@ -139,7 +139,7 @@
     </message>
     <message>
         <source>Send coins to a Emercoin address</source>
-        <translation>Испрати биткоини на Емеркоин адреса</translation>
+        <translation>Испрати емеркоини на Емеркоин адреса</translation>
     </message>
     <message>
         <source>&amp;Verify message...</source>
