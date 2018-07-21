@@ -1059,13 +1059,6 @@ bool AppInitParameterInteraction()
         return InitError(strprintf("acceptnonstdtxn is not currently supported for %s chain", chainparams.NetworkIDString()));
     nBytesPerSigOp = GetArg("-bytespersigop", nBytesPerSigOp);
 
-    if (IsArgSet("-checkpointkey")) // ppcoin: checkpoint master priv key
-    {
-        if (!CheckpointsSync::SetCheckpointPrivKey(GetArg("-checkpointkey", "")))
-            return InitError(_("Unable to sign checkpoint, wrong checkpointkey?\n"));
-        else LogPrintf("Setting checkpoint private key is successful\n");
-    }
-
 #ifdef ENABLE_WALLET
     if (!CWallet::ParameterInteraction())
         return false;
@@ -1133,6 +1126,14 @@ bool AppInitSanityChecks()
     // Initialize elliptic curve code
     ECC_Start();
     globalVerifyHandle.reset(new ECCVerifyHandle());
+
+    // emercoin: moved here because ECC need to be initialized to execute this
+    if (IsArgSet("-checkpointkey")) // ppcoin: checkpoint master priv key
+    {
+        if (!CheckpointsSync::SetCheckpointPrivKey(GetArg("-checkpointkey", "")))
+            return InitError(_("Unable to sign checkpoint, wrong checkpointkey?\n"));
+        else LogPrintf("Setting checkpoint private key is successful\n");
+    }
 
     // Sanity check
     if (!InitSanityCheck())
