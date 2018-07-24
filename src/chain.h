@@ -315,8 +315,9 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action) {
         /* mutable stuff goes here, immutable stuff
          * has SERIALIZE functions in CDiskBlockIndex */
+        int _nVersion = s.GetVersion();
         if (!(s.GetType() & SER_GETHASH))
-              READWRITE(VARINT(nVersion));
+              READWRITE(VARINT(_nVersion));
 
         READWRITE(VARINT(nStatus));
         if (nStatus & (BLOCK_HAVE_DATA | BLOCK_HAVE_UNDO))
@@ -459,9 +460,9 @@ public:
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action) {
-        int nVersion = s.GetVersion();
+        int _nVersion = s.GetVersion();
         if (!(s.GetType() & SER_GETHASH))
-            READWRITE(VARINT(nVersion));
+            READWRITE(VARINT(_nVersion));
 
         READWRITE(VARINT(nHeight));
         READWRITE(VARINT(nTx));
