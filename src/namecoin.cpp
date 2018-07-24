@@ -1290,8 +1290,17 @@ bool createNameIndexes()
     CNameDB dbName("cr+");
     CNameAddressDB dbNameAddress("cr+");
     int maxHeight = chainActive.Height();
+    int reportDone = 0;
     for (int nHeight=0; nHeight<=maxHeight; nHeight++)
     {
+        int percentageDone = (100*nHeight / maxHeight);
+        if (reportDone < percentageDone/10) {
+            // report every 10% step
+            LogPrintf("[%d%%]...", percentageDone);
+            reportDone = percentageDone/10;
+        }
+        uiInterface.ShowProgress(_("Creating nameindex (do not kill client!)..."), percentageDone);
+
         CBlockIndex* pindex = chainActive[nHeight];
         CBlock block;
         if (!ReadBlockFromDisk(block, pindex, Params().GetConsensus()))
