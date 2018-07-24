@@ -303,7 +303,8 @@ RES_ICONS = \
   qt/res/icons/warning.png \
   qt/res/icons/verify.png \
   qt/res/icons/DNS.png \
-  qt/res/icons/SSL.png
+  qt/res/icons/SSL.png \
+  qt/res/icons/splash.png
 
 BITCOIN_QT_BASE_CPP = \
   qt/bantablemodel.cpp \

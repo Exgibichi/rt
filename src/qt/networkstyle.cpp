@@ -21,6 +21,52 @@ static const struct {
 };
 static const unsigned network_styles_count = sizeof(network_styles)/sizeof(*network_styles);
 
+void NetworkStyle::convert(QPixmap& pixmap, const int iconColorHueShift, const int iconColorSaturationReduction)
+{
+    // generate QImage from QPixmap
+    QImage img = pixmap.toImage();
+
+    int h,s,l,a;
+
+    // traverse though lines
+    for(int y=0;y<img.height();y++)
+    {
+        QRgb *scL = reinterpret_cast< QRgb *>( img.scanLine( y ) );
+
+        // loop through pixels
+        for(int x=0;x<img.width();x++)
+        {
+            // preserve alpha because QColor::getHsl doesen't return the alpha value
+            a = qAlpha(scL[x]);
+            QColor col(scL[x]);
+
+            // get hue value
+            col.getHsl(&h,&s,&l);
+
+            // rotate color on RGB color circle
+            // 70° should end up with the typical "testnet" green
+            h+=iconColorHueShift;
+
+            // change saturation value
+            if(s>iconColorSaturationReduction)
+            {
+                s -= iconColorSaturationReduction;
+            }
+            col.setHsl(h,s,l,a);
+
+            // set the pixel
+            scL[x] = col.rgba();
+        }
+    }
+
+    //convert back to QPixmap
+#if QT_VERSION >= 0x040700
+    pixmap.convertFromImage(img);
+#else
+    pixmap = QPixmap::fromImage(img);
+#endif
+}
+
 // titleAddText needs to be const char* for tr()
 NetworkStyle::NetworkStyle(const QString &_appName, const int iconColorHueShift, const int iconColorSaturationReduction, const char *_titleAddText):
     appName(_appName),
@@ -28,55 +74,17 @@ NetworkStyle::NetworkStyle(const QString &_appName, const int iconColorHueShift,
 {
     // load pixmap
     QPixmap pixmap(":/icons/emercoin");
+    QPixmap splash(":/icons/splash");
 
     if(iconColorHueShift != 0 && iconColorSaturationReduction != 0)
     {
-        // generate QImage from QPixmap
-        QImage img = pixmap.toImage();
-
-        int h,s,l,a;
-
-        // traverse though lines
-        for(int y=0;y<img.height();y++)
-        {
-            QRgb *scL = reinterpret_cast< QRgb *>( img.scanLine( y ) );
-
-            // loop through pixels
-            for(int x=0;x<img.width();x++)
-            {
-                // preserve alpha because QColor::getHsl doesen't return the alpha value
-                a = qAlpha(scL[x]);
-                QColor col(scL[x]);
-
-                // get hue value
-                col.getHsl(&h,&s,&l);
-
-                // rotate color on RGB color circle
-                // 70° should end up with the typical "testnet" green
-                h+=iconColorHueShift;
-
-                // change saturation value
-                if(s>iconColorSaturationReduction)
-                {
-                    s -= iconColorSaturationReduction;
-                }
-                col.setHsl(h,s,l,a);
-
-                // set the pixel
-                scL[x] = col.rgba();
-            }
-        }
-
-        //convert back to QPixmap
-#if QT_VERSION >= 0x040700
-        pixmap.convertFromImage(img);
-#else
-        pixmap = QPixmap::fromImage(img);
-#endif
+        convert(pixmap, iconColorHueShift, iconColorSaturationReduction);
+        convert(splash, iconColorHueShift, iconColorSaturationReduction);
     }
 
     appIcon             = QIcon(pixmap);
     trayAndWindowIcon   = QIcon(pixmap.scaled(QSize(256,256)));
+    startScreenIcon     = QIcon(splash);
 }
 
 const NetworkStyle *NetworkStyle::instantiate(const QString &networkId)
