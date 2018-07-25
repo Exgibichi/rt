@@ -1596,7 +1596,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
         if (boost::filesystem::exists(pathNameAddress))
             boost::filesystem::remove(pathNameAddress);
 
-        uiInterface.InitMessage(_("Creating nameindex (do not kill client!)..."));
+        uiInterface.InitMessage(_("Creating nameindex (do not close app!)..."));
         if (!createNameIndexes())
         {
             LogPrintf("Fatal error: Failed to create name indexes.\n");

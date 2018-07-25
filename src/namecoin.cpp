@@ -1299,7 +1299,7 @@ bool createNameIndexes()
             LogPrintf("[%d%%]...", percentageDone);
             reportDone = percentageDone/10;
         }
-        uiInterface.ShowProgress(_("Creating nameindex (do not kill client!)..."), percentageDone);
+        uiInterface.ShowProgress(_("Creating nameindex (do not close app!)..."), percentageDone);
 
         CBlockIndex* pindex = chainActive[nHeight];
         CBlock block;
