@@ -69,7 +69,8 @@ SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle *networkStyle) 
     pixPaint.fillRect(rGradient, gradient);
 
     // draw the emercoin logo
-    pixPaint.drawPixmap(0, 0, networkStyle->getStartScreenIcon());
+    pixPaint.setRenderHint(QPainter::SmoothPixmapTransform);
+    pixPaint.drawPixmap(0, 0, 266, 322, networkStyle->getStartScreenIcon());
 
     // check font size and drawing with
     pixPaint.setFont(QFont(font, 33*fontFactor));
