@@ -170,6 +170,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.push_back(Pair("nonce", (uint64_t)block.nNonce));
     result.push_back(Pair("bits", strprintf("%08x", block.nBits)));
     result.push_back(Pair("difficulty", GetDifficulty(blockindex)));
+    result.push_back(Pair("mint", ValueFromAmount(blockindex->nMint)));
     result.push_back(Pair("chainwork", blockindex->nChainTrust.GetHex()));
 
     if (blockindex->pprev)
