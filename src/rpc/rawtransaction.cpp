@@ -60,7 +60,7 @@ void ScriptPubKeyToJSON(const CScript& scriptPubKey, UniValue& out, bool fInclud
     out.push_back(Pair("addresses", a));
 }
 
-void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry)
+void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry, bool fName=false)
 {
     entry.push_back(Pair("txid", tx.GetHash().GetHex()));
     entry.push_back(Pair("hash", tx.GetWitnessHash().GetHex()));
@@ -71,7 +71,7 @@ void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry)
     entry.push_back(Pair("time", (int64_t)tx.nTime));
 
     NameTxInfo nti;
-    if (DecodeNameTx(MakeTransactionRef(std::move(tx)), nti))
+    if (fName && DecodeNameTx(MakeTransactionRef(std::move(tx)), nti))
     {
         entry.push_back(Pair("name", stringFromNameVal(nti.name)));
         entry.push_back(Pair("value", encodeNameVal(nti.value, "")));
@@ -147,7 +147,8 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
 
             "\nArguments:\n"
             "1. \"txid\"      (string, required) The transaction id\n"
-            "2. verbose       (bool, optional, default=false) If false, return a string, otherwise return a json object\n"
+            "2. verbose       (int, optional, default=false) If 0, return a string, if 1 return a json object,\n"
+            "if 2 return a json object with name information (if this is name tx).\n"
 
             "\nResult (if verbose is not set or set to false):\n"
             "\"data\"      (string) The serialized, hex-encoded data for 'txid'\n"
@@ -208,16 +209,14 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
     uint256 hash = ParseHashV(request.params[0], "parameter 1");
 
     // Accept either a bool (true) or a num (>=1) to indicate verbose output.
-    bool fVerbose = false;
+    int nVerbose = 0;
     if (request.params.size() > 1) {
         if (request.params[1].isNum()) {
-            if (request.params[1].get_int() != 0) {
-                fVerbose = true;
-            }
+            nVerbose = request.params[1].get_int();
         }
         else if(request.params[1].isBool()) {
             if(request.params[1].isTrue()) {
-                fVerbose = true;
+                nVerbose = 1;
             }
         }
         else {
@@ -234,12 +233,12 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
 
     string strHex = EncodeHexTx(*tx, RPCSerializationFlags());
 
-    if (!fVerbose)
+    if (nVerbose == 0)
         return strHex;
 
     UniValue result(UniValue::VOBJ);
     result.push_back(Pair("hex", strHex));
-    TxToJSON(*tx, hashBlock, result);
+    TxToJSON(*tx, hashBlock, result, nVerbose == 2);
     return result;
 }
 
