@@ -144,7 +144,7 @@ public:
 	*--p = 0;
 	*--p = 0;
 	*--p = 0;
-        BN_mpi2bn(p, n, this);
+        BN_mpi2bn(p, pcx + 15 - p, this);
     }
 
     void setuint64(uint64 n)
@@ -161,7 +161,7 @@ public:
 	*--p = 0;
 	*--p = 0;
 	*--p = 0;
-        BN_mpi2bn(p, n, this);
+        BN_mpi2bn(p, pcx + 15 - p, this);
     }
 
     uint64 getuint64()
