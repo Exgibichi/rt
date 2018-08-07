@@ -5,7 +5,7 @@
 #ifndef BITCOIN_BIGNUM_H
 #define BITCOIN_BIGNUM_H
 
-#include "uint256.h"
+// #include "uint256.h"
 
 #include <algorithm>
 #include <limits>
@@ -128,64 +128,40 @@ public:
 
     void setint64(int64 n)
     {
-        unsigned char pch[sizeof(n) + 6];
-        unsigned char* p = pch + 4;
-        bool fNegative = false;
-        if (n < (int64)0)
-        {
-            n = -n;
-            fNegative = true;
+        unsigned char pcx[16], *p = pcx + 16;
+        uint8_t neg = 0;
+        if(n < 0)
+          n = -n, neg = 0x80;
+        while(n) {
+          *--p = n;
+          n >>= 8;
         }
-        bool fLeadingZeroes = true;
-        for (int i = 0; i < 8; i++)
-        {
-            unsigned char c = (n >> 56) & 0xff;
-            n <<= 8;
-            if (fLeadingZeroes)
-            {
-                if (c == 0)
-                    continue;
-                if (c & 0x80)
-                    *p++ = (fNegative ? 0x80 : 0);
-                else if (fNegative)
-                    c |= 0x80;
-                fLeadingZeroes = false;
-            }
-            *p++ = c;
-        }
-        unsigned int nSize = p - (pch + 4);
-        pch[0] = (nSize >> 24) & 0xff;
-        pch[1] = (nSize >> 16) & 0xff;
-        pch[2] = (nSize >> 8) & 0xff;
-        pch[3] = (nSize) & 0xff;
-        BN_mpi2bn(pch, p - pch, this);
+        if((signed char)*p < 0)
+          *--p = neg;
+        *p |= neg;
+	n = pcx + 16 - p;
+        *--p = n;
+	*--p = 0;
+	*--p = 0;
+	*--p = 0;
+        BN_mpi2bn(p, pcx + 16 - p, this);
     }
 
     void setuint64(uint64 n)
     {
-        unsigned char pch[sizeof(n) + 6];
-        unsigned char* p = pch + 4;
-        bool fLeadingZeroes = true;
-        for (int i = 0; i < 8; i++)
-        {
-            unsigned char c = (n >> 56) & 0xff;
-            n <<= 8;
-            if (fLeadingZeroes)
-            {
-                if (c == 0)
-                    continue;
-                if (c & 0x80)
-                    *p++ = 0;
-                fLeadingZeroes = false;
-            }
-            *p++ = c;
+	unsigned char pcx[16], *p = pcx + 16;
+        while(n) {
+          *--p = n;
+          n >>= 8;
         }
-        unsigned int nSize = p - (pch + 4);
-        pch[0] = (nSize >> 24) & 0xff;
-        pch[1] = (nSize >> 16) & 0xff;
-        pch[2] = (nSize >> 8) & 0xff;
-        pch[3] = (nSize) & 0xff;
-        BN_mpi2bn(pch, p - pch, this);
+        if((signed char)*p < 0)
+          *--p = 0;
+	n = pcx + 16 - p;
+        *--p = n;
+	*--p = 0;
+	*--p = 0;
+	*--p = 0;
+        BN_mpi2bn(p, pcx + 16 - p, this);
     }
 
     uint64 getuint64()
