@@ -136,9 +136,9 @@ public:
 
     void setint64(int64_t n)
     {
-    unsigned char pcx[16], *p = pcx + 15; *p = 0;
+        unsigned char pcx[16], *p = pcx + 15; *p = 0;
         uint8_t neg = 0;
-    uint64_t m = n; // to correct care -0
+        uint64_t m = n; // to correct care -0
         if(n < 0)
           m = -n, neg = 0x80;
         while(m) {
@@ -148,28 +148,28 @@ public:
         if((signed char)*p < 0)
           *--p = neg;
         *p |= neg;
-    n = pcx + 15 - p;
+         n = pcx + 15 - p;
         *--p = n;
-    *--p = 0;
-    *--p = 0;
-    *--p = 0;
+        *--p = 0;
+        *--p = 0;
+        *--p = 0;
         BN_mpi2bn(p, pcx + 15 - p, self);
     }
 
     void setuint64(uint64_t n)
     {
-    unsigned char pcx[16], *p = pcx + 15; *p = 0;
+        unsigned char pcx[16], *p = pcx + 15; *p = 0;
         while(n) {
           *--p = n;
           n >>= 8;
         }
         if((signed char)*p < 0)
           *--p = 0;
-    n = pcx + 15 - p;
+        n = pcx + 15 - p;
         *--p = n;
-    *--p = 0;
-    *--p = 0;
-    *--p = 0;
+        *--p = 0;
+        *--p = 0;
+        *--p = 0;
         BN_mpi2bn(p, pcx + 15 - p, self);
     }
 
