@@ -130,11 +130,12 @@ public:
     {
 	unsigned char pcx[16], *p = pcx + 15; *p = 0;
         uint8_t neg = 0;
+	uint64_t m = n; // to correct care -0
         if(n < 0)
-          n = -n, neg = 0x80;
-        while(n) {
-          *--p = n;
-          n >>= 8;
+          m = -n, neg = 0x80;
+        while(m) {
+          *--p = m;
+          m >>= 8;
         }
         if((signed char)*p < 0)
           *--p = neg;
