@@ -815,9 +815,14 @@ void PoSMiner(CWallet *pwallet)
 
         while (true) {
             while (pwallet->IsLocked()) {
-                strMintWarning = strMintMessage;
-                MilliSleep(5000);
+                if (strMintWarning != strMintMessage) {
+                    strMintWarning = strMintMessage;
+                    uiInterface.NotifyAlertChanged(uint256(), CT_UPDATED);
+                }
+                MilliSleep(3000);
             }
+            strMintWarning = "";  // clear locked wallet warning
+            uiInterface.NotifyAlertChanged(uint256(), CT_UPDATED);
             if (Params().MiningRequiresPeers()) {
                 // Busy-wait for the network to come online so we don't waste time mining
                 // on an obsolete chain. In regtest mode we expect to fly solo.

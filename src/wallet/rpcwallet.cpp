@@ -21,6 +21,8 @@
 #include "wallet.h"
 #include "walletdb.h"
 
+#include "warnings.h"
+
 #include <stdint.h>
 
 #include <boost/assign/list_of.hpp>
@@ -1994,6 +1996,10 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
 
     UniValue ret(UniValue::VOBJ);
     ret.push_back(Pair("mint only", fWalletUnlockMintOnly));
+
+    // clear locked wallet mint warning
+    strMintWarning = "";
+    uiInterface.NotifyAlertChanged(uint256(), CT_UPDATED);
 
     return ret;
 }
