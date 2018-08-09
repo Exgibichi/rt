@@ -878,8 +878,8 @@ UniValue getauxblock(const JSONRPCRequest& request)
         UniValue result(UniValue::VOBJ);
         result.push_back(Pair("target", HexStr(BEGIN(hashTarget), END(hashTarget))));
         result.push_back(Pair("hash", pblock->GetHash().GetHex()));
-
         result.push_back(Pair("chainid", pblock->GetChainID()));
+        result.push_back(Pair("bits", strprintf("%08x", pblock->nBits)));
         return result;
     }
     else
