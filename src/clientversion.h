@@ -20,7 +20,7 @@
 
 #define EMERCOIN_VERSION_MAJOR 0
 #define EMERCOIN_VERSION_MINOR 7
-#define EMERCOIN_VERSION_REVISION 0
+#define EMERCOIN_VERSION_REVISION 1
 
 #define CLIENT_VERSION_BUILD 0
 
@@ -31,7 +31,7 @@
  * Copyright year (2009-this)
  * Todo: update this when changing our copyright comments in the source
  */
-#define COPYRIGHT_YEAR 2017
+#define COPYRIGHT_YEAR 2018
 
 #endif //HAVE_CONFIG_H
 
