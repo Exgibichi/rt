@@ -506,7 +506,7 @@ uint16_t EmcDns::HandleQuery() {
   *--key_end = 0; // Remove last dot, set EOLN
 
   if(!CheckDAP(quasiIP, 0)) {
-    if(m_verbose > 5)
+    if(m_verbose > 2)
       LogPrintf("\tEmcDns::HandleQuery: Aborted domain %s by DAP\n", key);
     return 0xDead; // Botnet detected, abort query processing
   }
