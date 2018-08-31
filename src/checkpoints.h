@@ -26,7 +26,7 @@ namespace Checkpoints
 
 //! Returns last CBlockIndex* in mapBlockIndex that is a checkpoint
 CBlockIndex* GetLastCheckpoint(const CCheckpointData& data);
-
+bool ValidateBlockHeader(const CCheckpointData& data, int nHeight, const uint256& hash);
 } //namespace Checkpoints
 
 namespace CheckpointsSync

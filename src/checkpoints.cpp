@@ -22,7 +22,7 @@
 std::string strMasterPubKey = "";
 
 namespace Checkpoints {
-
+#if 0
     CBlockIndex* GetLastCheckpoint(const CCheckpointData& data)
     {
         const MapCheckpoints& checkpoints = data.mapCheckpoints;
@@ -35,6 +35,15 @@ namespace Checkpoints {
                 return t->second;
         }
         return NULL;
+    }
+#endif
+    bool ValidateBlockHeader(const CCheckpointData& data, int nHeight, const uint256& hash) {
+        const MapCheckpoints& checkpoints = data.mapCheckpoints;
+        MapCheckpoints::const_iterator cpit = checkpoints.upper_bound(nHeight - 1);
+        return (cpit->first == nHeight)?
+            hash == cpit->second
+            :
+            cpit == checkpoints.end() || mapBlockIndex.find(cpit->second) == mapBlockIndex.end();
     }
 
 } // namespace Checkpoints
