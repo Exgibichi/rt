@@ -967,49 +967,109 @@ UniValue createrandpayaddr(const JSONRPCRequest& request)
     return result;
 }
 
-UniValue createrandpaytx(const JSONRPCRequest& request)
+UniValue randpay_createaddrchap(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() < 1 || request.params.size() > 4)
+    if (request.fHelp || request.params.size() != 2)
         throw runtime_error(
-            "createrandpaytx \"addrhex\" amount ( timio=60 ) ( veraddr=true )\n"
-            "\nGenerates privkey and correcponding address. Command does not change anything in the wallet or databases.\n"
+            "randpay_createaddrchap probability timio\n"
+            "\nCreates privkey/pubkey pair for given probability. Does not write anything into wallet.dat.\n"
             "\nArguments:\n"
-            "1. \"addrhex\"     (string, required) Raw 160-bit hex of address (binary, without checksum, result of MD4 of pubkey).\n"
-            "2. amount          (numeric, optional) Amount of emc to send.\n"
-            "3. timio           (numeric, optional) Mark all used input UTXOs as \"blocked\" for timio seconds, to prevent possible double spend.\n"
-            "4. veraddr         (boolean, optional) Set vin[0] to 0:0.\n"
+            "1. probability   (numeric, required) Probability of success for random payments.\n"
+            "2. timio         (numeric, required) ?\n"
             "\nResult:\n"
-            "\"transaction\"    (string) Hex string of the transaction.\n"
+            "\"addrchap\"     (string) ?\n"
             //emc add examples:
             //"\nExamples:\n"
-            //"\nCreate an address\n"
-            //+ HelpExampleCli("createrandpayaddr", "") +
+            //"\nCreate a priv/pubkey pair\n"
+            //+ HelpExampleCli("randpay_createaddrchap", "") +
         );
 
+    // commeted to remove compiler warnings
+//    if (!request.params[0].isNum())
+//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. probability parameter must be numeric.");
+//    uint32_t nProbability = request.params[0].get_int();
+
+//    if (!request.params[1].isNum())
+//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. timio parameter must be numeric.");
+//    int32_t nTimio = request.params[1].get_int();
+
+    UniValue result(UniValue::VOBJ);
+
     //emc implement this command
-    return "";
+
+    return result;
 }
 
-UniValue sendrandpaytx(const JSONRPCRequest& request)
+UniValue randpay_createtx(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() < 2 || request.params.size() > 3)
+    if (request.fHelp || request.params.size() != 4)
         throw runtime_error(
-            "createrandpaytx \"hexstring\" \"privkey\" ( \"encryptionkey\" )\n"
-            "\nGenerates privkey and correcponding address. Command does not change anything in the wallet or databases.\n"
+            "randpay_createtx amount \"addrchap\" probability timio\n"
+            "\nCreates randpay tx\n"
             "\nArguments:\n"
-            "1. \"hexstring\"      (string, required) The hex string of the randpay transaction).\n"
-            "2. \"privkey\"        (string, required) .\n"
-            "3. \"encryptionkey\"  (string, optional) Decode privkey with specified encryption key.\n"
+            "1. amount         (numeric, required) Amount of emc to send.\n"
+            "2. \"addrchap\"   (string, required) ?\n"
+            "3. probability    (numeric, required) Probability of success for random payments.\n"
+            "4. timio          (numeric, required) Locks utxo from being spent in another tx for timio seconds.\n"
             "\nResult:\n"
-            "\"transaction\"    (string) hex string of the transaction\n"
+            "\"transaction\"   (string) Hex string of the transaction.\n"
             //emc add examples:
             //"\nExamples:\n"
-            //"\nCreate an address\n"
-            //+ HelpExampleCli("createrandpayaddr", "") +
+            //"\nCreate randpay tx\n"
+            //+ HelpExampleCli("randpay_createtx", "") +
         );
 
+    // commeted to remove compiler warnings
+//    CAmount nAmount = AmountFromValue(request.params[0]);
+//    if (nAmount <= 0)
+//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for send");
+
+//    vector<unsigned char> addrchap(ParseHexV(request.params[1], "addrchap"));
+
+//    if (!request.params[2].isNum())
+//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. probability parameter must be numeric.");
+//    uint32_t nProbability = request.params[2].get_int();
+
+//    if (!request.params[3].isNum())
+//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. timio parameter must be numeric.");
+//    int32_t nTimio = request.params[3].get_int();
+
+    UniValue result(UniValue::VOBJ);
+
     //emc implement this command
-    return "";
+
+    return result;
+}
+
+UniValue randpay_submittx(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 2)
+        throw runtime_error(
+            "createrandpaytx \"hexstring\" probability\n"
+            "\nVerifies and submits randpaytx.\n"
+            "\nArguments:\n"
+            "1. \"hexstring\"     (string, required) The hex string of the randpay transaction).\n"
+            "2. probability       (numeric, required) Probability of success for random payments.\n"
+            "\nResult:\n"
+            "\"transaction\"      (string) Hex string of the transaction\n"
+            //emc add examples:
+            //"\nExamples:\n"
+            //"\Send randpay tx\n"
+            //+ HelpExampleCli("randpay_submittx", "") +
+        );
+
+    // commeted to remove compiler warnings
+//    vector<unsigned char> hexstring(ParseHexV(request.params[0], "hexstring"));
+
+//    if (!request.params[1].isNum())
+//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. probability parameter must be numeric.");
+//    uint32_t nProbability = request.params[1].get_int();
+
+    UniValue result(UniValue::VOBJ);
+
+    //emc implement this command
+
+    return result;
 }
 
 static const CRPCCommand commands[] =
@@ -1023,9 +1083,9 @@ static const CRPCCommand commands[] =
     { "rawtransactions",    "signrawtransaction",     &signrawtransaction,     false, {"hexstring","prevtxs","privkeys","sighashtype"} }, /* uses wallet if enabled */
 
     // emercoin: randpay commands
-    { "hidden",    "createrandpayaddr",               &createrandpayaddr,      true,  {"encryptionkey"} },
-    { "hidden",    "createrandpaytx",                 &createrandpaytx,        true,  {"addrhex","amount","timio","veraddr"} },
-    { "hidden",    "submitrandpaytx",                 &sendrandpaytx,          false, {"hexstring","privkey","encryptionkey"} },
+    { "hidden",    "randpay_createaddrchap",          &randpay_createaddrchap, true,  {"probability","timio"} },
+    { "hidden",    "randpay_createtx",                &randpay_createtx,       true,  {"amount","addrchap","probability","timio"} },
+    { "hidden",    "randpay_submittx",                &randpay_submittx,       false, {"hexstring","probability"} },
 
     { "blockchain",         "gettxoutproof",          &gettxoutproof,          true,  {"txids", "blockhash"} },
     { "blockchain",         "verifytxoutproof",       &verifytxoutproof,       true,  {"proof"} },
