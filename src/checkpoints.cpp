@@ -22,7 +22,7 @@
 std::string strMasterPubKey = "";
 
 namespace Checkpoints {
-#if 0
+#if 1
     CBlockIndex* GetLastCheckpoint(const CCheckpointData& data)
     {
         const MapCheckpoints& checkpoints = data.mapCheckpoints;

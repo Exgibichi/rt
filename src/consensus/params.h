@@ -26,6 +26,8 @@ struct Params {
     int BIP66Height;
     /** Block height at which merged mining becomes active */
     int MMHeight;
+    /** Block height at which V7 rules becomes active */
+    int V7Height;
     /** Proof of work parameters */
     uint256 powLimit;
     bool fPowAllowMinDifficultyBlocks;

@@ -1254,16 +1254,6 @@ CAmount GetProofOfWorkReward(unsigned int nBits, bool fV7Enabled)
     return min(nSubsidy, MAX_MINT_PROOF_OF_WORK);
 }
 
-// ppcoin: miner's coin stake is rewarded based on coin age spent (coin-days)
-CAmount GetProofOfStakeReward(int64_t nCoinAge)
-{
-    static int64_t nRewardCoinYear = 6 * CENT;  // creation amount per coin-year
-    int64_t nSubsidy = nCoinAge * 33 / (365 * 33 + 8) * nRewardCoinYear;
-    if (fDebug && GetBoolArg("-printcreation", false))
-        LogPrintf("GetProofOfStakeReward(): create=%s nCoinAge=%lld\n", FormatMoney(nSubsidy), nCoinAge);
-    return nSubsidy;
-}
-
 bool IsInitialBlockDownload()
 {
     const CChainParams& chainParams = Params();
@@ -1509,18 +1499,8 @@ bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoins
     {
         // ppcoin: coin stake tx earns reward instead of paying fee
         CAmount nLimit = 0;
-        if (fV7Enabled)
-        {
-            if (!GetEmc7POSReward(tx, inputs, nLimit))
-                return error("CheckTxInputs() : %s unable to get coin reward for coinstake", tx.GetHash().ToString());
-        }
-        else
-        {
-            uint64_t nCoinAge;
-            if (!GetCoinAge(tx, inputs, nCoinAge))
-                return error("CheckTxInputs() : %s unable to get coin age for coinstake", tx.GetHash().ToString());
-            nLimit = GetProofOfStakeReward(nCoinAge);
-        }
+        if (!GetEmc7POSReward(tx, inputs, nLimit))
+            return error("CheckTxInputs() : %s unable to get coin reward for coinstake", tx.GetHash().ToString());
         CAmount nStakeReward = tx.GetValueOut() - nValueIn;
         if (nStakeReward > nLimit - tx.GetMinFee() + MIN_TX_FEE)
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-coinstake-too-large");
@@ -1916,7 +1896,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     int64_t nTimeStart = GetTimeMicros();
 
     // Check it again in case a previous version let a bad block in
-    bool fV7Enabled = block.GetBlockVersion() >= 7 && IsV7Enabled(pindex->pprev, chainparams.GetConsensus());
+    bool fV7Enabled = IsV7Enabled(pindex->pprev, chainparams.GetConsensus());
     if (!CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck, !fJustCheck))
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
 
@@ -2890,7 +2870,7 @@ bool ReceivedBlockTransactions(const CBlock &block, CValidationState& state, CBl
     pindexNew->nDataPos = pos.nPos;
     pindexNew->nUndoPos = 0;
     pindexNew->nStatus |= BLOCK_HAVE_DATA;
-    if (block.nVersion >= 7 && IsV7Enabled(pindexNew->pprev, Params().GetConsensus())) {
+    if (IsV7Enabled(pindexNew->pprev, Params().GetConsensus())) {
         pindexNew->nStatus |= BLOCK_OPT_WITNESS;
     }
     pindexNew->RaiseValidity(BLOCK_VALID_TRANSACTIONS);
@@ -3124,7 +3104,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 
 static bool CheckIndexAgainstCheckpoint(const CBlockIndex* pindexPrev, CValidationState& state, const CChainParams& chainparams, const uint256& hash)
 {
-#if 1    
+#if 0
     return Checkpoints::ValidateBlockHeader(chainparams.Checkpoints(), pindexPrev->nHeight + 1, hash) ||
            state.DoS(100, error("%s: forked chain older than last checkpoint (height %d)", __func__, pindexPrev->nHeight + 1));
 #else
@@ -3144,8 +3124,7 @@ static bool CheckIndexAgainstCheckpoint(const CBlockIndex* pindexPrev, CValidati
 /** Check whether witness commitments, BIP68, BIP112 and BIP113 are required for block. */
 bool IsV7Enabled(const CBlockIndex* pindexPrev, const Consensus::Params& params)
 {
-    AssertLockHeld(cs_main);
-    return CBlockIndex::IsSuperMajority(7, pindexPrev, params.nRejectBlockOutdatedMajority, params);
+    return pindexPrev ? pindexPrev->nHeight+1 >= params.V7Height : false;
 }
 
 // Compute at which vout of the block's coinbase transaction the witness
@@ -3235,7 +3214,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
        (block.GetBlockVersion() < 3 && nHeight >= consensusParams.BIP66Height) ||
        (block.GetBlockVersion() < 4 && nHeight >= consensusParams.BIP65Height) ||
        (block.GetBlockVersion() < 5 && nHeight >= consensusParams.MMHeight) ||
-       (block.GetBlockVersion() < 7 && IsV7Enabled(pindexPrev, consensusParams)))
+       (block.GetBlockVersion() < 7 && nHeight >= consensusParams.V7Height))
             return state.DoS(100, false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
                              false, strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
@@ -3254,7 +3233,7 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
 
     // Start enforcing BIP113 (Median Time Past)
     int nLockTimeFlags = 0;
-    bool fV7Enabled = block.GetBlockVersion() >= 7 && IsV7Enabled(pindexPrev, consensusParams);
+    bool fV7Enabled = IsV7Enabled(pindexPrev, consensusParams);
 
     // Check coinbase reward
     CAmount powLimit = block.IsProofOfWork() ? GetProofOfWorkReward(block.nBits, fV7Enabled) - block.vtx[0]->GetMinFee() + MIN_TX_FEE : 0;
@@ -4656,76 +4635,6 @@ public:
     }
 } instance_of_cmaincleanup;
 
-
-
-
-
-// ppcoin: total coin age spent in transaction, in the unit of coin-days.
-// Only those coins meeting minimum age requirement counts. As those
-// transactions not in main chain are not currently indexed so we
-// might not find out about their coin age. Older transactions are
-// guaranteed to be in main chain by sync-checkpoint. This rule is
-// introduced to help nodes establish a consistent view of the coin
-// age (trust score) of competing branches.
-bool GetCoinAge(const CTransaction& tx, const CCoinsViewCache &view, uint64_t& nCoinAge)
-{
-    arith_uint256 bnCentSecond = 0;  // coin age in the unit of cent-seconds
-    nCoinAge = 0;
-
-    if (tx.IsCoinBase())
-        return true;
-
-    for (const auto& txin : tx.vin)
-    {
-        // First try finding the previous transaction in database
-        const COutPoint &prevout = txin.prevout;
-        CCoins coins;
-
-        if (!view.GetCoins(prevout.hash, coins))
-            continue;  // previous transaction not in main chain
-        if (tx.nTime < coins.nTime)
-            return false;  // Transaction timestamp violation
-
-        // Transaction index is required to get to block header
-        if (!fTxIndex)
-            return false;  // Transaction index not available
-
-        CDiskTxPos postx;
-        CTransactionRef txPrev;
-        if (pblocktree->ReadTxIndex(prevout.hash, postx))
-        {
-            CAutoFile file(OpenBlockFile(postx, true), SER_DISK, CLIENT_VERSION);
-            CBlockHeader header;
-            try {
-                file >> header;
-                fseek(file.Get(), postx.nTxOffset, SEEK_CUR);
-                file >> txPrev;
-            } catch (std::exception &e) {
-                return error("%s() : deserialize or I/O error in GetCoinAge()", __PRETTY_FUNCTION__);
-            }
-            if (txPrev->GetHash() != prevout.hash)
-                return error("%s() : txid mismatch in GetCoinAge()", __PRETTY_FUNCTION__);
-
-            if (header.GetBlockTime() + Params().GetConsensus().nStakeMinAge > tx.nTime)
-                continue; // only count coins meeting min age requirement
-
-            int64_t nValueIn = txPrev->vout[txin.prevout.n].nValue;
-            bnCentSecond += arith_uint256(nValueIn) * (tx.nTime-txPrev->nTime) / CENT;
-
-            if (fDebug && GetBoolArg("-printcoinage", false))
-                LogPrintf("coin age nValueIn=%-12lld nTimeDiff=%d bnCentSecond=%s\n", nValueIn, tx.nTime - txPrev->nTime, bnCentSecond.ToString());
-        }
-        else
-            return error("%s() : tx missing in tx index in GetCoinAge()", __PRETTY_FUNCTION__);
-    }
-
-    arith_uint256 bnCoinDay = bnCentSecond * CENT / COIN / (24 * 60 * 60);
-    if (fDebug && GetBoolArg("-printcoinage", false))
-        LogPrintf("coin age bnCoinDay=%s\n", bnCoinDay.ToString());
-    nCoinAge = bnCoinDay.GetLow64();
-    return true;
-}
-
 // combination of GetCoinAge() and GetProofOfStakeReward()
 bool GetEmc7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmount &nReward)
 {
@@ -4771,9 +4680,9 @@ bool GetEmc7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmou
                 continue; // only count coins meeting min age requirement
 
             int64_t nValueIn = txPrev->vout[txin.prevout.n].nValue;
-	    int64_t dt = tx.nTime - txPrev->nTime;
-	    if(dt < 0)
-	        return false; // Sanity check to preserve value overflow
+            int64_t dt = tx.nTime - txPrev->nTime;
+            if (dt < 0)
+                return false; // Sanity check to preserve value overflow
             bnSatSecond += arith_uint256(nValueIn) * dt;
 
             if (fDebug && GetBoolArg("-printcoinage", false))
@@ -4821,7 +4730,7 @@ bool SelectPubkeyForBlockSigning(const CBlock& block, vector<valtype>& vSolution
 bool SignBlock(CBlock& block, const CKeyStore& keystore)
 {
     vector<valtype> vSolutions;
-    bool fV7Enabled = chainActive.Tip()->GetBlockVersion() >= 7 && IsV7Enabled(chainActive.Tip(), Params().GetConsensus());
+    bool fV7Enabled = IsV7Enabled(chainActive.Tip(), Params().GetConsensus());
     if (!SelectPubkeyForBlockSigning(block, vSolutions, fV7Enabled))
         return false;
 

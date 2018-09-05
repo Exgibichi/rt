@@ -291,7 +291,6 @@ bool ActivateBestChain(CValidationState& state, const CChainParams& chainparams,
 
 // emercoin: reward for blocks
 CAmount GetProofOfWorkReward(unsigned int nBits, bool fV7Enabled);
-CAmount GetProofOfStakeReward(int64_t nCoinAge);
 
 /** Guess verification progress (as a fraction between 0.0=genesis and 1.0=current tip). */
 double GuessVerificationProgress(const ChainTxData& data, CBlockIndex* pindex);
@@ -578,7 +577,6 @@ void DumpMempool();
 bool LoadMempool();
 
 // ppcoin:
-bool GetCoinAge(const CTransaction& tx, const CCoinsViewCache &view, uint64_t& nCoinAge);
 bool GetEmc7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmount &nReward);
 bool SignBlock(CBlock& block, const CKeyStore& keystore);
 bool CheckBlockSignature(const CBlock& block, bool fV7Enabled);

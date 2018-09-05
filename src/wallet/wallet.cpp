@@ -3084,18 +3084,8 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     {
         CAmount nReward = 0;
         CCoinsViewCache view(pcoinsTip);
-        if (fV7Enabled)
-        {
-            if (!GetEmc7POSReward(txNew, view, nReward))
-                return error("CreateCoinStake() : %s unable to get coin reward for coinstake", txNew.GetHash().ToString());
-        }
-        else
-        {
-            uint64_t nCoinAge;
-            if (!GetCoinAge(txNew, view, nCoinAge))
-                return error("CreateCoinStake : failed to calculate coin age");
-            nReward = GetProofOfStakeReward(nCoinAge);
-        }
+        if (!GetEmc7POSReward(txNew, view, nReward))
+            return error("CreateCoinStake() : %s unable to get coin reward for coinstake", txNew.GetHash().ToString());
         if (nReward <= 10 * TX_DP_AMOUNT)
             return false; // Prevent extra small UTXO
         nCredit += nReward;
