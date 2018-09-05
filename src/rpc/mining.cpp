@@ -1042,7 +1042,7 @@ static const CRPCCommand commands[] =
     { "mining",             "getauxblock",            &getauxblock,            true,  {"hash","auxpow"} },
 
     { "generating",         "getgenerate",            &getgenerate,            true,  {} },
-    { "generating",         "setgenerate",            &setgenerate,            true,  {"genproclimit"} },
+    { "generating",         "setgenerate",            &setgenerate,            true,  {"generate", "genproclimit"} },
     { "generating",         "generate",               &generate,               true,  {"nblocks","maxtries"} },
     { "generating",         "generatetoaddress",      &generatetoaddress,      true,  {"nblocks","address","maxtries"} },
 
