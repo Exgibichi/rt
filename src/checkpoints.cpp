@@ -22,30 +22,16 @@
 std::string strMasterPubKey = "";
 
 namespace Checkpoints {
-#if 1
-    CBlockIndex* GetLastCheckpoint(const CCheckpointData& data)
-    {
-        const MapCheckpoints& checkpoints = data.mapCheckpoints;
-
-        BOOST_REVERSE_FOREACH(const MapCheckpoints::value_type& i, checkpoints)
-        {
-            const uint256& hash = i.second;
-            BlockMap::const_iterator t = mapBlockIndex.find(hash);
-            if (t != mapBlockIndex.end())
-                return t->second;
-        }
-        return NULL;
-    }
-#endif
     bool ValidateBlockHeader(const CCheckpointData& data, int nHeight, const uint256& hash) {
         const MapCheckpoints& checkpoints = data.mapCheckpoints;
         MapCheckpoints::const_iterator cpit = checkpoints.upper_bound(nHeight - 1);
+        if (cpit == checkpoints.end())
+            return true;
         return (cpit->first == nHeight)?
             hash == cpit->second
             :
-            cpit == checkpoints.end() || mapBlockIndex.find(cpit->second) == mapBlockIndex.end();
+            mapBlockIndex.find(cpit->second) == mapBlockIndex.end();
     }
-
 } // namespace Checkpoints
 
 

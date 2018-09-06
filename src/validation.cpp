@@ -3105,21 +3105,8 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 
 static bool CheckIndexAgainstCheckpoint(const CBlockIndex* pindexPrev, CValidationState& state, const CChainParams& chainparams, const uint256& hash)
 {
-#if 0
     return Checkpoints::ValidateBlockHeader(chainparams.Checkpoints(), pindexPrev->nHeight + 1, hash) ||
            state.DoS(100, error("%s: forked chain older than last checkpoint (height %d)", __func__, pindexPrev->nHeight + 1));
-#else
-    if (*pindexPrev->phashBlock == chainparams.GetConsensus().hashGenesisBlock)
-        return true;
-
-    int nHeight = pindexPrev->nHeight+1;
-    // Don't accept any forks from the main chain prior to last checkpoint
-    CBlockIndex* pcheckpoint = Checkpoints::GetLastCheckpoint(chainparams.Checkpoints());
-    if (pcheckpoint && nHeight < pcheckpoint->nHeight)
-        return state.DoS(100, error("%s: forked chain older than last checkpoint (height %d)", __func__, nHeight));
-
-    return true;
-#endif
 }
 
 /** Check whether witness commitments, BIP68, BIP112 and BIP113 are required for block. */
