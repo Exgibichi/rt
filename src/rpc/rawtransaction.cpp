@@ -1001,7 +1001,8 @@ UniValue randpay_createaddrchap(const JSONRPCRequest& request)
         X = arith_uint256(key.GetPubKey().GetID().ToString());  // class CKeyID : public uint160
     } while (X >= barrier);
 
-    RandPayMap[barrier] = std::make_tuple(key.GetPrivKey(), key.GetPubKey(), nTimio);
+    // RandPayMap need to be cleared before shutdown to prevent crash
+//    RandPayMap[barrier] = std::make_tuple(key.GetPrivKey(), key.GetPubKey(), nTimio);
 
     return (X / nRisk).ToString();
 }
