@@ -789,7 +789,8 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
             return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "insufficient priority");
         }
 
-        if (nAbsurdFee && nFees > nAbsurdFee && !isNameTx)
+        // emercoin: MIN_TXOUT_AMOUNT was added because of weird behavior of CreateTransactionInner that can add sub-subcents on top of absurd fee.
+        if (nAbsurdFee && nFees > nAbsurdFee + MIN_TXOUT_AMOUNT && !isNameTx)
             return state.Invalid(false,
                 REJECT_HIGHFEE, "absurdly-high-fee",
                 strprintf("%d > %d", nFees, nAbsurdFee));
