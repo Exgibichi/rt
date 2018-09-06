@@ -2297,7 +2297,7 @@ UniValue settxfee(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp || request.params.size() < 1 || request.params.size() > 1 || AmountFromValue(request.params[0]) < MIN_TX_FEE)
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 1 || AmountFromValue(request.params[0]) < (MIN_TX_FEE/10))
         throw runtime_error(
             "settxfee amount\n"
             "\nSet the transaction fee per kB. Overwrites the paytxfee parameter.\n"
