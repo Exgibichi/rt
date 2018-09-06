@@ -957,47 +957,53 @@ UniValue createrandpayaddr(const JSONRPCRequest& request)
     CKey key;
     key.MakeNewKey(true);
 
-    CPrivKey vchPrivKey = key.GetPrivKey();
+    CPrivKey privKey = key.GetPrivKey();
     CKeyID keyID = key.GetPubKey().GetID();
     UniValue result(UniValue::VOBJ);
 
     result.push_back(Pair("address", CBitcoinAddress(keyID).ToString()));
     result.push_back(Pair("addrhex", HexStr(keyID)));
-    result.push_back(Pair("privkey", HexStr<CPrivKey::iterator>(vchPrivKey.begin(), vchPrivKey.end())));
+    result.push_back(Pair("privkey", HexStr<CPrivKey::iterator>(privKey.begin(), privKey.end())));
     return result;
 }
+
+std::map<arith_uint256, std::tuple<CPrivKey, CPubKey, int32_t>> RandPayMap;
 
 UniValue randpay_createaddrchap(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 2)
         throw runtime_error(
             "randpay_createaddrchap risk timio\n"
-            "\nCreates privkey/pubkey pair for given risk. Does not write anything into wallet.dat.\n"
+            "\nCreates privkey/pubkey pair for a given risk. Does not write anything into wallet.dat.\n"
             "\nArguments:\n"
-            "1. risk          (numeric, required) 1 / Probability of success for random payments.\n"
+            "1. risk          (numeric, required) 1 / probability of success for random payments.\n"
             "2. timio         (numeric, required) ?\n"
             "\nResult:\n"
-            "\"addrchap\"     (string) ?\n"
+            "\"addrchap\"     (string) Challenge packet that needs to be solved.\n"
             //emc add examples:
             //"\nExamples:\n"
             //"\nCreate a priv/pubkey pair\n"
             //+ HelpExampleCli("randpay_createaddrchap", "") +
         );
 
-    // commeted to remove compiler warnings
-//    if (!request.params[0].isNum())
-//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. risk parameter must be numeric.");
-//    uint32_t nRisk = request.params[0].get_int();
+    if (!request.params[0].isNum())
+        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. risk parameter must be numeric.");
+    uint32_t nRisk = request.params[0].get_int();
 
-//    if (!request.params[1].isNum())
-//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. timio parameter must be numeric.");
-//    int32_t nTimio = request.params[1].get_int();
+    if (!request.params[1].isNum())
+        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. timio parameter must be numeric.");
+    int32_t nTimio = request.params[1].get_int();
 
-    UniValue result(UniValue::VOBJ);
+    arith_uint256 barrier = ((arith_uint256(1) << 160) / nRisk) * nRisk;
+    CKey key; arith_uint256 X;
+    do {
+        key.MakeNewKey(true);
+        X = arith_uint256(key.GetPubKey().GetID().ToString());  // class CKeyID : public uint160
+    } while (X >= barrier);
 
-    //emc implement this command
+    RandPayMap[barrier] = std::make_tuple(key.GetPrivKey(), key.GetPubKey(), nTimio);
 
-    return result;
+    return (X / nRisk).ToString();
 }
 
 UniValue randpay_createtx(const JSONRPCRequest& request)
@@ -1005,11 +1011,11 @@ UniValue randpay_createtx(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() != 4)
         throw runtime_error(
             "randpay_createtx amount \"addrchap\" risk timio\n"
-            "\nCreates randpay tx\n"
+            "\nCreates randpay tx.\n"
             "\nArguments:\n"
             "1. amount         (numeric, required) Amount of emc to send.\n"
             "2. \"addrchap\"   (string, required)  ?\n"
-            "3. risk           (numeric, required) 1 / Probability of success for random payments.\n"
+            "3. risk           (numeric, required) 1 / probability of success for random payments.\n"
             "4. timio          (numeric, required) Locks utxo from being spent in another tx for timio seconds.\n"
             "\nResult:\n"
             "\"transaction\"   (string) Hex string of the transaction.\n"
@@ -1048,8 +1054,8 @@ UniValue randpay_submittx(const JSONRPCRequest& request)
             "createrandpaytx \"hexstring\" risk\n"
             "\nVerifies and submits randpaytx.\n"
             "\nArguments:\n"
-            "1. \"hexstring\"     (string, required)  The hex string of the randpay transaction).\n"
-            "2. risk              (numeric, required) 1 / Probability of success for random payments.\n"
+            "1. \"hexstring\"     (string, required)  The hex string of the randpay transaction.\n"
+            "2. risk              (numeric, required) 1 / probability of success for random payments.\n"
             "\nResult:\n"
             "\"transaction\"      (string) Hex string of the transaction\n"
             //emc add examples:
