@@ -971,10 +971,10 @@ UniValue randpay_createaddrchap(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 2)
         throw runtime_error(
-            "randpay_createaddrchap probability timio\n"
-            "\nCreates privkey/pubkey pair for given probability. Does not write anything into wallet.dat.\n"
+            "randpay_createaddrchap risk timio\n"
+            "\nCreates privkey/pubkey pair for given risk. Does not write anything into wallet.dat.\n"
             "\nArguments:\n"
-            "1. probability   (numeric, required) Probability of success for random payments.\n"
+            "1. risk          (numeric, required) 1 / Probability of success for random payments.\n"
             "2. timio         (numeric, required) ?\n"
             "\nResult:\n"
             "\"addrchap\"     (string) ?\n"
@@ -986,8 +986,8 @@ UniValue randpay_createaddrchap(const JSONRPCRequest& request)
 
     // commeted to remove compiler warnings
 //    if (!request.params[0].isNum())
-//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. probability parameter must be numeric.");
-//    uint32_t nProbability = request.params[0].get_int();
+//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. risk parameter must be numeric.");
+//    uint32_t nRisk = request.params[0].get_int();
 
 //    if (!request.params[1].isNum())
 //        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. timio parameter must be numeric.");
@@ -1004,12 +1004,12 @@ UniValue randpay_createtx(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 4)
         throw runtime_error(
-            "randpay_createtx amount \"addrchap\" probability timio\n"
+            "randpay_createtx amount \"addrchap\" risk timio\n"
             "\nCreates randpay tx\n"
             "\nArguments:\n"
             "1. amount         (numeric, required) Amount of emc to send.\n"
-            "2. \"addrchap\"   (string, required) ?\n"
-            "3. probability    (numeric, required) Probability of success for random payments.\n"
+            "2. \"addrchap\"   (string, required)  ?\n"
+            "3. risk           (numeric, required) 1 / Probability of success for random payments.\n"
             "4. timio          (numeric, required) Locks utxo from being spent in another tx for timio seconds.\n"
             "\nResult:\n"
             "\"transaction\"   (string) Hex string of the transaction.\n"
@@ -1027,8 +1027,8 @@ UniValue randpay_createtx(const JSONRPCRequest& request)
 //    vector<unsigned char> addrchap(ParseHexV(request.params[1], "addrchap"));
 
 //    if (!request.params[2].isNum())
-//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. probability parameter must be numeric.");
-//    uint32_t nProbability = request.params[2].get_int();
+//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. risk parameter must be numeric.");
+//    uint32_t nRisk = request.params[2].get_int();
 
 //    if (!request.params[3].isNum())
 //        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. timio parameter must be numeric.");
@@ -1045,11 +1045,11 @@ UniValue randpay_submittx(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 2)
         throw runtime_error(
-            "createrandpaytx \"hexstring\" probability\n"
+            "createrandpaytx \"hexstring\" risk\n"
             "\nVerifies and submits randpaytx.\n"
             "\nArguments:\n"
-            "1. \"hexstring\"     (string, required) The hex string of the randpay transaction).\n"
-            "2. probability       (numeric, required) Probability of success for random payments.\n"
+            "1. \"hexstring\"     (string, required)  The hex string of the randpay transaction).\n"
+            "2. risk              (numeric, required) 1 / Probability of success for random payments.\n"
             "\nResult:\n"
             "\"transaction\"      (string) Hex string of the transaction\n"
             //emc add examples:
@@ -1062,8 +1062,8 @@ UniValue randpay_submittx(const JSONRPCRequest& request)
 //    vector<unsigned char> hexstring(ParseHexV(request.params[0], "hexstring"));
 
 //    if (!request.params[1].isNum())
-//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. probability parameter must be numeric.");
-//    uint32_t nProbability = request.params[1].get_int();
+//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. risk parameter must be numeric.");
+//    uint32_t nRisk = request.params[1].get_int();
 
     UniValue result(UniValue::VOBJ);
 
@@ -1083,9 +1083,9 @@ static const CRPCCommand commands[] =
     { "rawtransactions",    "signrawtransaction",     &signrawtransaction,     false, {"hexstring","prevtxs","privkeys","sighashtype"} }, /* uses wallet if enabled */
 
     // emercoin: randpay commands
-    { "hidden",    "randpay_createaddrchap",          &randpay_createaddrchap, true,  {"probability","timio"} },
-    { "hidden",    "randpay_createtx",                &randpay_createtx,       true,  {"amount","addrchap","probability","timio"} },
-    { "hidden",    "randpay_submittx",                &randpay_submittx,       false, {"hexstring","probability"} },
+    { "hidden",    "randpay_createaddrchap",          &randpay_createaddrchap, true,  {"risk","timio"} },
+    { "hidden",    "randpay_createtx",                &randpay_createtx,       true,  {"amount","addrchap","risk","timio"} },
+    { "hidden",    "randpay_submittx",                &randpay_submittx,       false, {"hexstring","risk"} },
 
     { "blockchain",         "gettxoutproof",          &gettxoutproof,          true,  {"txids", "blockhash"} },
     { "blockchain",         "verifytxoutproof",       &verifytxoutproof,       true,  {"proof"} },
