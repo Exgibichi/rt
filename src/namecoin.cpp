@@ -5,27 +5,13 @@
 #include "base58.h"
 #include "txmempool.h"
 
-
-//#include "script/script.h"
-//#include "script/sign.h"
-//#include "wallet.h"
-//#include "rpcserver.h"
-//#include "txdb.h"
-
-//#include <boost/filesystem.hpp>
 #include <boost/format.hpp>
-//#include <boost/lexical_cast.hpp>
 #include <boost/xpressive/xpressive_dynamic.hpp>
 #include <fstream>
 
 using namespace std;
 
 map<CNameVal, set<uint256> > mapNamePending; // for pending tx
-
-// forward decls
-//extern string _(const char* psz);
-//extern map<uint256, CTransaction> mapTransactions;
-//extern CWallet* pwalletMain;
 
 class CNamecoinHooks : public CHooks
 {
