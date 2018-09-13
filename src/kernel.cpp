@@ -297,9 +297,12 @@ static bool GetKernelStakeModifier(uint256 hashBlockFrom, uint64_t& nStakeModifi
     static bool initCache = false;
     if (initCache == false)
     {
-        std::vector<COutput> vCoins;
-        pwalletMain->AvailableCoins(vCoins, false);
-        StakeModCache.Set(vCoins.size() + 1000);
+        if (pwalletMain) {
+            std::vector<COutput> vCoins;
+            pwalletMain->AvailableCoins(vCoins, false);
+            StakeModCache.Set(vCoins.size() + 1000);
+        } else
+            StakeModCache.Set(100);
         initCache = true;
     }
 

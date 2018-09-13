@@ -1392,7 +1392,7 @@ bool DecodeNameTx(const CTransactionRef& tx, NameTxInfo& nti, bool fExtractAddre
                 nti.strAddress = CBitcoinAddress(address).ToString();
 
                 // check if this is mine destination
-                if (fCheckIsMineAddress)
+                if (fCheckIsMineAddress && pwalletMain)
                     nti.fIsMine = IsMine(*pwalletMain, address) == ISMINE_SPENDABLE;
             }
 
