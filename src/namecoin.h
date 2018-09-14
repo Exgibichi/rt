@@ -9,6 +9,7 @@
 
 class CBitcoinAddress;
 class CKeyStore;
+struct NameIndexStats;
 
 static const unsigned int NAMEINDEX_CHAIN_SIZE = 1000;
 static const int RELEASE_HEIGHT = 1<<16;
@@ -93,6 +94,7 @@ public:
                 >
             > &nameScan);
     bool DumpToTextFile();
+    bool GetNameIndexStats(NameIndexStats &stats);
 };
 
 

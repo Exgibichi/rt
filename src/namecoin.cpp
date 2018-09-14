@@ -1884,3 +1884,101 @@ UniValue name_dump(const JSONRPCRequest& request)
     UniValue oName(UniValue::VOBJ);
     return oName;
 }
+
+struct NameIndexStats
+{
+    int nHeight;
+    uint256 hashBlock;
+    int64_t nRecords;
+    int64_t nSerializedSize;
+    uint256 hashSerialized;
+
+    NameIndexStats() : nHeight(0), nRecords(0), nSerializedSize(0) {}
+};
+
+//! Calculate statistics about name index
+bool CNameDB::GetNameIndexStats(NameIndexStats &stats)
+{
+    CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
+    stats.hashBlock = chainActive.Tip()->GetBlockHash();
+    {
+        LOCK(cs_main);
+        stats.nHeight = chainActive.Tip()->nHeight;
+    }
+    ss << stats.hashBlock;
+
+    Dbc* pcursor = GetCursor();
+    if (!pcursor)
+        return false;
+
+    CNameVal name;
+    bool fRange = true;
+    while (true)
+    {
+        // Read next record
+        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+        if (fRange)
+            ssKey << make_pair(string("namei"), name);
+        CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+        int ret = ReadAtCursor(pcursor, ssKey, ssValue, fRange);
+        fRange = false;
+        if (ret == DB_NOTFOUND)
+            break;
+        else if (ret != 0)
+            return false;
+
+        // Unserialize
+        string strType;
+        ssKey >> strType;
+        if (strType == "namei")
+        {
+            CNameVal name2;
+            CNameRecord val;
+            ssKey >> name2;
+            ssValue >> val;
+            ss << name2;
+            ss << val;
+            stats.nRecords += 1;
+            stats.nSerializedSize += ::GetSerializeSize(name2, SER_NETWORK, PROTOCOL_VERSION);
+            stats.nSerializedSize += ::GetSerializeSize(val, SER_NETWORK, PROTOCOL_VERSION);
+        }
+    }
+    pcursor->close();
+    stats.hashSerialized = ss.GetHash();
+    return true;
+}
+
+UniValue name_indexinfo(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 0)
+        throw runtime_error(
+            "gettxoutsetinfo\n"
+            "\nReturns statistics about name index.\n"
+            "Note this call may take some time.\n"
+            "\nResult:\n"
+            "{\n"
+            "  \"height\":n,     (numeric) The current block height (index)\n"
+            "  \"bestblock\": \"hex\",   (string) the best block hash hex\n"
+            "  \"records\": n,  (numeric) number of records in index\n"
+            "  \"hash_serialized\": \"hash\",   (string) The serialized hash\n"
+            "}\n"
+            "\nExamples:\n"
+            + HelpExampleCli("name_indexinfo", "")
+            + HelpExampleRpc("name_indexinfo", "")
+        );
+
+    UniValue ret(UniValue::VOBJ);
+
+    NameIndexStats stats;
+    CNameDB dbName("r");
+    if (dbName.GetNameIndexStats(stats)) {
+        ret.push_back(Pair("height", stats.nHeight));
+        ret.push_back(Pair("bestblock", stats.hashBlock.GetHex()));
+        ret.push_back(Pair("records", stats.nRecords));
+        ret.push_back(Pair("bytes_serialized", stats.nSerializedSize));
+        ret.push_back(Pair("hash_serialized", stats.hashSerialized.GetHex()));
+    } else {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Unable to read name index");
+    }
+    return ret;
+}
