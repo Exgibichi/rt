@@ -1729,12 +1729,12 @@ UniValue scantxoutset(const JSONRPCRequest& request)
     return result;
 }
 
-extern UniValue name_scan(const JSONRPCRequest& request);
-extern UniValue name_scan_address(const JSONRPCRequest& request);
 extern UniValue name_filter(const JSONRPCRequest& request);
-extern UniValue name_show(const JSONRPCRequest& request);
 extern UniValue name_history(const JSONRPCRequest& request);
 extern UniValue name_mempool(const JSONRPCRequest& request);
+extern UniValue name_scan(const JSONRPCRequest& request);
+extern UniValue name_scan_address(const JSONRPCRequest& request);
+extern UniValue name_show(const JSONRPCRequest& request);
 extern UniValue name_dump(const JSONRPCRequest& request);
 
 static const CRPCCommand commands[] =
@@ -1770,12 +1770,13 @@ static const CRPCCommand commands[] =
     { "hidden",             "waitforblockheight",     &waitforblockheight,     true,  {"height","timeout"} },
 
     // emercoin commands
-    { "blockchain",         "name_scan",              &name_scan,              true,  {"start-name","max-returned","max-value-length","valuetype"} },
-    { "blockchain",         "name_scan_address",      &name_scan_address,      true,  {"address","max-value-length","valuetype"} },
     { "blockchain",         "name_filter",            &name_filter,            true,  {"regexp","maxage","from","nb","stat","valuetype"} },
-    { "blockchain",         "name_show",              &name_show,              true,  {"name","valuetype","filepath"} },
     { "blockchain",         "name_history",           &name_history,           true,  {"name","fullhistory","valuetype"} },
     { "blockchain",         "name_mempool",           &name_mempool,           true,  {"valuetype"} },
+    { "blockchain",         "name_scan",              &name_scan,              true,  {"start-name","max-returned","max-value-length","valuetype"} },
+    { "blockchain",         "name_scan_address",      &name_scan_address,      true,  {"address","max-value-length","valuetype"} },
+    { "blockchain",         "name_show",              &name_show,              true,  {"name","valuetype","filepath"} },
+
     { "hidden",             "name_dump",              &name_dump,              true,  {} },
 };
 

@@ -1833,16 +1833,16 @@ bool CNameDB::DumpToTextFile()
         return false;
 
     CNameVal name;
-    unsigned int fFlags = DB_SET_RANGE;
+    bool fRange = true;
     while (true)
     {
         // Read next record
         CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-        if (fFlags == DB_SET_RANGE)
+        if (fRange)
             ssKey << make_pair(string("namei"), name);
         CDataStream ssValue(SER_DISK, CLIENT_VERSION);
-        int ret = ReadAtCursor(pcursor, ssKey, ssValue, fFlags);
-        fFlags = DB_NEXT;
+        int ret = ReadAtCursor(pcursor, ssKey, ssValue, fRange);
+        fRange = false;
         if (ret == DB_NOTFOUND)
             break;
         else if (ret != 0)
