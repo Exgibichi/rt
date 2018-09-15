@@ -1905,7 +1905,6 @@ bool CNameDB::GetNameIndexStats(NameIndexStats &stats)
         LOCK(cs_main);
         stats.nHeight = chainActive.Tip()->nHeight;
     }
-    ss << stats.hashBlock;
 
     Dbc* pcursor = GetCursor();
     if (!pcursor)
@@ -1937,7 +1936,14 @@ bool CNameDB::GetNameIndexStats(NameIndexStats &stats)
             ssKey >> name2;
             ssValue >> val;
             ss << name2;
-            ss << val;
+            ss << val.nExpiresAt;
+            ss << val.nLastActiveChainIndex;
+            for (unsigned int i = 0; i < val.vtxPos.size(); i++)
+            {
+                ss << val.vtxPos[i].nHeight;
+                ss << val.vtxPos[i].op;
+                ss << val.vtxPos[i].value;
+            }
             stats.nRecords += 1;
             stats.nSerializedSize += ::GetSerializeSize(name2, SER_NETWORK, PROTOCOL_VERSION);
             stats.nSerializedSize += ::GetSerializeSize(val, SER_NETWORK, PROTOCOL_VERSION);
