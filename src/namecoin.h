@@ -156,6 +156,7 @@ public:
             ret = ret && WriteSingleName(newAddress, name);
         return ret;
     }
+    bool GetNameAddressIndexStats(NameIndexStats &stats);
 };
 
 extern std::map<CNameVal, std::set<uint256> > mapNamePending;
