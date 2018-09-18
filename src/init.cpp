@@ -1721,7 +1721,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 #ifdef ENABLE_WALLET
     if (pwalletMain)
         pwalletMain->postInitProcess(threadGroup);
-    if (GetBoolArg("-stakegen", true))
+    if (pwalletMain && GetBoolArg("-stakegen", true))
         MintStake(threadGroup, pwalletMain);
 #endif
     // Generate coins in the background
