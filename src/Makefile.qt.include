@@ -204,6 +204,16 @@ BITCOIN_QT_H = \
   qt/macnotificationhandler.h \
   qt/managenamespage.h \
   qt/ManageDnsPage.h \
+  qt/NameEqValueTextEdit.h \
+  qt/PhoneNumberLineEdit.h \
+  qt/ValidatorToLabel.h \
+  qt/EmailLineEdit.h \
+  qt/EmailValidator.h \
+  qt/DpoCreateRecordWidget.h \
+  qt/DpoCreateRootWidget.h \
+  qt/DpoRegisterDocWidget.h \
+  qt/DpoSignRecordWidget.h \
+  qt/DpoWidget.h \
   qt/NameValueLineEdits.h \
   qt/SelectableLineEdit.h \
   qt/IPv4LineEdit.h \
@@ -303,8 +313,22 @@ RES_ICONS = \
   qt/res/icons/tx_nameop.png \
   qt/res/icons/warning.png \
   qt/res/icons/verify.png \
-  qt/res/icons/DNS.png \
-  qt/res/icons/SSL.png \
+  qt/res/icons/DPO-16.png \
+  qt/res/icons/DPO-32.png \
+  qt/res/icons/Emercoin-48.jpg \
+  qt/res/icons/EmerDNS-128.png \
+  qt/res/icons/EmerDNS-16.png \
+  qt/res/icons/EmerDNS-32.png \
+  qt/res/icons/EmerSSL-16.png \
+  qt/res/icons/EmerSSL-32.png \
+  qt/res/icons/EmerSSL-64.png \
+  qt/res/icons/Enumer-16.png \
+  qt/res/icons/Enumer-32.png \
+  qt/res/icons/InfoCard-16.png \
+  qt/res/icons/InfoCard-32.png \
+  qt/res/icons/Trusted-diploma-16-monochrome.png \
+  qt/res/icons/TrustedDiploma-16.png \
+  qt/res/icons/TrustedDiploma-32.png \
   qt/res/icons/splash.png
 
 BITCOIN_QT_BASE_CPP = \
@@ -342,6 +366,16 @@ BITCOIN_QT_WALLET_CPP = \
   qt/editaddressdialog.cpp \
   qt/managenamespage.cpp \
   qt/ManageDnsPage.cpp \
+  qt/NameEqValueTextEdit.cpp \
+  qt/PhoneNumberLineEdit.cpp \
+  qt/ValidatorToLabel.cpp \
+  qt/EmailLineEdit.cpp \
+  qt/EmailValidator.cpp \
+  qt/DpoCreateRecordWidget.cpp \
+  qt/DpoCreateRootWidget.cpp \
+  qt/DpoRegisterDocWidget.cpp \
+  qt/DpoSignRecordWidget.cpp \
+  qt/DpoWidget.cpp \
   qt/NameValueLineEdits.cpp \
   qt/SelectableLineEdit.cpp \
   qt/IPv4LineEdit.cpp \
