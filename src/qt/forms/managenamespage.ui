@@ -39,7 +39,21 @@
        </property>
        <property name="icon">
         <iconset resource="../bitcoin.qrc">
-         <normaloff>:/icons/DNS</normaloff>:/icons/DNS</iconset>
+         <normaloff>:/icons/EmerDNS-32.png</normaloff>:/icons/EmerDNS-32.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnDpo">
+       <property name="toolTip">
+        <string>Protect your rights using Digital Proof of Ownership.</string>
+       </property>
+       <property name="text">
+        <string>DPO...</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../bitcoin.qrc">
+         <normaloff>:/icons/DPO-32.png</normaloff>:/icons/DPO-32.png</iconset>
        </property>
       </widget>
      </item>

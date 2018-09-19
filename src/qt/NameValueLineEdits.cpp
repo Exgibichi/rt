@@ -39,7 +39,9 @@ NameValueLineEdits::NameValueLineEdits() {
 
 	auto form = new QFormLayout(this);
 	form->setMargin(0);//usually this widget is embedded to other so no need
-	form->addRow(new QLabel(tr("If you have filled in all the fields, open Emercoin wallet and copy value below in emercoin blockchain ('Manage names' tab in wallet):")));
+	auto label = new QLabel(tr("Resulting name and value to put into blockchain:"));
+	label->setWordWrap(true);
+	form->addRow(label);
 	{
 		auto w = new QWidget;
 		auto lay = new QHBoxLayout(w);
