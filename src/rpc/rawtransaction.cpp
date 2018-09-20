@@ -34,6 +34,9 @@
 
 #include <univalue.h>
 
+#include "uint256hm.h"
+
+
 using namespace std;
 
 void ScriptPubKeyToJSON(const CScript& scriptPubKey, UniValue& out, bool fIncludeHex)
@@ -967,7 +970,20 @@ UniValue createrandpayaddr(const JSONRPCRequest& request)
     return result;
 }
 
-std::map<arith_uint256, std::tuple<CPrivKey, CPubKey, int32_t>> RandPayMap;
+
+struct RandKeyT {
+  CKey   key;
+  time_t expire;
+};
+static uint256HashMap<RandKeyT> MapRandKeyT;
+
+static void InitMapRandKeyT() {
+  static int randkeymapsz = -1;
+  if(randkeymapsz < 0) {
+    randkeymapsz = GetArg("-randkeymapsz", 16);
+    MapRandKeyT.Set(randkeymapsz);
+  }
+}
 
 UniValue randpay_createaddrchap(const JSONRPCRequest& request)
 {
@@ -995,16 +1011,24 @@ UniValue randpay_createaddrchap(const JSONRPCRequest& request)
     int32_t nTimio = request.params[1].get_int();
 
     arith_uint256 barrier = ((arith_uint256(1) << 160) / nRisk) * nRisk;
-    CKey key; arith_uint256 X;
+    RandKeyT keyt; 
+    arith_uint256 X;
     do {
-        key.MakeNewKey(true);
-        X = arith_uint256(key.GetPubKey().GetID().ToString());  // class CKeyID : public uint160
+        keyt.key.MakeNewKey(true);
+        X = arith_uint256(keyt.key.GetPubKey().GetID().ToString());  // class CKeyID : public uint160
     } while (X >= barrier);
 
-    // RandPayMap need to be cleared before shutdown to prevent crash
-//    RandPayMap[barrier] = std::make_tuple(key.GetPrivKey(), key.GetPubKey(), nTimio);
+    InitMapRandKeyT();
 
-    return (X / nRisk).ToString();
+    arith_uint256 addrchap = X / nRisk;
+    time_t t = time(NULL);
+    // remove expired entries
+    for(uint256HashMap<RandKeyT>::Data *p = MapRandKeyT.First(); p && p->value.expire < t; p = MapRandKeyT.Next(p))
+      MapRandKeyT.MarkDel(p);
+    keyt.expire = t + nTimio;
+    MapRandKeyT.Insert(ArithToUint256(addrchap), keyt);
+
+    return addrchap.ToString();
 }
 
 UniValue randpay_createtx(const JSONRPCRequest& request)
@@ -1072,6 +1096,8 @@ UniValue randpay_submittx(const JSONRPCRequest& request)
 //        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. risk parameter must be numeric.");
 //    uint32_t nRisk = request.params[1].get_int();
 
+    InitMapRandKeyT();
+    
     UniValue result(UniValue::VOBJ);
 
     //emc implement this command
