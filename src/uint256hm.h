@@ -69,7 +69,7 @@ public:
 
   Data *Search(const uint256 &key) const {
     Data *rc = Lookup(key, ~0);
-    return (rc->next & 0x80000000)? NULL : rc;
+    return ((rc->next) & 0x80000000)? NULL : rc;
   } // Search
 
 
@@ -80,10 +80,10 @@ public:
 
   Data *Next(Data *cur) const {
      do {
-       if(cur->next == m_mask + 1)
+       if((cur->next) == m_mask + 1)
          return NULL; // EOL
        cur = m_data + (cur->next & 0x7fffffff);
-     } while((int32_t)cur->next < 0);
+     } while(((int32_t)cur->next) < 0);
      return cur;
   } // Next
 
@@ -155,7 +155,7 @@ private:
       do {
 	pos = (pos + step) & m_mask;
 	rc = m_data + pos;
-      } while(rc->next < stop && memcmp(p, ((base_blob<256>*)&(rc->key))->GetDataPtr(), 256 / 8));
+      } while((rc->next) < stop && memcmp(p, ((base_blob<256>*)&(rc->key))->GetDataPtr(), 256 / 8));
       return rc;
   } // Lookup
 
