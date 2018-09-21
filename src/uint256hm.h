@@ -146,7 +146,7 @@ public:
 private:
 
   // Return pointer to the found cell, or to an empty cell
-  Data *Lookup(const uint256 &key, int32_t stop) const {
+  Data *Lookup(const uint256 &key, uint32_t stop) const {
       const uint32_t *p = ((base_blob<256>*)&key)->GetDataPtr();
       // Lowest part left; if changed, need modify indexes
       uint32_t pos  = p[0];
