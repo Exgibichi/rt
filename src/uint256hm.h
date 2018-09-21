@@ -124,7 +124,7 @@ public:
     } // reahsh
 
     Data *p = Lookup(key, 1 << 29);
-    if(p->next == ~0) { // empty cell
+    if(p->next == (uint32_t)~0) { // empty cell
       m_used++;
       p->next = m_mask + 1;
       if(m_head > m_mask)
