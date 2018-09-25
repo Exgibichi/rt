@@ -4,7 +4,6 @@
 #include <QDialog>
 class DpoCreateRootWidget;
 class DpoCreateRecordWidget;
-class DpoSignRecordWidget;
 class DpoRegisterDocWidget;
 
 class DpoWidget: public QDialog {
@@ -18,6 +17,5 @@ class DpoWidget: public QDialog {
 
 		DpoCreateRootWidget* _createRoot = 0;
 		DpoCreateRecordWidget* _createRecord = 0;
-		DpoSignRecordWidget* _signRecord = 0;
 		DpoRegisterDocWidget* _registerDoc = 0;
 };
