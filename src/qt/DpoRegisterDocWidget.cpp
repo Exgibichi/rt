@@ -16,14 +16,24 @@ DpoRegisterDocWidget::DpoRegisterDocWidget() {
 
 	lay->addWidget(new QLabel(tr("Choose a file to add to blockchain:")));
 	
-	auto open = new QPushButton(tr("Open file..."));
-	open->setIcon(QIcon(":/qt-project.org/styles/commonstyle/images/standardbutton-open-32.png"));
-	connect(open, &QPushButton::clicked, this, &DpoRegisterDocWidget::openFileDialog);
-	lay->addWidget(open);
+	{
+		auto lay2 = new QHBoxLayout;
+		lay->addLayout(lay2);
 
-	lay->addWidget(new QLabel(tr("Hash of the document:")));
+		_editFile = new QLineEdit;
+		_editFile->setReadOnly(true);
+		_editFile->setPlaceholderText(tr("Click button to the right"));
+		lay2->addWidget(_editFile);
+
+		auto open = new QPushButton(tr("Open file..."));
+		open->setIcon(QIcon(":/qt-project.org/styles/commonstyle/images/standardbutton-open-32.png"));
+		connect(open, &QPushButton::clicked, this, &DpoRegisterDocWidget::openFileDialog);
+		lay2->addWidget(open);
+	}
+
 	_editHash = new QLineEdit;
 	_editHash->setEnabled(false);
+	_editHash->hide();
 	connect(_editHash, &QLineEdit::textChanged, this, &DpoRegisterDocWidget::recalcValue);
 	lay->addWidget(_editHash);
 
@@ -54,6 +64,7 @@ void DpoRegisterDocWidget::openFileDialog() {
 		tr("Adobe pdf (*.pdf);;All files (*)"));
 	if(path.isEmpty())
 		return;
+	_editFile->setText(path);
 	QFile file(path);
 	if(!file.open(QFile::ReadOnly)) {
 		QMessageBox::critical(this, qApp->applicationDisplayName(),
