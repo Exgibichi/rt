@@ -215,6 +215,7 @@ BITCOIN_QT_H = \
   qt/DpoWidget.h \
   qt/NameValueLineEdits.h \
   qt/SelectableLineEdit.h \
+  qt/SelectableTextEdit.h \
   qt/IPv4LineEdit.h \
   qt/IPv6LineEdit.h \
   qt/nametablemodel.h \
@@ -376,6 +377,7 @@ BITCOIN_QT_WALLET_CPP = \
   qt/DpoWidget.cpp \
   qt/NameValueLineEdits.cpp \
   qt/SelectableLineEdit.cpp \
+  qt/SelectableTextEdit.cpp \
   qt/IPv4LineEdit.cpp \
   qt/IPv4LineEdit.cpp \
   qt/nametablemodel.cpp \
