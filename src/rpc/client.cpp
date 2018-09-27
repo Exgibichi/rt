@@ -152,6 +152,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "name_filter", 2, "from" },
     { "name_filter", 3, "nb" },
     { "name_history", 1, "fullhistory" },
+    { "name_indexinfo", 0, "indextype" },
     { "sendtoname", 1, "amount" },
     { "randpay_createaddrchap", 0, "risk" },
     { "randpay_createaddrchap", 1, "timio" },

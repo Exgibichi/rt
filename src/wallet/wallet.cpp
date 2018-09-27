@@ -2060,12 +2060,15 @@ CAmount CWallet::GetImmatureWatchOnlyBalance() const
     return nTotal;
 }
 
+uint256HashMap<time_t> g_RandPayLockUTXO;
+
 void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const CCoinControl *coinControl, bool fIncludeZeroValue, uint32_t nSpendTime) const
 {
     vCoins.clear();
-
+    time_t cur_time = time(NULL);
     {
         LOCK2(cs_main, cs_wallet);
+        g_RandPayLockUTXO.Set(mapWallet.size() << 1); // Reenter is OK, just ignored
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it)
         {
             const uint256& wtxid = it->first;
@@ -2123,10 +2126,17 @@ void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const
                 continue;
             }
 
-            for (unsigned int i = 0; i < pcoin->tx->vout.size(); i++)
+            //? uint256  randpayTXkey(pcoin->tx->GetHash());
+            uint256  rpLockTXkey(wtxid);
+            uint32_t &rpLockTXn(((uint32_t*)rpLockTXkey.GetDataPtr())[0]);
+            for (unsigned int i = 0; i < pcoin->tx->vout.size(); i++, rpLockTXn++)
             {
                 // ignore namecoin TxOut
                 if (pcoin->tx->nVersion == NAMECOIN_TX_VERSION && hooks->IsNameScript(pcoin->tx->vout[i].scriptPubKey))
+                    continue;
+
+                uint256HashMap<time_t>::Data *p = g_RandPayLockUTXO.Search(rpLockTXkey);
+                if(p && p->value > cur_time)
                     continue;
 
                 isminetype mine = IsMine(pcoin->tx->vout[i]);

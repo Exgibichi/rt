@@ -70,6 +70,7 @@ void DpoRegisterDocWidget::openFileDialog() {
 		tr("Adobe pdf (*.pdf);;All files (*)"));
 	if(path.isEmpty())
 		return;
+
 	_editFile->setText(path);
 	_editDocName->setText(QFileInfo(path).completeBaseName());
 
