@@ -1,5 +1,6 @@
 ﻿//DpoWidget.cpp by Emercoin developers
 #include "DpoWidget.h"
+#include "DpoUseCaseScheme.h"
 #include "DpoCreateRootWidget.h"
 #include "DpoCreateRecordWidget.h"
 #include "DpoRegisterDocWidget.h"
@@ -25,6 +26,7 @@ DpoWidget::DpoWidget(QWidget*parent): QDialog(parent) {
 	auto addTab = [this](QWidget*w) {
 		_tab->addTab(w, w->windowTitle());
 	};
+	addTab(new DpoUseCaseScheme);
 	addTab(_createRoot = new DpoCreateRootWidget());
 	addTab(_createRecord = new DpoCreateRecordWidget());
 	addTab(_registerDoc = new DpoRegisterDocWidget());

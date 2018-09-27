@@ -213,6 +213,7 @@ BITCOIN_QT_H = \
   qt/DpoCreateRootWidget.h \
   qt/DpoRegisterDocWidget.h \
   qt/DpoWidget.h \
+  qt/DpoUseCaseScheme.h \
   qt/NameValueLineEdits.h \
   qt/SelectableLineEdit.h \
   qt/SelectableTextEdit.h \
@@ -315,6 +316,7 @@ RES_ICONS = \
   qt/res/icons/verify.png \
   qt/res/icons/DPO-16.png \
   qt/res/icons/DPO-32.png \
+  qt/res/icons/DPO_use_case_2.png \
   qt/res/icons/Emercoin-48.jpg \
   qt/res/icons/EmerDNS-128.png \
   qt/res/icons/EmerDNS-16.png \
@@ -375,6 +377,7 @@ BITCOIN_QT_WALLET_CPP = \
   qt/DpoCreateRootWidget.cpp \
   qt/DpoRegisterDocWidget.cpp \
   qt/DpoWidget.cpp \
+  qt/DpoUseCaseScheme.cpp \
   qt/NameValueLineEdits.cpp \
   qt/SelectableLineEdit.cpp \
   qt/SelectableTextEdit.cpp \
