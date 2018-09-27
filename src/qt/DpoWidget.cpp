@@ -1,13 +1,14 @@
 ﻿//DpoWidget.cpp by Emercoin developers
 #include "DpoWidget.h"
+#include "DpoUseCaseScheme.h"
 #include "DpoCreateRootWidget.h"
 #include "DpoCreateRecordWidget.h"
 #include "DpoRegisterDocWidget.h"
-#include "DpoSignRecordWidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QCommandLinkButton>
 #include <QSettings>
+#include <QLabel>
 
 DpoWidget::DpoWidget(QWidget*parent): QDialog(parent) {
 	setWindowTitle(tr("DPO"));
@@ -25,10 +26,14 @@ DpoWidget::DpoWidget(QWidget*parent): QDialog(parent) {
 	auto addTab = [this](QWidget*w) {
 		_tab->addTab(w, w->windowTitle());
 	};
+	addTab(new DpoUseCaseScheme);
 	addTab(_createRoot = new DpoCreateRootWidget());
 	addTab(_createRecord = new DpoCreateRecordWidget());
-	addTab(_signRecord = new DpoSignRecordWidget());
 	addTab(_registerDoc = new DpoRegisterDocWidget());
+	connect(_createRecord->_NVPair->nameEdit(), &QLineEdit::textChanged, this, [=](const QString&s) {
+		_registerDoc->_editName->setText(s);
+	});
+	_registerDoc->_editName->setText(_createRecord->_NVPair->name());
 
 	{
 		auto lay2 = new QHBoxLayout();
@@ -63,10 +68,6 @@ QString DpoWidget::name()const {
 		return _registerDoc->_NVPair->name();
 	//if(w==_createRecord)
 		return _createRecord->_NVPair->name();
-	//no such name/vallue here:
-	//if(w==_signRecord)
-	//	return _signRecord->_NVPair->name();
-	return {};
 }
 QString DpoWidget::value()const {
 	auto w = _tab->currentWidget();
@@ -76,8 +77,4 @@ QString DpoWidget::value()const {
 		return _registerDoc->_NVPair->value();
 	//if(w==_createRecord)
 		return _createRecord->_NVPair->value();
-	//no such name/vallue here:
-	//if(w==_signRecord)
-	//	return _signRecord->_NVPair->value();
-	return {};
 }

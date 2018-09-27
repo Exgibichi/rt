@@ -58,6 +58,7 @@
         <file alias="name2">res/icons/name2.png</file>
         <file alias="DPO-16.png">res/icons/DPO-16.png</file>
         <file alias="DPO-32.png">res/icons/DPO-32.png</file>
+        <file alias="DPO_use_case_2.png">res/icons/DPO_use_case_2.png</file>
         <file alias="EmerDNS-128.png">res/icons/EmerDNS-128.png</file>
         <file alias="EmerDNS-16.png">res/icons/EmerDNS-16.png</file>
         <file alias="EmerDNS-32.png">res/icons/EmerDNS-32.png</file>

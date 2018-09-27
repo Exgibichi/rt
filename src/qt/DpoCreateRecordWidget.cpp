@@ -2,35 +2,52 @@
 #include "DpoCreateRecordWidget.h"
 #include "EmailLineEdit.h"
 #include "PhoneNumberLineEdit.h"
-#include "SelectableLineEdit.h"
+#include "SelectableTextEdit.h"
 #include "NameEqValueTextEdit.h"
 #include <QFormLayout>
 #include <QSettings>
 #include <QLabel>
 
 DpoCreateRecordWidget::DpoCreateRecordWidget() {
-	setWindowTitle(tr("2) Participate in organization"));
+	setWindowTitle(tr("2) Register in organization"));
 	auto w = new QWidget;
 	auto lay = new QVBoxLayout(w);
 	_NVPair = new NameValueLineEdits;
 	_NVPair->setValueMultiline(true);
 
-	auto description = new QLabel(tr("Create record with your name/nickname etc, for which organization will prove you are working with them"));
-	lay->addWidget(description);
+	lay->addWidget(newLabel(
+		tr("Create a record with your name/nickname that is recognized in the organization you work for")));
 
 	auto form = new QFormLayout;
 	lay->addLayout(form);
 	_editName = addLineEdit(form, {}, tr("Organisation abbreviation (?) dpo:"),
 		tr("This must be already registered DPO root record, like dpo:NDI"));
 	_editSN = addLineEdit(form, {}, tr("Your name or nickname (?)"),
-		tr("If this name or SN is already registered, add any number after it (like ':1234')"));
+		tr("If this name is already registered, add any number after it (like ':1234')"));
 	
+	form->addRow(newLabel(tr("Send the following text to your organization:")));
+
+	_askSignature = new SelectableTextEdit;
+	_askSignature->setReadOnly(true);
+	_askSignature->setPlaceholderText(tr("Text above is not filled"));
+	form->addRow(_askSignature);
+
+	_signature = addLineEdit(form, "Signature", tr("Received signature:"), {});
+	_signature->setPlaceholderText(tr("Like Hyy39/xmrf7aYasLiK1TZdRSHkVq8US1w8K6rHIlb5DSFiINsX46H7HzBIn3R5uDfjFQNqo4voMYLMu8MisUIhk="));
+
+	_NVPair->hide();
 	lay->addWidget(_NVPair);
-	lay->addWidget(new QLabel(tr("This record must be created by person who's rights are recorded.\n"
+	lay->addWidget(newLabel(tr("This record must be created by person who's rights are recorded.\n"
 		"After you create this name record, emeil this name to organization so they can sign it.")));
     lay->addStretch();
 	setWidget(w);
 	updateSettings(false);
+}
+QLabel* DpoCreateRecordWidget::newLabel(const QString & s) {
+	auto l = new QLabel(s);
+	l->setWordWrap(true);
+	l->setOpenExternalLinks(true);
+	return l;
 }
 void DpoCreateRecordWidget::updateSettings(bool save) {
 	QSettings sett;
@@ -39,17 +56,30 @@ void DpoCreateRecordWidget::updateSettings(bool save) {
 		sett.setValue("name", _editName->text());
 	else
 		_editName->setText(sett.value("name").toString());
+
+	if(save)
+		sett.setValue("nick", _editSN->text());
+	else
+		_editSN->setText(sett.value("nick").toString());
+
+	if(save)
+		sett.setValue("SIG", _signature->text());
+	else
+		_signature->setText(sett.value("SIG").toString());
 }
 void DpoCreateRecordWidget::recalcValue() {
 	const QString name = _editName->text().trimmed();
 	const QString serial = _editSN->text().trimmed();
     if(name.isEmpty() || serial.isEmpty()) {
 		_NVPair->setName({});//to display placeholderText
+		_askSignature->setPlainText({});
 	} else {
 		QString s = name + ':' + serial;
 		if(!s.startsWith("dpo:"))
 			s.prepend("dpo:");
         _NVPair->setName(s);
+		_askSignature->setPlainText(tr("Hi! I want to participate in your program, please sign my name:\n%1\n"
+			"and then send signature back to me. Thanks.").arg(s));
 	}
 
 	QStringList parts;
@@ -60,6 +90,7 @@ void DpoCreateRecordWidget::recalcValue() {
         if(!value.isEmpty())
             parts << e->objectName() + "=" + value;
     }
+	parts << QString("name=") + serial;
 	for(auto & s: parts)
 		s = s.trimmed();
 	QString v = parts.join('\n');
