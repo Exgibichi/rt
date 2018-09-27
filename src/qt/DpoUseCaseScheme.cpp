@@ -1,4 +1,4 @@
-﻿//DpoUseCaseScheme.cpp by Emercoin developers - 2018.09.27 15:00:50
+﻿//DpoUseCaseScheme.cpp by Emercoin developers
 #include "DpoUseCaseScheme.h"
 #include <QVBoxLayout>
 #include <QLabel>
@@ -14,6 +14,6 @@ DpoUseCaseScheme::DpoUseCaseScheme() {
 	//lay->addWidget(text);
 
 	auto image = new QLabel;
-	image->setPixmap(QPixmap(":/icons/DPO use case 2.png"));
+	image->setPixmap(QPixmap(":/icons/DPO_use_case_2.png"));
 	lay->addWidget(image);
 }
