@@ -34,8 +34,6 @@
 
 #include <univalue.h>
 
-#include "uint256hm.h"
-
 
 using namespace std;
 
@@ -969,13 +967,6 @@ UniValue createrandpayaddr(const JSONRPCRequest& request)
     result.push_back(Pair("privkey", HexStr<CPrivKey::iterator>(privKey.begin(), privKey.end())));
     return result;
 }
-
-
-struct RandKeyT {
-  CKey   key;
-  time_t expire;
-};
-static uint256HashMap<RandKeyT> MapRandKeyT;
 
 static void InitMapRandKeyT() {
   static int randkeymapsz = -1;

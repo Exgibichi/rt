@@ -27,7 +27,6 @@
 #include "ui_interface.h"
 #include "utilmoneystr.h"
 #include "namecoin.h"
-#include "uint256hm.h"
 
 #include <assert.h>
 
@@ -45,6 +44,7 @@ unsigned int nTxConfirmTarget = DEFAULT_TX_CONFIRM_TARGET;
 bool bSpendZeroConfChange = DEFAULT_SPEND_ZEROCONF_CHANGE;
 bool fSendFreeTransactions = DEFAULT_SEND_FREE_TRANSACTIONS;
 bool fWalletRbf = DEFAULT_WALLET_RBF;
+uint256HashMap<RandKeyT> MapRandKeyT;
 
 const char * DEFAULT_WALLET_DAT = "wallet.dat";
 const uint32_t BIP32_HARDENED_KEY_LIMIT = 0x80000000;

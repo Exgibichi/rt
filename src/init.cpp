@@ -205,6 +205,7 @@ void Shutdown()
     StopREST();
     StopRPC();
     StopHTTPServer();
+    MapRandKeyT.Set(0);
 #ifdef ENABLE_WALLET
     if (pwalletMain)
         pwalletMain->Flush(false);

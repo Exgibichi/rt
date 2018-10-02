@@ -18,6 +18,8 @@
 #include "wallet/walletdb.h"
 #include "wallet/rpcwallet.h"
 
+#include "uint256hm.h"
+
 #include <algorithm>
 #include <atomic>
 #include <map>
@@ -32,6 +34,12 @@
 #include <boost/thread.hpp>
 
 extern CWallet* pwalletMain;
+
+struct RandKeyT {
+  CKey   key;
+  time_t expire;
+};
+extern uint256HashMap<RandKeyT> MapRandKeyT;
 
 /**
  * Settings
