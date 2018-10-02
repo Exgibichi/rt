@@ -1041,26 +1041,54 @@ UniValue randpay_createtx(const JSONRPCRequest& request)
             //+ HelpExampleCli("randpay_createtx", "") +
         );
 
-    // commeted to remove compiler warnings
-//    CAmount nAmount = AmountFromValue(request.params[0]);
-//    if (nAmount <= 0)
-//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for send");
+    CAmount nAmount = AmountFromValue(request.params[0]);
+    if (nAmount <= 0)
+        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for send");
 
-//    vector<unsigned char> addrchap(ParseHexV(request.params[1], "addrchap"));
+    arith_uint256 addrchap = UintToArith256(uint256((ParseHexV(request.params[1], "addrchap"))));
 
-//    if (!request.params[2].isNum())
-//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. risk parameter must be numeric.");
-//    uint32_t nRisk = request.params[2].get_int();
+    if (!request.params[2].isNum())
+        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. risk parameter must be numeric.");
+    uint32_t nRisk = request.params[2].get_int();
 
-//    if (!request.params[3].isNum())
-//        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. timio parameter must be numeric.");
-//    int32_t nTimio = request.params[3].get_int();
+    if (!request.params[3].isNum())
+        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. timio parameter must be numeric.");
+    int32_t nTimio = request.params[3].get_int();
 
-    UniValue result(UniValue::VOBJ);
+    uint160 rand_addr;
+    rand_addr.SetHex( (nRisk * addrchap + GetRand(nRisk)).ToString() );
 
-    //emc implement this command
+    CAmount curBalance = pwalletMain->GetBalance();
+    SendMoneyCheck(nAmount, curBalance);
 
-    return result;
+    // Parse Bitcoin address
+    CScript scriptPubKey = GetScriptForDestination(CScriptID(rand_addr));
+    bool fSubtractFeeFromAmount = false;
+    vector<CRecipient> vecSend;
+    CRecipient recipient = {scriptPubKey, nAmount, fSubtractFeeFromAmount};
+    vecSend.push_back(recipient);
+
+    CWalletTx wtxNew;
+    CReserveKey reservekey(pwalletMain);
+    CAmount nFeeRequired;
+    int nChangePosRet = 1;
+    std::string strError;
+    bool fSign = false;
+
+    if (!pwalletMain->CreateTransaction(vecSend, wtxNew, reservekey, nFeeRequired, nChangePosRet, strError, nullptr, fSign)) {
+        if (!fSubtractFeeFromAmount && nAmount + nFeeRequired > curBalance)
+            strError = strprintf("Error: This transaction requires a transaction fee of at least %s", FormatMoney(nFeeRequired));
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+
+    // add randpay input at vin[0]
+    CMutableTransaction txNew(*wtxNew.tx);
+    uint32_t nSequence = (wtxNew.tx->nLockTime ? std::numeric_limits<uint32_t>::max() - 1 : std::numeric_limits<uint32_t>::max());
+    CTxIn in(COutPoint(randpaytx, 0), CScript(), nSequence);
+    txNew.vin.insert(txNew.vin.begin(), in);
+    wtxNew.SetTx(MakeTransactionRef(std::move(txNew)));
+
+    return EncodeHexTx(wtxNew);
 }
 
 UniValue randpay_submittx(const JSONRPCRequest& request)
