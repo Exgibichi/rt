@@ -1087,6 +1087,7 @@ bool CWallet::DummySignTx(CMutableTransaction &txNew, const ContainerType &coins
     return true;
 }
 
+void SendMoneyCheck(const CAmount& nValue, const CAmount& curBalance);
 void SendMoney(const CTxDestination &address, CAmount nValue, bool fSubtractFeeFromAmount, CWalletTx& wtxNew);
 void SendName(CScript scriptPubKey, CAmount nValue, CWalletTx& wtxNew, const CWalletTx &wtxNameIn, CAmount nFeeInput);
 

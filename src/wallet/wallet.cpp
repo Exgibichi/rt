@@ -4352,7 +4352,7 @@ bool CMerkleTx::AcceptToMemoryPool(const CAmount& nAbsurdFee, CValidationState& 
     return ::AcceptToMemoryPool(mempool, state, tx, NULL, NULL, false, nAbsurdFee);
 }
 
-static void SendMoneyCheck(const CAmount& nValue, const CAmount& curBalance)
+void SendMoneyCheck(const CAmount& nValue, const CAmount& curBalance)
 {
     // Check amount
     if (nValue <= 0)
