@@ -1104,8 +1104,10 @@ void CConnman::AcceptConnection(const ListenSocket& hListenSocket) {
     }
 }
 
+void ThreadGetMyExternalIP_STUN();
 void CConnman::ThreadSocketHandler()
 {
+    ThreadGetMyExternalIP_STUN(); // Found external IP 1st
     unsigned int nPrevNodeCount = 0;
     while (!interruptNet)
     {
@@ -2189,7 +2191,7 @@ void ThreadGetMyExternalIP_STUN() {
   int rc = GetExternalIPbySTUN(rnd, &mapped, &srv, src_port);
   if(rc > 0) {
     CNetAddr ipRet(mapped.sin_addr);
-    AddLocal(ipRet);
+    AddLocal(ipRet, LOCAL_STUN);
     char rc_decode[100], *p_decode = rc_decode;
     int mask = 4;
     do {
@@ -2203,26 +2205,6 @@ void ThreadGetMyExternalIP_STUN() {
     LogPrintf("GetExternalIPbySTUN(%d) failed\n", src_port);
 } // GetMyExternalIP_STUN
 
-void GetMyExternalIP_STUN(bool fUse)
-{
-    static boost::thread* stun_thread = NULL;
-
-    if (fUse)
-    {
-        if (stun_thread) {
-            stun_thread->interrupt();
-            stun_thread->join();
-            delete stun_thread;
-        }
-        stun_thread = new boost::thread(boost::bind(&TraceThread<void (*)()>, "stun", &ThreadGetMyExternalIP_STUN));
-    }
-    else if (stun_thread) {
-        stun_thread->interrupt();
-        stun_thread->join();
-        delete stun_thread;
-        stun_thread = NULL;
-    }
-}
 /*--------------------------------------------------------------------------*/
 
 void CConnman::SetNetworkActive(bool active)
@@ -2358,9 +2340,6 @@ bool CConnman::Start(CScheduler& scheduler, std::string& strNodeError, Options c
     else
         threadDNSAddressSeed = std::thread(&TraceThread<std::function<void()> >, "dnsseed", std::function<void()>(std::bind(&CConnman::ThreadDNSAddressSeed, this)));
 
-    // Get IP with stun
-    GetMyExternalIP_STUN(true);
-
     // Initiate outbound connections from -addnode
     threadOpenAddedConnections = std::thread(&TraceThread<std::function<void()> >, "addcon", std::function<void()>(std::bind(&CConnman::ThreadOpenAddedConnections, this)));
 
@@ -2418,8 +2397,6 @@ void CConnman::Interrupt()
 
 void CConnman::Stop()
 {
-    GetMyExternalIP_STUN(false);
-
     if (threadMessageHandler.joinable())
         threadMessageHandler.join();
     if (threadOpenConnections.joinable())
