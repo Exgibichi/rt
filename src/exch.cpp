@@ -2,8 +2,11 @@
 #include "univalue.h"
 #include "util.h"
 
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
+//#include "protocol.h"
+#include "net.h"
+
+//#include <boost/asio.hpp>
+//#include <boost/asio/ssl.hpp>
 
 using namespace std;
 //using namespace boost;
@@ -17,7 +20,8 @@ void ExchBox::Reset(const string &retAddr) {
   for(size_t i = 0; i < m_v_exch.size(); i++)
     delete m_v_exch[i];
   m_v_exch.clear();
-  m_v_exch.push_back(new ExchCoinReform(retAddr));
+  // out of service m_v_exch.push_back(new ExchCoinReform(retAddr));
+  m_v_exch.push_back(new ExchCoinSwitch(retAddr));
 } // ExchBox::Reset
 
 //-----------------------------------------------------
@@ -67,7 +71,10 @@ UniValue Exch::httpsFetch(const char *get, const UniValue *post) {
     post_txt = postBody.c_str();
   }
 
-  int rc = HttpsLE(Host().c_str(), get, post_txt, &strReply);
+  if(m_header.empty())
+    FillHeader();
+
+  int rc = HttpsLE(Host().c_str(), get, post_txt, m_header, &strReply);
 
   if(rc < 0)
     throw runtime_error(strReply.c_str());
@@ -357,6 +364,168 @@ int ExchCoinReform::Remain(const string &txkey) {
     return 0;
   }
 } // ExchCoinReform::TimeLeft
+
+//=====================================================
+
+//-----------------------------------------------------
+ExchCoinSwitch::ExchCoinSwitch(const string &retAddr)
+: Exch::Exch(retAddr) {
+}
+
+//-----------------------------------------------------
+ExchCoinSwitch::~ExchCoinSwitch() {}
+
+//-----------------------------------------------------
+const string& ExchCoinSwitch::Name() const { 
+  static const string rc("CoinSwitch");
+  return rc;
+}
+
+//-----------------------------------------------------
+const string& ExchCoinSwitch::Host() const {
+  static const string rc("sandboxapi.coinswitch.co");
+  return rc;
+}
+
+//-----------------------------------------------------
+void ExchCoinSwitch::FillHeader() {
+  struct in_addr dummy_addr;
+  dummy_addr.s_addr = 0x08080808; // 8.8.8.8 - Google address
+  CNetAddr fake_server_addr(dummy_addr);
+  m_header["x-user-ip"] = GetLocalAddress(&fake_server_addr, NODE_NONE).ToStringIP();
+  m_header["x-api-key"] = "ty7smoqSte5Ku3GKeRM4F3m8xrIksJfM723sutEI";
+} // ExchCoinSwitch::ECSFetch
+
+//-----------------------------------------------------
+// Get currency for exchnagge to, like btc, ltc, etc
+// Fill MarketInfo from exchange.
+// Returns empty string if OK, or error message, if error
+string ExchCoinSwitch::MarketInfo(const string &currency, double amount) {
+  try {
+    const UniValue mi(RawMarketInfo("/api/marketinfo/ltc_" + currency + ".json"));
+    //const UniValue mi(RawMarketInfo("/api/marketinfo/emc_" + currency + ".json"));
+    LogPrint("exch", "DBG: ExchCoinSwitch::MarketInfo(%s|%s) returns <%s>\n\n", Host().c_str(), currency.c_str(), mi.write(0, 0, 0).c_str());
+    m_pair     = mi["pair"].get_str();
+    m_rate     = atof(mi["rate"].get_str().c_str());
+    m_limit    = atof(mi["limit"].get_str().c_str());
+    m_min      = atof(mi["min"].get_str().c_str());
+    m_minerFee = atof(mi["minerFee"].get_str().c_str());
+    return "";
+  } catch(std::exception &e) {
+    return e.what();
+  }
+} // ExchCoinSwitch::MarketInfo
+//coinReform
+//{"pair":"EMC_BTC","rate":"0.00016236","limit":"0.01623600","min":"0.00030000","minerFee":"0.00050000"}
+
+//-----------------------------------------------------
+// Creatse SEND exchange channel for 
+// Send "amount" in external currecny "to" address
+// Fills m_depAddr..m_txKey, and updates m_rate
+// Returns error text, or empty string, if OK
+string ExchCoinSwitch::Send(const string &to, double amount) {
+  if(amount < m_min)
+   return strprintf("amount=%lf is less than minimum=%lf", amount, m_min);
+  if(amount > m_limit)
+   return strprintf("amount=%lf is greater than limit=%lf", amount, m_limit);
+
+  // Cleanum output
+  m_depAddr.erase();
+  m_outAddr.erase();
+  m_txKey.erase();
+  m_depAmo = m_outAmo = 0.0;
+  m_txKey.erase();
+
+  try {
+    UniValue Req(UniValue::VOBJ);
+    Req.push_back(Pair("amount", amount));
+    Req.push_back(Pair("withdrawal", to));
+    Req.push_back(Pair("pair", m_pair));
+    Req.push_back(Pair("refund_address", m_retAddr));
+    // The public disclosure for RefID usage: https://bitcointalk.org/index.php?topic=362513
+    Req.push_back(Pair("ref_id", "2f77783d"));
+
+    UniValue Resp(httpsFetch("/api/sendamount", &Req));
+    LogPrint("exch", "DBG: ExchCoinSwitch::Send(%s|%s) returns <%s>\n\n", Host().c_str(), m_pair.c_str(), Resp.write(0, 0, 0).c_str());
+    m_rate     = atof(Resp["rate"].get_str().c_str());
+    m_depAddr  = Resp["deposit"].get_str();			// Address to pay EMC
+    m_outAddr  = Resp["withdrawal"].get_str();			// Address to pay from exchange
+    m_depAmo   = atof(Resp["deposit_amount"].get_str().c_str());// amount in EMC
+    m_outAmo   = atof(Resp["withdrawal_amount"].get_str().c_str());// Amount transferred to BTC
+    m_txKey    = Name() + ':' + Resp["key"].get_str();		// TX reference key
+
+    // Adjust deposit amount to 1EMCent, upward
+    m_depAmo = ceil(m_depAmo * 100.0) / 100.0;
+
+    return "";
+  } catch(std::exception &e) { // something wrong at HTTPS
+    return e.what();
+  }
+} // ExchCoinSwitch::Send
+
+//-----------------------------------------------------
+// Check status of existing transaction.
+// If key is empty, used the last key
+// Returns status (including err), or minus "-", if "not my" key
+string ExchCoinSwitch::TxStat(const string &txkey, UniValue &details) {
+  const char *key = RawKey(txkey);
+  if(key == NULL)
+      return "-"; // Not my key
+
+  char buf[400];
+  snprintf(buf, sizeof(buf), "/api/txstat/%s.json", key);
+  try {
+    details = httpsFetch(buf, NULL);
+    LogPrint("exch", "DBG: ExchCoinSwitch::TxStat(%s|%s) returns <%s>\n\n", Host().c_str(), buf, details.write(0, 0, 0).c_str());
+    return details["status"].get_str();
+  } catch(std::exception &e) { // something wrong at HTTPS
+    return e.what();
+  }
+} // ExchCoinSwitch::TxStat
+
+//-----------------------------------------------------
+// Cancel TX by txkey.
+// If key is empty, used the last key
+// Returns error text, or an empty string, if OK
+// Returns minus "-", if "not my" key
+string ExchCoinSwitch::Cancel(const string &txkey) {
+  const char *key = RawKey(txkey);
+  if(key == NULL)
+      return "-"; // Not my key
+
+  char buf[400];
+  snprintf(buf, sizeof(buf), "/api/cancel/%s.json", key);
+  try {
+    UniValue Resp(httpsFetch(buf, NULL));
+    LogPrint("exch", "DBG: ExchCoinSwitch::Cancel(%s|%s) returns <%s>\n\n", Host().c_str(), buf, Resp.write(0, 0, 0).c_str());
+    m_txKey.erase(); // Preserve from double Cancel
+    return m_txKey;
+  } catch(std::exception &e) { // something wrong at HTTPS
+    return e.what();
+  }
+} // ExchCoinSwitch::Cancel
+
+//-----------------------------------------------------
+// Check time in secs, left in the contract, created by prev Send()
+// If key is empty, used the last key
+// Returns time or zero, if contract expired
+// Returns -1, if "not my" key
+int ExchCoinSwitch::Remain(const string &txkey) {
+  const char *key = RawKey(txkey);
+  if(key == NULL)
+      return -1; // Not my key
+
+  char buf[400];
+  snprintf(buf, sizeof(buf), "/api/timeremaining/%s.json", key);
+  try {
+    UniValue Resp(httpsFetch(buf, NULL));
+    LogPrint("exch", "DBG: ExchCoinReform::Cancel(%s|%s) returns <%s>\n\n", Host().c_str(), buf, Resp.write(0, 0, 0).c_str());
+    return Resp["seconds_remaining"].get_int();
+  } catch(std::exception &e) { // something wrong at HTTPS
+    return 0;
+  }
+} // ExchCoinReform::TimeLeft
+
 
 
 

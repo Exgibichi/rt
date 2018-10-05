@@ -1,4 +1,5 @@
 #include <string>
+#include <map>
 #include <vector>
 
 class UniValue;
@@ -10,7 +11,7 @@ using namespace std;
 // ATTN: Function is NOT REENTERABLE
 // Returns HTTP status code if OK, or -1 if error
 // Ret contains server answer (if OK), orr error text (-1)
-int HttpsLE(const char *host, const char *get, const char *post, std::string *ret);
+int HttpsLE(const char *host, const char *get, const char *post, const std::map<std::string,std::string> &header, std::string *ret);
 
 //-----------------------------------------------------
 class Exch {
@@ -71,6 +72,8 @@ class Exch {
   string m_txKey;	// TX reference key
 
   protected:
+  // Fill exchange-specific fields into m_header for future https request
+  virtual void FillHeader() {}
   // Connect to the server by https, fetch JSON and parse to UniValue
   // Throws exception if error
   UniValue httpsFetch(const char *get, const UniValue *post);
@@ -88,6 +91,9 @@ class Exch {
   // Extract raw key from txkey
   // Return NULL if "Not my key" or invalid key
   const char *RawKey(const string &txkey) const;
+
+  // extra header fields, needed for some exchange
+  std::map<std::string,std::string> m_header;
 
 }; // class Exch
 
@@ -129,6 +135,49 @@ class ExchCoinReform : public Exch {
   virtual int Remain(const string &txkey);
 
 }; // class ExchCoinReform
+
+//-----------------------------------------------------
+class ExchCoinSwitch : public Exch {
+  public:
+  ExchCoinSwitch(const string &retAddr);
+
+  virtual ~ExchCoinSwitch();
+
+  virtual const string& Name() const;
+  virtual const string& Host() const;
+
+  // Get currency for exchnagge to, like btc, ltc, etc
+  // Fill MarketInfo from exchange.
+  // Returns the empty string if OK, or error message, if error
+  virtual string MarketInfo(const string &currency, double amount);
+
+  // Creatse SEND exchange channel for 
+  // Send "amount" in external currecny "to" address
+  // Fills m_depAddr..m_txKey, and updates m_rate
+  virtual string Send(const string &to, double amount);
+
+  // Check status of existing transaction.
+  // If key is empty, used the last key
+  // Returns status (including err), or minus "-", if "not my" key
+  virtual string TxStat(const string &txkey, UniValue &details);
+
+  // Cancel TX by txkey.
+  // If key is empty, used the last key
+  // Returns error text, or an empty string, if OK
+  // Returns minus "-", if "not my" key
+  virtual string Cancel(const string &txkey);
+
+  // Check time in secs, remain in the contract, created by prev Send()
+  // If key is empty, used the last key
+  // Returns time or zero, if contract expired
+  // Returns -1, if "not my" key
+  virtual int Remain(const string &txkey);
+
+  private:
+  // Fill exchange-specific fields into m_header for future https request
+  virtual void FillHeader();
+}; // class ExchCoinSwitch
+
 
 //-----------------------------------------------------
 class ExchBox {

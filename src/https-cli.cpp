@@ -60,7 +60,7 @@
 
 #include "clientversion.h"
 
-
+#include <map>
 //--------------- Body of "openssl_hostname_validation.h"
 
 typedef enum {
@@ -441,7 +441,7 @@ static int cert_verify_callback(X509_STORE_CTX *x509_ctx, void *arg)
 // Returns HTTP status code if OK, or -1 if error
 // Ret contains server answer (if OK), orr error text (-1)
 int
-HttpsLE(const char *host, const char *get, const char *post, std::string *ret) {
+HttpsLE(const char *host, const char *get, const char *post, const std::map<std::string,std::string> &header, std::string *ret) {
 
   s_rc_str.clear();
   s_rc_err.clear();
@@ -608,6 +608,10 @@ HttpsLE(const char *host, const char *get, const char *post, std::string *ret) {
       evutil_snprintf(tmp, sizeof(buf)-8, "%zu", len);
       evhttp_add_header(output_headers, "Content-Length", tmp);
     }
+
+    // Additional header fields from client
+    for(std::map<std::string,std::string>::const_iterator it = header.begin(); it != header.end(); ++it)
+      evhttp_add_header(output_headers, it->first.c_str(), it->second.c_str());
 
     err = evhttp_make_request(evcon, req, post? EVHTTP_REQ_POST : EVHTTP_REQ_GET, get);
     if (err != 0) {
