@@ -1830,7 +1830,7 @@ bool ppcoinContextualBlockChecks(const CBlock& block, CValidationState& state, C
     if (block.IsProofOfStake())
     {
         // ppcoin: verify hash target and signature of coinstake tx
-        if (!CheckProofOfStake(state, block.vtx[1], block.nBits, hashProofOfStake))
+        if (!CheckProofOfStake(state, pindex->pprev, block.vtx[1], block.nBits, hashProofOfStake))
         {
             LogPrintf("WARNING: %s: check proof-of-stake failed for block %s\n", __func__, block.GetHash().ToString());
             return false; // do not error here as we expect this during initial block download
@@ -1891,9 +1891,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                   CCoinsViewCache& view, const CChainParams& chainparams, bool fJustCheck, bool fWriteNames)
 {
     AssertLockHeld(cs_main);
-
-    if (!ppcoinContextualBlockChecks(block, state, pindex, fJustCheck))
-        return false;
 
     int64_t nTimeStart = GetTimeMicros();
 
@@ -3433,7 +3430,8 @@ static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidation
     if (fNewBlock) *fNewBlock = true;
 
     if (!CheckBlock(block, state, chainparams.GetConsensus()) ||
-        !ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindex->pprev)) {
+        !ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindex->pprev) ||
+        !ppcoinContextualBlockChecks(block, state, pindex, false)) {
         if (state.IsInvalid() && !state.CorruptionPossible()) {
             pindex->nStatus |= BLOCK_FAILED_VALID;
             setDirtyBlockIndex.insert(pindex);

@@ -396,7 +396,7 @@ static bool GetKernelStakeModifier(uint256 hashBlockFrom, uint64_t& nStakeModifi
 //   quantities so as to generate blocks faster, degrading the system back into
 //   a proof-of-work situation.
 //
-bool CheckStakeKernelHash(unsigned int nBits, const CBlock& blockFrom, unsigned int nTxPrevOffset, const CTransactionRef& txPrev, const COutPoint& prevout, unsigned int nTimeTx, uint256& hashProofOfStake, bool fPrintProofOfStake)
+bool CheckStakeKernelHash(unsigned int nBits, CBlockIndex* pindexPrev, const CBlockHeader& blockFrom, unsigned int nTxPrevOffset, const CTransactionRef& txPrev, const COutPoint& prevout, unsigned int nTimeTx, uint256& hashProofOfStake, bool fPrintProofOfStake)
 {
     const Consensus::Params& params = Params().GetConsensus();
     if (nTimeTx < txPrev->nTime)  // Transaction timestamp violation
@@ -433,7 +433,7 @@ bool CheckStakeKernelHash(unsigned int nBits, const CBlock& blockFrom, unsigned 
     ss << nTimeBlockFrom << nTxPrevOffset << txPrev->nTime << prevout.n << nTimeTx;
 
     if (nTimeTx >= 1489782503) // block 219831
-        ss << chainActive.Tip()->GetBlockHash();
+        ss << pindexPrev->GetBlockHash();
 
     hashProofOfStake = Hash(ss.begin(), ss.end());
     if (fPrintProofOfStake)
@@ -472,7 +472,7 @@ bool CheckStakeKernelHash(unsigned int nBits, const CBlock& blockFrom, unsigned 
 }
 
 // Check kernel hash target and coinstake signature
-bool CheckProofOfStake(CValidationState& state, const CTransactionRef& tx, unsigned int nBits, uint256& hashProofOfStake)
+bool CheckProofOfStake(CValidationState& state, CBlockIndex* pindexPrev, const CTransactionRef& tx, unsigned int nBits, uint256& hashProofOfStake)
 {
     if (!tx->IsCoinStake())
         return error("%s: called on non-coinstake %s", __func__, tx->GetHash().ToString());
@@ -518,7 +518,7 @@ bool CheckProofOfStake(CValidationState& state, const CTransactionRef& tx, unsig
             return error("%s: txid mismatch", __func__);
     }
 
-    if (!CheckStakeKernelHash(nBits, header, postx.nTxOffset + CBlockHeader::NORMAL_SERIALIZE_SIZE, txPrev, txin.prevout, tx->nTime, hashProofOfStake, fDebug))
+    if (!CheckStakeKernelHash(nBits, pindexPrev, header, postx.nTxOffset + CBlockHeader::NORMAL_SERIALIZE_SIZE, txPrev, txin.prevout, tx->nTime, hashProofOfStake, fDebug))
         // may occur during initial download or if behind on block chain sync
         return state.DoS(1, false, REJECT_INVALID, "invalid-stake-hash", false, strprintf("%s: INFO: check kernel failed on coinstake %s, hashProof=%s", __func__, tx->GetHash().ToString(), hashProofOfStake.ToString()));
 

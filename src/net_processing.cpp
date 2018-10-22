@@ -111,6 +111,9 @@ namespace {
     };
     std::map<uint256, std::pair<NodeId, std::list<QueuedBlock>::iterator> > mapBlocksInFlight;
 
+    /** emercoin: blocks that are waiting to be processed */
+    std::map<uint256, std::shared_ptr<CBlock> > mapBlocksWait;
+
     /** Stack of nodes which we have set to announce using compact blocks */
     std::list<NodeId> lNodesAnnouncingHeaderAndIDs;
 
@@ -2419,30 +2422,72 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
     else if (strCommand == NetMsgType::BLOCK && !fImporting && !fReindex) // Ignore blocks received while importing
     {
-        std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
-        vRecv >> *pblock;
+        std::shared_ptr<CBlock> pblock2 = std::make_shared<CBlock>();
+        vRecv >> *pblock2;
 
-        LogPrint("net", "received block %s peer=%d\n", pblock->GetHash().ToString(), pfrom->id);
+        LogPrint("net", "received block %s peer=%d\n", pblock2->GetHash().ToString(), pfrom->id);
 
-        // Process all blocks from whitelisted peers, even if not requested,
-        // unless we're still syncing with the network.
-        // Such an unrequested block may still be processed, subject to the
-        // conditions in AcceptBlock().
-        bool forceProcessing = pfrom->fWhitelisted && !IsInitialBlockDownload();
-        const uint256 hash(pblock->GetHash());
+        const uint256 hash2(pblock2->GetHash());
         {
             LOCK(cs_main);
-            // Also always process if we requested the block explicitly, as we may
-            // need it even though it is not a candidate for a new best tip.
-            forceProcessing |= MarkBlockAsReceived(hash);
-            // mapBlockSource is only used for sending reject messages and DoS scores,
-            // so the race between here and cs_main in ProcessNewBlock is fine.
-            mapBlockSource.emplace(hash, std::make_pair(pfrom->GetId(), true));
+            // emercoin: prevent attack on disk
+            bool fRequested = mapBlocksInFlight.count(hash2);
+            if (!fRequested) {
+                //emcTODO: what do we do with blocks that we did not request?
+                //return error("I never asked for this");
+            }
+            // emercoin: store in memory until we can connect it to some chain
+            mapBlocksWait[hash2] = pblock2;
         }
-        bool fNewBlock = false;
-        ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock);
-        if (fNewBlock)
-            pfrom->nLastBlockTime = GetTime();
+
+        std::vector<std::shared_ptr<CBlock>> queue;
+        std::map<uint256, std::shared_ptr<CBlock> > mapBlocksWaitCopy = mapBlocksWait;
+        {
+            LOCK(cs_main);
+            mapBlocksWaitCopy.insert(mapBlocksWait.begin(), mapBlocksWait.end());
+        }
+
+        for (int i=1; i<4; i++) { // execute 3 times
+        for (auto& pair : mapBlocksWaitCopy) {
+            std::shared_ptr<CBlock> pblock = pair.second;
+            const uint256 hash(pblock->GetHash());
+
+            // Process all blocks from whitelisted peers, even if not requested,
+            // unless we're still syncing with the network.
+            // Such an unrequested block may still be processed, subject to the
+            // conditions in AcceptBlock().
+            bool forceProcessing = pfrom->fWhitelisted && !IsInitialBlockDownload();
+            {
+                LOCK(cs_main);
+                BlockMap::iterator miSelf = mapBlockIndex.find(hash);
+                if (miSelf == mapBlockIndex.end()) {
+                    error("Block header not found");
+                    mapBlocksWait.erase(hash);
+                    Misbehaving(pfrom->GetId(), 10);
+                    continue;
+                }
+                CBlockIndex* pindex = miSelf->second;
+                if (!pindex->pprev->IsValid(BLOCK_VALID_TRANSACTIONS)) {
+                    if (pindex->pprev->nStatus & BLOCK_FAILED_MASK) {
+                        mapBlocksWait.erase(hash);  // prev block was rejected
+                    }
+                    continue;  // prev block was not (yet) accepted on disk
+                }
+
+                // Also always process if we requested the block explicitly, as we may
+                // need it even though it is not a candidate for a new best tip.
+                forceProcessing |= MarkBlockAsReceived(hash);
+                // mapBlockSource is only used for sending reject messages and DoS scores,
+                // so the race between here and cs_main in ProcessNewBlock is fine.
+                mapBlockSource.emplace(hash, std::make_pair(pfrom->GetId(), true));
+                mapBlocksWait.erase(hash);  // remove it before ProcessNewBlock to avoid using another LOCK
+            }
+
+            bool fNewBlock = false;
+            ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock);
+            if (fNewBlock)
+                pfrom->nLastBlockTime = GetTime();
+        }}
     }
 
 
