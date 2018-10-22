@@ -2269,6 +2269,16 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             vRecv >> headers[n];
             ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
             ReadCompactSize(vRecv); // ignore vchBlockSig.
+
+            // emercoin: ban peers that spam PoS headers without any PoW headers
+            pfrom->nPoSTemperature = headers[n].nFlags & BLOCK_PROOF_OF_STAKE ? pfrom->nPoSTemperature + 1 : 0;
+            if (pfrom->nPoSTemperature >= MAX_CONSECUTIVE_POS_HEADERS)
+            {
+                pfrom->nPoSTemperature = (MAX_CONSECUTIVE_POS_HEADERS / 4) * 3;
+                LOCK(cs_main);
+                Misbehaving(pfrom->GetId(), 100);
+                return error("too many consecutive pos headers");
+            }
         }
 
         if (nCount == 0) {
@@ -2324,7 +2334,11 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             if (state.IsInvalid(nDoS)) {
                 if (nDoS > 0) {
                     LOCK(cs_main);
-                    Misbehaving(pfrom->GetId(), nDoS);
+                    if (pfrom->nPoSTemperature >= 100) { // recieved 100+ pos headers in a row, probably out of memory attack
+                        pfrom->nPoSTemperature = (MAX_CONSECUTIVE_POS_HEADERS / 4) * 3;
+                        Misbehaving(pfrom->GetId(), 100);
+                    } else
+                        Misbehaving(pfrom->GetId(), nDoS);
                 }
                 return error("invalid header received");
             }

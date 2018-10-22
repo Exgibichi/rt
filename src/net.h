@@ -92,6 +92,9 @@ static const ServiceFlags REQUIRED_SERVICES = NODE_NETWORK;
 // NOTE: When adjusting this, update rpcnet:setban's help ("24h")
 static const unsigned int DEFAULT_MISBEHAVING_BANTIME = 60 * 60 * 24;  // Default 24-hour ban
 
+/** emercoin: Number of consecutive PoS headers are allowed from a single peer. Used to prevent out of memory attack. */
+static const unsigned int MAX_CONSECUTIVE_POS_HEADERS = 1000;
+
 typedef int64_t NodeId;
 
 struct AddedNodeInfo
@@ -684,6 +687,8 @@ public:
 
     // emercoin: temperature to measure how many tx has been sent by this client.
     uint32_t temperature;
+    // emercoin: temperature to measure how many PoS headers have been sent by this client
+    uint32_t nPoSTemperature;
 
     CNode(NodeId id, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn, SOCKET hSocketIn, const CAddress &addrIn, uint64_t nKeyedNetGroupIn, uint64_t nLocalHostNonceIn, const std::string &addrNameIn = "", bool fInboundIn = false);
     ~CNode();

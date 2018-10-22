@@ -2743,6 +2743,7 @@ CNode::CNode(NodeId idIn, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn
     fPauseSend = false;
     nProcessQueueSize = 0;
     temperature = 0;
+    nPoSTemperature = MAX_CONSECUTIVE_POS_HEADERS / 4;  // by default we don't trust new peer complemetely
 
     BOOST_FOREACH(const std::string &msg, getAllNetMessageTypes())
         mapRecvBytesPerMsgCmd[msg] = 0;
