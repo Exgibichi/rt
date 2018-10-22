@@ -1883,6 +1883,7 @@ bool ppcoinContextualBlockChecks(const CBlock& block, CValidationState& state, C
         return error("ConnectBlock() : SetStakeEntropyBit() failed");
     pindex->SetStakeModifier(nStakeModifier, fGeneratedStakeModifier);
     pindex->nStakeModifierChecksum = nStakeModifierChecksum;
+    setDirtyBlockIndex.insert(pindex);  // queue a write to disk
 
     return true;
 }
