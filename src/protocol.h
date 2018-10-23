@@ -369,4 +369,7 @@ public:
     uint256 hash;
 };
 
+/** emercoin: How much temperature a PoW header will remove */
+extern const unsigned int POW_HEADER_COOLING;
+
 #endif // BITCOIN_PROTOCOL_H

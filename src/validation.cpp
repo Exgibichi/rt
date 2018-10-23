@@ -3371,7 +3371,7 @@ static bool AcceptBlockHeader(const CBlockHeader& block, bool fProofOfStake, CVa
 }
 
 // Exposed wrapper for AcceptBlockHeader
-bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidationState& state, const CChainParams& chainparams, const CBlockIndex** ppindex)
+bool ProcessNewBlockHeaders(int32_t& nPoSTemperature, const std::vector<CBlockHeader>& headers, CValidationState& state, const CChainParams& chainparams, const CBlockIndex** ppindex)
 {
     {
         LOCK(cs_main);
@@ -3383,6 +3383,8 @@ bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidatio
             if (ppindex) {
                 *ppindex = pindex;
             }
+            nPoSTemperature += header.nFlags & BLOCK_PROOF_OF_STAKE ? 1 : -POW_HEADER_COOLING;
+            nPoSTemperature = std::max(nPoSTemperature, 0);
         }
     }
     NotifyHeaderTip();

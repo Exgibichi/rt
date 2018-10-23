@@ -95,6 +95,8 @@ static const unsigned int DEFAULT_MISBEHAVING_BANTIME = 60 * 60 * 24;  // Defaul
 /** emercoin: Number of consecutive PoS headers are allowed from a single peer. Used to prevent out of memory attack. */
 static const unsigned int MAX_CONSECUTIVE_POS_HEADERS = 1000;
 
+// const unsigned int POW_HEADER_COOLING = 40;  - defined in protocol.cpp, so that it is visible to other files
+
 typedef int64_t NodeId;
 
 struct AddedNodeInfo

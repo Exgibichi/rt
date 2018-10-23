@@ -2010,7 +2010,9 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         const CBlockIndex *pindex = NULL;
         CValidationState state;
-        if (!ProcessNewBlockHeaders({cmpctblock.header}, state, chainparams, &pindex)) {
+        //emcTODO - do we care about nPoSTemperature inside CMPCTBLOCK?
+        int32_t tmp;
+        if (!ProcessNewBlockHeaders(tmp, {cmpctblock.header}, state, chainparams, &pindex)) {
             int nDoS;
             if (state.IsInvalid(nDoS)) {
                 if (nDoS > 0) {
@@ -2273,13 +2275,17 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
             ReadCompactSize(vRecv); // ignore vchBlockSig.
 
-            // emercoin: ban peers that spam PoS headers without any PoW headers
-            pfrom->nPoSTemperature = headers[n].nFlags & BLOCK_PROOF_OF_STAKE ? pfrom->nPoSTemperature + 1 : 0;
-            if (pfrom->nPoSTemperature >= MAX_CONSECUTIVE_POS_HEADERS)
+            // emercoin: quick check to see if we should ban peers for PoS spam in this barch of header
+            // note: at this point we don't know if PoW headers are valid - we just assume they are
+            // so we need to update pfrom->nPoSTemperature once we actualy check them
+            int nPoSTemperature = pfrom->nPoSTemperature;
+            nPoSTemperature += headers[n].nFlags & BLOCK_PROOF_OF_STAKE ? 1 : -POW_HEADER_COOLING;
+            nPoSTemperature = std::max(nPoSTemperature, 0);
+            if (nPoSTemperature >= (int)MAX_CONSECUTIVE_POS_HEADERS)
             {
-                pfrom->nPoSTemperature = (MAX_CONSECUTIVE_POS_HEADERS / 4) * 3;
+                pfrom->nPoSTemperature = 0;
                 LOCK(cs_main);
-                Misbehaving(pfrom->GetId(), 100);
+                g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
                 return error("too many consecutive pos headers");
             }
         }
@@ -2332,20 +2338,26 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
 
         CValidationState state;
-        if (!ProcessNewBlockHeaders(headers, state, chainparams, &pindexLast)) {
+        int32_t tmp = pfrom->nPoSTemperature;
+        if (!ProcessNewBlockHeaders(tmp, headers, state, chainparams, &pindexLast)) {
+            pfrom->nPoSTemperature = tmp;
             int nDoS;
             if (state.IsInvalid(nDoS)) {
                 if (nDoS > 0) {
                     LOCK(cs_main);
-                    if (pfrom->nPoSTemperature >= 100) { // recieved 100+ pos headers in a row, probably out of memory attack
-                        pfrom->nPoSTemperature = (MAX_CONSECUTIVE_POS_HEADERS / 4) * 3;
-                        Misbehaving(pfrom->GetId(), 100);
+                    if (pfrom->nPoSTemperature >= 200) {
+                        // A lot of PoS headers followed by some failed header (most likely PoW).
+                        // This situation is very unusual, because normaly you don't get a failed PoW header with a ton of PoS headers.
+                        // Probably out of memory attack. Punish peer for a long time.
+                        pfrom->nPoSTemperature = 0;
+                        g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
                     } else
                         Misbehaving(pfrom->GetId(), nDoS);
                 }
                 return error("invalid header received");
             }
         }
+        pfrom->nPoSTemperature = tmp;
 
         {
         LOCK(cs_main);
