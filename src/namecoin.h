@@ -164,6 +164,7 @@ extern std::map<CNameVal, std::set<uint256> > mapNamePending;
 int IndexOfNameOutput(const CTransactionRef &tx);
 bool GetNameCurrentAddress(const CNameVal& name, CBitcoinAddress& address, std::string& error);
 CNameVal nameValFromString(const std::string& str);
+CNameVal toCNameVal(const std::string& str);
 std::string stringFromNameVal(const CNameVal& nameVal);
 std::string encodeNameVal(const CNameVal& input, const string& format);
 std::string stringFromOp(int op);

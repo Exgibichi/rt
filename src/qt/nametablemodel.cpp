@@ -35,6 +35,22 @@ struct NameTableEntryLessThan
     }
 };
 
+bool NameCoin_isMyName(const CNameVal & name) {
+	CNameVal nameUniq;
+	map<CNameVal, NameTxInfo> mapNames, mapPending;
+	GetNameList(nameUniq, mapNames, mapPending);
+
+	mapNames.insert(mapPending.begin(), mapPending.end());
+	// add info about existing names
+	BOOST_FOREACH(const PAIRTYPE(CNameVal, NameTxInfo)& item, mapNames)
+	{
+		// name is mine and user asked to hide my names
+		if (item.first==name)
+			return item.second.fIsMine;
+	}
+	return false;
+}
+
 // Private implementation
 class NameTablePriv
 {
