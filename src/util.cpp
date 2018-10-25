@@ -557,11 +557,12 @@ boost::filesystem::path GetConfigFile(const std::string& confPath)
 
 void ReadConfigFile(const std::string& confPath)
 {
-    boost::filesystem::ifstream streamConfig(GetConfigFile(confPath));
+    boost::filesystem::path path = GetConfigFile(confPath);
+    boost::filesystem::ifstream streamConfig(path);
     if (!streamConfig.good())
     {
         FILE * pFile;
-        pFile = fopen(confPath.c_str(), "a");  // create empty config if it does not exist
+        pFile = fopen(path.string().c_str(), "a");  // create empty config if it does not exist
         if (pFile != NULL) fclose(pFile);
         return;
     }

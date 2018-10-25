@@ -9,6 +9,7 @@
 #include <QClipboard>
 #include <QToolTip>
 #include <QLabel>
+#include <QDebug>
 #include "SelectableTextEdit.h"
 
 NameValueLineEdits::NameValueLineEdits() {
@@ -26,7 +27,10 @@ NameValueLineEdits::NameValueLineEdits() {
 		auto lay = new QHBoxLayout(w);
 		lay->setSpacing(0);
 		lay->setMargin(0);
-		
+
+		_availability = new QLabel;
+		lay->addWidget(_availability);
+
 		QString namePlaceholder = tr("This field will contain name to insert to 'Manage names' panel");
 		_name->setPlaceholderText(namePlaceholder);
 		_name->setToolTip(tr("Read-only") + ". " +  namePlaceholder);
@@ -86,8 +90,38 @@ NameValueLineEdits::NameValueLineEdits() {
 	else
 		_wMultiLine->hide();
 }
-void NameValueLineEdits::setName(const QString & s) {
-	_name->setText(s);
+using CNameVal = std::vector<unsigned char>;
+bool NameCoin_isMyName(const CNameVal & name);
+CNameVal toCNameVal(const QString& s) {
+	CNameVal ret;
+	auto arr = s.toUtf8();
+	for(char c: arr)
+		ret.push_back(c);
+	return ret;
+}
+CNameVal toCNameVal(const std::string & s);
+void NameValueLineEdits::setName(const QString & name) {
+	_name->setText(name);
+	if(name.isEmpty()) {
+		_availability->hide();
+		_availability->setToolTip({});
+		QToolTip::hideText();
+		return;
+	}
+	_availability->show();
+	QString text;
+	if(NameCoin_isMyName(toCNameVal(name))) {
+	   text = QChar(0x2705) + tr(" You are owner of this name and can change it (%1)").arg(name);
+	} else if(canBuyOrEdit(name)) {
+		text = QChar(0x2705) + tr(" This name is free (%1)").arg(name);
+	} else {
+		text = QChar(0x274C) + tr(" This name is already registered in blockchain (%1)").arg(name);
+	}
+	_availability->setText(text);
+	//if(tooltip!=_availability->toolTip()) {
+	//	_availability->setToolTip(tooltip);
+	//	QToolTip::showText(_availability->mapToGlobal(_availability->rect().topLeft()), tooltip);
+	//}
 }
 void NameValueLineEdits::setValuePlaceholder(const QString & s) {
 	_value->setPlaceholderText(s);
@@ -122,4 +156,13 @@ QString NameValueLineEdits::value()const {
 	if(_multiline)
 		return _valueMuti->toPlainText();
 	return _value->text();
+}
+QLabel* NameValueLineEdits::availabilityLabel()const {
+	return _availability;
+}
+bool NameActive(const CNameVal& name, int currentBlockHeight = -1);
+extern bool fPrintToConsole;
+bool NameValueLineEdits::canBuyOrEdit(const QString & name)const {
+	//fPrintToConsole = true;
+	return !NameActive(toCNameVal(name));
 }

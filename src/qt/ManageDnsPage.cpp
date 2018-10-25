@@ -28,6 +28,7 @@ ManageDnsPage::ManageDnsPage(QWidget*parent): QDialog(parent) {
 	auto form = new QFormLayout;
 	lay->addLayout(form);
     _editName = addLineEdit(form, "", tr("DNS name"), tr("Like mysite.com"));
+	form->addRow(_NVPair->availabilityLabel());
     addLineEdit(form, "A", tr("A record"), tr("IPv4 address, like 185.31.209.8"));
     addLineEdit(form, "AAAA", tr("AAAA record"), tr("IPv6 address, like 2a04:5340:1:1::3"));
     addLineEdit(form, "MX", tr("MX record"), tr("Mail exchanger, like mx.yandex.ru:10"));

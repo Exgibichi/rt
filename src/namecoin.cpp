@@ -34,6 +34,9 @@ CNameVal nameValFromValue(const UniValue& value) {
     return CNameVal(strbeg, strbeg + strName.size());
 }
 
+CNameVal toCNameVal(const std::string& str) {
+	return nameValFromString(str);
+}
 CNameVal nameValFromString(const string& str) {
     unsigned char *strbeg = (unsigned char*)str.c_str();
     return CNameVal(strbeg, strbeg + str.size());
