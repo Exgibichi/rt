@@ -2284,9 +2284,12 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             if (nPoSTemperature >= (int)MAX_CONSECUTIVE_POS_HEADERS)
             {
                 pfrom->nPoSTemperature = 0;
-                LOCK(cs_main);
-                g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
-                return error("too many consecutive pos headers");
+                if (Params().NetworkIDString() != "test")
+                {
+                    LOCK(cs_main);
+                    g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
+                    return error("too many consecutive pos headers");
+                }
             }
         }
 
@@ -2350,7 +2353,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                         // This situation is very unusual, because normaly you don't get a failed PoW header with a ton of PoS headers.
                         // Probably out of memory attack. Punish peer for a long time.
                         pfrom->nPoSTemperature = 0;
-                        g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
+                        if (Params().NetworkIDString() != "test")
+                            g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
                     } else
                         Misbehaving(pfrom->GetId(), nDoS);
                 }
@@ -2442,7 +2446,6 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         const uint256 hash2(pblock2->GetHash());
         {
             LOCK(cs_main);
-            // emercoin: prevent attack on disk
             bool fRequested = mapBlocksInFlight.count(hash2);
             if (!fRequested) {
                 //emcTODO: what do we do with blocks that we did not request?
