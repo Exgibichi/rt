@@ -2270,6 +2270,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             return error("headers message size = %u", nCount);
         }
         headers.resize(nCount);
+        {
+        LOCK(cs_main);
         for (unsigned int n = 0; n < nCount; n++) {
             vRecv >> headers[n];
             ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
@@ -2281,16 +2283,14 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             int nPoSTemperature = pfrom->nPoSTemperature;
             nPoSTemperature += headers[n].nFlags & BLOCK_PROOF_OF_STAKE ? 1 : -POW_HEADER_COOLING;
             nPoSTemperature = std::max(nPoSTemperature, 0);
-            if (nPoSTemperature >= (int)MAX_CONSECUTIVE_POS_HEADERS)
-            {
+            if (nPoSTemperature >= (int)MAX_CONSECUTIVE_POS_HEADERS) {
                 pfrom->nPoSTemperature = 0;
-                if (Params().NetworkIDString() != "test")
-                {
-                    LOCK(cs_main);
+                if (Params().NetworkIDString() != "test") {
                     g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
                     return error("too many consecutive pos headers");
                 }
             }
+        }
         }
 
         if (nCount == 0) {
@@ -2448,8 +2448,14 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             LOCK(cs_main);
             bool fRequested = mapBlocksInFlight.count(hash2);
             if (!fRequested) {
-                //emcTODO: what do we do with blocks that we did not request?
-                //return error("I never asked for this");
+                pfrom->nPoSTemperature += 100;
+                if (pfrom->nPoSTemperature >= (int)MAX_CONSECUTIVE_POS_HEADERS) {
+                    pfrom->nPoSTemperature = 0;
+                    if (Params().NetworkIDString() != "test") {
+                        g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
+                        return error("too many consecutive pos headers");
+                    }
+                }
             }
             // emercoin: store in memory until we can connect it to some chain
             mapBlocksWait[hash2] = pblock2;
