@@ -2456,6 +2456,14 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                         return error("too many consecutive pos headers");
                     }
                 }
+
+                BlockMap::iterator miSelf = mapBlockIndex.find(pblock2->hashPrevBlock);
+                if (miSelf == mapBlockIndex.end()) {
+                    return error("block header not found");
+                }
+                if (!miSelf->second->IsValid(BLOCK_VALID_TRANSACTIONS)) {
+                    return error("this block does not connect to any valid known block");
+                }
             }
             // emercoin: store in memory until we can connect it to some chain
             mapBlocksWait[hash2] = pblock2;
@@ -2482,7 +2490,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 LOCK(cs_main);
                 BlockMap::iterator miSelf = mapBlockIndex.find(hash);
                 if (miSelf == mapBlockIndex.end()) {
-                    error("Block header not found");
+                    error("block header not found");
                     mapBlocksWait.erase(hash);
                     Misbehaving(pfrom->GetId(), 10);
                     continue;
