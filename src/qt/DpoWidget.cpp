@@ -24,7 +24,7 @@ DpoWidget::DpoWidget(QWidget*parent): QDialog(parent) {
 	_tab = new QTabWidget;
 	lay->addWidget(_tab);
 	auto addTab = [this](QWidget*w) {
-		_tab->addTab(w, w->windowTitle());
+		_tab->addTab(w, w->windowIcon(), w->windowTitle());
 	};
 	addTab(new DpoUseCaseScheme);
 	addTab(_createRoot = new DpoCreateRootWidget());

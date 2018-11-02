@@ -10,8 +10,7 @@
 
 DpoCreateRecordWidget::DpoCreateRecordWidget() {
 	setWindowTitle(tr("2) Register in organization"));
-	auto w = new QWidget;
-	auto lay = new QVBoxLayout(w);
+	auto lay = new QVBoxLayout(this);
 	_NVPair = new NameValueLineEdits;
 	_NVPair->setValueMultiline(true);
 
@@ -40,7 +39,6 @@ DpoCreateRecordWidget::DpoCreateRecordWidget() {
 	lay->addWidget(newLabel(tr("This record must be created by person who's rights are recorded.\n"
 		"After you create this name record, emeil this name to organization so they can sign it.")));
     lay->addStretch();
-	setWidget(w);
 	updateSettings(false);
 }
 QLabel* DpoCreateRecordWidget::newLabel(const QString & s) {

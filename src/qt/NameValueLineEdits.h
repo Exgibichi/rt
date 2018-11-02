@@ -16,7 +16,6 @@ class NameValueLineEdits: public QWidget {
 		QString name()const;
 		QString value()const;
 		SelectableLineEdit* nameEdit()const { return _name; }
-		bool canBuyOrEdit(const QString&name)const;
 		static bool isMyName(const QString&name);
 		QLabel* availabilityLabel()const;
 	protected:

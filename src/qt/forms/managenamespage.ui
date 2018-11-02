@@ -58,6 +58,20 @@
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="btnTrustedDiploma">
+       <property name="toolTip">
+        <string>Trusted Diploma</string>
+       </property>
+       <property name="text">
+        <string>TD</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../bitcoin.qrc">
+         <normaloff>:/icons/Trusted-diploma-16-monochrome.png</normaloff>:/icons/Trusted-diploma-16-monochrome.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="hSpacerToolbar">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>

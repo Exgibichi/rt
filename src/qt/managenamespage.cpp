@@ -10,6 +10,7 @@
 #include "csvmodelwriter.h"
 #include "ManageDnsPage.h"
 #include "DpoWidget.h"
+#include "DiplomaWidget.h"
 
 #include <QMessageBox>
 #include <QMenu>
@@ -97,6 +98,7 @@ ManageNamesPage::ManageNamesPage(QWidget *parent) :
 
     connect(ui->btnManageDomains, &QPushButton::clicked, this, &ManageNamesPage::onManageDomainsClicked);
 	connect(ui->btnDpo, &QPushButton::clicked, this, &ManageNamesPage::onManageDpoClicked);
+	connect(ui->btnTrustedDiploma, &QPushButton::clicked, this, &ManageNamesPage::onTrustedDiplomaClicked);
 
     // Context menu actions
     QAction *copyNameAction = new QAction(tr("Copy &Name"), this);
@@ -177,6 +179,13 @@ void ManageNamesPage::onManageDomainsClicked() {
 }
 void ManageNamesPage::onManageDpoClicked() {
 	DpoWidget dlg(this);
+	if(dlg.exec()==QDialog::Accepted) {
+		setDisplayedName(dlg.name());
+		setDisplayedValue(dlg.value());
+	}
+}
+void ManageNamesPage::onTrustedDiplomaClicked() {
+	DiplomaWidget dlg(this);
 	if(dlg.exec()==QDialog::Accepted) {
 		setDisplayedName(dlg.name());
 		setDisplayedValue(dlg.value());

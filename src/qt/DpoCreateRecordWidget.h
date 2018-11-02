@@ -7,7 +7,7 @@ class QPlainTextEdit;
 class QFormLayout;
 class QLabel;
 
-class DpoCreateRecordWidget: public QScrollArea {
+class DpoCreateRecordWidget: public QWidget {
 	public:
 		DpoCreateRecordWidget();
 		NameValueLineEdits* _NVPair = 0;

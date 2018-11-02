@@ -11,6 +11,7 @@
 #include <QLabel>
 #include <QDebug>
 #include "SelectableTextEdit.h"
+#include "QNameCoin.h"
 
 NameValueLineEdits::NameValueLineEdits() {
 	_name = new SelectableLineEdit;
@@ -90,16 +91,6 @@ NameValueLineEdits::NameValueLineEdits() {
 	else
 		_wMultiLine->hide();
 }
-using CNameVal = std::vector<unsigned char>;
-bool NameCoin_isMyName(const CNameVal & name);
-CNameVal toCNameVal(const QString& s) {
-	CNameVal ret;
-	auto arr = s.toUtf8();
-	for(char c: arr)
-		ret.push_back(c);
-	return ret;
-}
-CNameVal toCNameVal(const std::string & s);
 void NameValueLineEdits::setName(const QString & name) {
 	_name->setText(name);
 	if(name.isEmpty()) {
@@ -110,9 +101,9 @@ void NameValueLineEdits::setName(const QString & name) {
 	}
 	_availability->show();
 	QString text;
-	if(NameCoin_isMyName(toCNameVal(name))) {
+	if(QNameCoin::isMyName(name)) {
 	   text = QChar(0x2705) + tr(" You are owner of this name and can change it (%1)").arg(name);
-	} else if(canBuyOrEdit(name)) {
+	} else if(!QNameCoin::nameActive(name)) {
 		text = QChar(0x2705) + tr(" This name is free (%1)").arg(name);
 	} else {
 		text = QChar(0x274C) + tr(" This name is already registered in blockchain (%1)").arg(name);
@@ -159,10 +150,4 @@ QString NameValueLineEdits::value()const {
 }
 QLabel* NameValueLineEdits::availabilityLabel()const {
 	return _availability;
-}
-bool NameActive(const CNameVal& name, int currentBlockHeight = -1);
-extern bool fPrintToConsole;
-bool NameValueLineEdits::canBuyOrEdit(const QString & name)const {
-	//fPrintToConsole = true;
-	return !NameActive(toCNameVal(name));
 }

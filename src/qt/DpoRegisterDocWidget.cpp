@@ -1,5 +1,7 @@
 ﻿//DpoRegisterDocWidget.cpp by Emercoin developers
 #include "DpoRegisterDocWidget.h"
+#include "SelectableLineEdit.h"
+#include "signverifymessagedialog.h"
 #include <QFormLayout>
 #include <QSettings>
 #include <QLabel>
@@ -41,11 +43,22 @@ DpoRegisterDocWidget::DpoRegisterDocWidget() {
 	_editDocName = new QLineEdit;
 	lay->addWidget(_editDocName);
 
-	lay->addWidget(new QLabel("Sign next message:"));
+	lay->addWidget(new QLabel("Sign next message (menu File -> Sign message):"));
 	
-	_signLabel = new QLineEdit;
+	_signLabel = new SelectableLineEdit;
 	_signLabel->setReadOnly(true);
 	lay->addWidget(_signLabel);
+
+//	auto btnSign = new QPushButton();
+//	btnSign->setText(tr("Sign..."));
+//	connect(btnSign, &QAbstractButton::clicked, this, [this]() {
+//		QString s = _signLabel->text();
+//		SignVerifyMessageDialog *signVerifyMessageDialog = new SignVerifyMessageDialog(0/* style */, this);
+//		signVerifyMessageDialog->setAttribute(Qt::WA_DeleteOnClose);
+//		//signVerifyMessageDialog->setModel(walletModel);
+//		signVerifyMessageDialog->showTab_SM(true);
+//	});
+//	lay->addWidget(btnSign);
 
 	lay->addWidget(new QLabel("Write this signature here:"));
 	_editSignature = new QLineEdit;

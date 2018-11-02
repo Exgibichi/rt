@@ -34,7 +34,20 @@ struct NameTableEntryLessThan
         return a < b.name;
     }
 };
+std::vector<CNameVal> NameCoin_myNames() {
+	CNameVal nameUniq;
+	map<CNameVal, NameTxInfo> mapNames, mapPending;
+	GetNameList(nameUniq, mapNames, mapPending);
+	mapNames.insert(mapPending.begin(), mapPending.end());
 
+	std::vector<CNameVal> ret;
+	// add info about existing names
+	for(const auto& it: mapNames) {
+		if (it.second.fIsMine)
+			ret.push_back(it.first);
+	}
+	return ret;
+}
 bool NameCoin_isMyName(const CNameVal & name) {
 	CNameVal nameUniq;
 	map<CNameVal, NameTxInfo> mapNames, mapPending;
@@ -42,11 +55,9 @@ bool NameCoin_isMyName(const CNameVal & name) {
 
 	mapNames.insert(mapPending.begin(), mapPending.end());
 	// add info about existing names
-	BOOST_FOREACH(const PAIRTYPE(CNameVal, NameTxInfo)& item, mapNames)
-	{
-		// name is mine and user asked to hide my names
-		if (item.first==name)
-			return item.second.fIsMine;
+	for(const auto& it: mapNames) {
+		if (it.first==name)
+			return it.second.fIsMine;
 	}
 	return false;
 }

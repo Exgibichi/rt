@@ -675,8 +675,6 @@ public:
 
 // namecoin stuff
 typedef std::vector<unsigned char> CNameVal;
-class QString;
-QString toQString(const CNameVal & v);
 struct NameTxInfo
 {
     CNameVal name;
