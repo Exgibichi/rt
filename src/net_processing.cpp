@@ -111,8 +111,12 @@ namespace {
     };
     std::map<uint256, std::pair<NodeId, std::list<QueuedBlock>::iterator> > mapBlocksInFlight;
 
-    /** emercoin: blocks that are waiting to be processed */
-    std::map<uint256, std::shared_ptr<CBlock> > mapBlocksWait;
+    /** emercoin: blocks that are waiting to be processed, the key points to previous CBlockIndex entry */
+    struct WaitElement {
+        std::shared_ptr<CBlock> pblock;
+        int64_t time;
+    };
+    std::map<CBlockIndex*, WaitElement> mapBlocksWait;
 
     /** Stack of nodes which we have set to announce using compact blocks */
     std::list<NodeId> lNodesAnnouncingHeaderAndIDs;
@@ -2010,7 +2014,9 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         const CBlockIndex *pindex = NULL;
         CValidationState state;
-        if (!ProcessNewBlockHeaders({cmpctblock.header}, state, chainparams, &pindex)) {
+        //emcTODO - do we care about nPoSTemperature inside CMPCTBLOCK?
+        int32_t tmp;
+        if (!ProcessNewBlockHeaders(tmp, {cmpctblock.header}, state, chainparams, &pindex)) {
             int nDoS;
             if (state.IsInvalid(nDoS)) {
                 if (nDoS > 0) {
@@ -2268,20 +2274,27 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             return error("headers message size = %u", nCount);
         }
         headers.resize(nCount);
+        {
+        LOCK(cs_main);
         for (unsigned int n = 0; n < nCount; n++) {
             vRecv >> headers[n];
             ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
             ReadCompactSize(vRecv); // ignore vchBlockSig.
 
-            // emercoin: ban peers that spam PoS headers without any PoW headers
-            pfrom->nPoSTemperature = headers[n].nFlags & BLOCK_PROOF_OF_STAKE ? pfrom->nPoSTemperature + 1 : 0;
-            if (pfrom->nPoSTemperature >= MAX_CONSECUTIVE_POS_HEADERS)
-            {
-                pfrom->nPoSTemperature = (MAX_CONSECUTIVE_POS_HEADERS / 4) * 3;
-                LOCK(cs_main);
-                Misbehaving(pfrom->GetId(), 100);
-                return error("too many consecutive pos headers");
+            // emercoin: quick check to see if we should ban peers for PoS spam in this barch of header
+            // note: at this point we don't know if PoW headers are valid - we just assume they are
+            // so we need to update pfrom->nPoSTemperature once we actualy check them
+            int nPoSTemperature = pfrom->nPoSTemperature;
+            nPoSTemperature += headers[n].nFlags & BLOCK_PROOF_OF_STAKE ? 1 : -POW_HEADER_COOLING;
+            nPoSTemperature = std::max(nPoSTemperature, 0);
+            if (nPoSTemperature >= (int)MAX_CONSECUTIVE_POS_HEADERS) {
+                pfrom->nPoSTemperature = 0;
+                if (Params().NetworkIDString() != "test") {
+                    g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
+                    return error("too many consecutive pos headers");
+                }
             }
+        }
         }
 
         if (nCount == 0) {
@@ -2332,20 +2345,27 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
 
         CValidationState state;
-        if (!ProcessNewBlockHeaders(headers, state, chainparams, &pindexLast)) {
+        int32_t tmp = pfrom->nPoSTemperature;
+        if (!ProcessNewBlockHeaders(tmp, headers, state, chainparams, &pindexLast)) {
+            pfrom->nPoSTemperature = tmp;
             int nDoS;
             if (state.IsInvalid(nDoS)) {
                 if (nDoS > 0) {
                     LOCK(cs_main);
-                    if (pfrom->nPoSTemperature >= 100) { // recieved 100+ pos headers in a row, probably out of memory attack
-                        pfrom->nPoSTemperature = (MAX_CONSECUTIVE_POS_HEADERS / 4) * 3;
-                        Misbehaving(pfrom->GetId(), 100);
+                    if (pfrom->nPoSTemperature >= 200) {
+                        // A lot of PoS headers followed by some failed header (most likely PoW).
+                        // This situation is very unusual, because normaly you don't get a failed PoW header with a ton of PoS headers.
+                        // Probably out of memory attack. Punish peer for a long time.
+                        pfrom->nPoSTemperature = 0;
+                        if (Params().NetworkIDString() != "test")
+                            g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
                     } else
                         Misbehaving(pfrom->GetId(), nDoS);
                 }
                 return error("invalid header received");
             }
         }
+        pfrom->nPoSTemperature = tmp;
 
         {
         LOCK(cs_main);
@@ -2424,32 +2444,45 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
     {
         std::shared_ptr<CBlock> pblock2 = std::make_shared<CBlock>();
         vRecv >> *pblock2;
+        int64_t nTimeNow = GetSystemTimeInSeconds();
 
         LogPrint("net", "received block %s peer=%d\n", pblock2->GetHash().ToString(), pfrom->id);
 
         const uint256 hash2(pblock2->GetHash());
         {
             LOCK(cs_main);
-            // emercoin: prevent attack on disk
             bool fRequested = mapBlocksInFlight.count(hash2);
+
+            BlockMap::iterator miPrev = mapBlockIndex.find(pblock2->hashPrevBlock);
+            if (miPrev == mapBlockIndex.end()) {
+                return error("previous header not found");
+            }
+
             if (!fRequested) {
-                //emcTODO: what do we do with blocks that we did not request?
-                //return error("I never asked for this");
+                if (pblock2->IsProofOfStake())
+                    pfrom->nPoSTemperature += 100;
+                if (pfrom->nPoSTemperature >= (int)MAX_CONSECUTIVE_POS_HEADERS) {
+                    pfrom->nPoSTemperature = 0;
+                    if (Params().NetworkIDString() != "test") {
+                        g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
+                        return error("too many consecutive pos headers");
+                    }
+                }
+                if (!miPrev->second->IsValid(BLOCK_VALID_TRANSACTIONS)) {
+                    return error("this block does not connect to any valid known block");
+                }
             }
             // emercoin: store in memory until we can connect it to some chain
-            mapBlocksWait[hash2] = pblock2;
+            WaitElement we; we.pblock = pblock2; we.time = nTimeNow;
+            mapBlocksWait[miPrev->second] = we;
         }
 
-        std::vector<std::shared_ptr<CBlock>> queue;
-        std::map<uint256, std::shared_ptr<CBlock> > mapBlocksWaitCopy = mapBlocksWait;
-        {
-            LOCK(cs_main);
-            mapBlocksWaitCopy.insert(mapBlocksWait.begin(), mapBlocksWait.end());
-        }
-
-        for (int i=1; i<4; i++) { // execute 3 times
-        for (auto& pair : mapBlocksWaitCopy) {
-            std::shared_ptr<CBlock> pblock = pair.second;
+        bool fContinue = true;
+        while (fContinue) {
+        fContinue = false;
+        for (auto& pair : mapBlocksWait) {
+            CBlockIndex* pindexPrev = pair.first;
+            std::shared_ptr<CBlock> pblock = pair.second.pblock;
             const uint256 hash(pblock->GetHash());
 
             // Process all blocks from whitelisted peers, even if not requested,
@@ -2459,19 +2492,23 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             bool forceProcessing = pfrom->fWhitelisted && !IsInitialBlockDownload();
             {
                 LOCK(cs_main);
-                BlockMap::iterator miSelf = mapBlockIndex.find(hash);
-                if (miSelf == mapBlockIndex.end()) {
-                    error("Block header not found");
-                    mapBlocksWait.erase(hash);
-                    Misbehaving(pfrom->GetId(), 10);
-                    continue;
+
+                // remove blocks that were not connected in 30 seconds
+                if (nTimeNow > pair.second.time + 30) {
+                    mapBlocksWait.erase(pindexPrev);
+                    fContinue = true;
+                    MarkBlockAsReceived(hash);
+                    break;      // restart for loop, because we removed an element
                 }
-                CBlockIndex* pindex = miSelf->second;
-                if (!pindex->pprev->IsValid(BLOCK_VALID_TRANSACTIONS)) {
-                    if (pindex->pprev->nStatus & BLOCK_FAILED_MASK) {
-                        mapBlocksWait.erase(hash);  // prev block was rejected
+
+                if (!pindexPrev->IsValid(BLOCK_VALID_TRANSACTIONS)) {
+                    if (pindexPrev->nStatus & BLOCK_FAILED_MASK) {
+                        mapBlocksWait.erase(pindexPrev);  // prev block was rejected
+                        fContinue = true;
+                        MarkBlockAsReceived(hash);
+                        break;  // restart for loop, because we removed an element
                     }
-                    continue;  // prev block was not (yet) accepted on disk
+                    continue;   // prev block was not (yet) accepted on disk, skip to next one
                 }
 
                 // Also always process if we requested the block explicitly, as we may
@@ -2480,13 +2517,15 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 // mapBlockSource is only used for sending reject messages and DoS scores,
                 // so the race between here and cs_main in ProcessNewBlock is fine.
                 mapBlockSource.emplace(hash, std::make_pair(pfrom->GetId(), true));
-                mapBlocksWait.erase(hash);  // remove it before ProcessNewBlock to avoid using another LOCK
+                mapBlocksWait.erase(pindexPrev);  // remove it before ProcessNewBlock to avoid using another LOCK
             }
 
             bool fNewBlock = false;
             ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock);
             if (fNewBlock)
                 pfrom->nLastBlockTime = GetTime();
+            fContinue = true;
+            break;              // restart for loop, because we removed an element
         }}
     }
 

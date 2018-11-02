@@ -3371,7 +3371,7 @@ static bool AcceptBlockHeader(const CBlockHeader& block, bool fProofOfStake, CVa
 }
 
 // Exposed wrapper for AcceptBlockHeader
-bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidationState& state, const CChainParams& chainparams, const CBlockIndex** ppindex)
+bool ProcessNewBlockHeaders(int32_t& nPoSTemperature, const std::vector<CBlockHeader>& headers, CValidationState& state, const CChainParams& chainparams, const CBlockIndex** ppindex)
 {
     {
         LOCK(cs_main);
@@ -3383,6 +3383,8 @@ bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidatio
             if (ppindex) {
                 *ppindex = pindex;
             }
+            nPoSTemperature += header.nFlags & BLOCK_PROOF_OF_STAKE ? 1 : -POW_HEADER_COOLING;
+            nPoSTemperature = std::max(nPoSTemperature, 0);
         }
     }
     NotifyHeaderTip();
@@ -3402,6 +3404,11 @@ static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidation
 
     if (!AcceptBlockHeader(block, block.IsProofOfStake(), state, chainparams, &pindex))
         return false;
+
+    // emercoin: we should only accept blocks that can be connected to a prev block with validated PoS
+    if (!pindex->pprev->IsValid(BLOCK_VALID_TRANSACTIONS)) {
+        return error("%s: this block does not connect to any valid known block", __func__);
+    }
 
     // Try to process all requested blocks that we don't have, but only
     // process an unrequested block if it's new and has enough work to
