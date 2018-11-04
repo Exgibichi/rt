@@ -2015,8 +2015,9 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         const CBlockIndex *pindex = NULL;
         CValidationState state;
         //emcTODO - do we care about nPoSTemperature inside CMPCTBLOCK?
-        uint32_t tmp;
-        if (!ProcessNewBlockHeaders(tmp, {cmpctblock.header}, state, chainparams, &pindex)) {
+        uint32_t tmp1;
+        uint256 tmp2;
+        if (!ProcessNewBlockHeaders(tmp1, tmp2, {cmpctblock.header}, state, chainparams, &pindex)) {
             int nDoS;
             if (state.IsInvalid(nDoS)) {
                 if (nDoS > 0) {
@@ -2281,11 +2282,15 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
             ReadCompactSize(vRecv); // ignore vchBlockSig.
 
-            // emercoin: quick check to see if we should ban peers for PoS spam in this barch of header
+            // emercoin: quick check to see if we should ban peers for PoS spam
             // note: at this point we don't know if PoW headers are valid - we just assume they are
             // so we need to update pfrom->nPoSTemperature once we actualy check them
             int nPoSTemperature = pfrom->nPoSTemperature;
-            nPoSTemperature += headers[n].nFlags & BLOCK_PROOF_OF_STAKE ? 1 : -POW_HEADER_COOLING;
+            bool fPoS = headers[n].nFlags & BLOCK_PROOF_OF_STAKE;
+            nPoSTemperature += fPoS ? 1 : -POW_HEADER_COOLING;
+            // peer cannot cool himself by PoW headers from other branches
+            if (n == 0 && !fPoS && headers[n].hashPrevBlock != pfrom->lastAcceptedHeader)
+                nPoSTemperature += POW_HEADER_COOLING;
             nPoSTemperature = std::max(nPoSTemperature, 0);
             if (nPoSTemperature >= (int)MAX_CONSECUTIVE_POS_HEADERS) {
                 pfrom->nPoSTemperature = 0;
@@ -2345,7 +2350,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
 
         CValidationState state;
-        if (!ProcessNewBlockHeaders(pfrom->nPoSTemperature, headers, state, chainparams, &pindexLast)) {
+        if (!ProcessNewBlockHeaders(pfrom->nPoSTemperature, pfrom->lastAcceptedHeader, headers, state, chainparams, &pindexLast)) {
             int nDoS;
             if (state.IsInvalid(nDoS)) {
                 if (nDoS > 0) {
@@ -2365,6 +2370,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 return error("invalid header received");
             }
         }
+        pfrom->lastAcceptedHeader = headers.back().GetHash();
 
         {
         LOCK(cs_main);

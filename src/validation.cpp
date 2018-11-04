@@ -3371,10 +3371,11 @@ static bool AcceptBlockHeader(const CBlockHeader& block, bool fProofOfStake, CVa
 }
 
 // Exposed wrapper for AcceptBlockHeader
-bool ProcessNewBlockHeaders(uint32_t& nPoSTemperature, const std::vector<CBlockHeader>& headers, CValidationState& state, const CChainParams& chainparams, const CBlockIndex** ppindex)
+bool ProcessNewBlockHeaders(uint32_t& nPoSTemperature, const uint256& lastAcceptedHeader, const std::vector<CBlockHeader>& headers, CValidationState& state, const CChainParams& chainparams, const CBlockIndex** ppindex)
 {
     {
         LOCK(cs_main);
+        int n = 0;
         for (const CBlockHeader& header : headers) {
             CBlockIndex *pindex = NULL; // Use a temp pindex instead of ppindex to avoid a const_cast
             if (!AcceptBlockHeader(header, header.nFlags & BLOCK_PROOF_OF_STAKE, state, chainparams, &pindex)) {
@@ -3383,8 +3384,13 @@ bool ProcessNewBlockHeaders(uint32_t& nPoSTemperature, const std::vector<CBlockH
             if (ppindex) {
                 *ppindex = pindex;
             }
-            nPoSTemperature += header.nFlags & BLOCK_PROOF_OF_STAKE ? 1 : -POW_HEADER_COOLING;
+            bool fPoS = header.nFlags & BLOCK_PROOF_OF_STAKE;
+            nPoSTemperature += fPoS ? 1 : -POW_HEADER_COOLING;
+            // peer cannot cool himself by PoW headers from other branches
+            if (n == 0 && !fPoS && header.hashPrevBlock != lastAcceptedHeader)
+                nPoSTemperature += POW_HEADER_COOLING;
             nPoSTemperature = std::max((int)nPoSTemperature, 0);
+            n++;
         }
     }
     NotifyHeaderTip();

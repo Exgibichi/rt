@@ -691,6 +691,8 @@ public:
     uint32_t temperature;
     // emercoin: temperature to measure how many PoS headers have been sent by this client
     uint32_t nPoSTemperature;
+    // emercoin: used to detect branch switches
+    uint256 lastAcceptedHeader;
 
     CNode(NodeId id, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn, SOCKET hSocketIn, const CAddress &addrIn, uint64_t nKeyedNetGroupIn, uint64_t nLocalHostNonceIn, const std::string &addrNameIn = "", bool fInboundIn = false);
     ~CNode();
