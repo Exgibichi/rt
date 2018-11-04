@@ -197,4 +197,4 @@ const std::vector<std::string> &getAllNetMessageTypes()
     return allNetMessageTypesVec;
 }
 
-const unsigned int POW_HEADER_COOLING = 40;
+const unsigned int POW_HEADER_COOLING = 70;

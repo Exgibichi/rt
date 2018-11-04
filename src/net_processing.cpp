@@ -2015,7 +2015,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         const CBlockIndex *pindex = NULL;
         CValidationState state;
         //emcTODO - do we care about nPoSTemperature inside CMPCTBLOCK?
-        int32_t tmp;
+        uint32_t tmp;
         if (!ProcessNewBlockHeaders(tmp, {cmpctblock.header}, state, chainparams, &pindex)) {
             int nDoS;
             if (state.IsInvalid(nDoS)) {
@@ -2290,7 +2290,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             if (nPoSTemperature >= (int)MAX_CONSECUTIVE_POS_HEADERS) {
                 pfrom->nPoSTemperature = 0;
                 if (Params().NetworkIDString() != "test") {
-                    g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
+                    g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 7);
                     return error("too many consecutive pos headers");
                 }
             }
@@ -2345,9 +2345,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
 
         CValidationState state;
-        int32_t tmp = pfrom->nPoSTemperature;
-        if (!ProcessNewBlockHeaders(tmp, headers, state, chainparams, &pindexLast)) {
-            pfrom->nPoSTemperature = tmp;
+        if (!ProcessNewBlockHeaders(pfrom->nPoSTemperature, headers, state, chainparams, &pindexLast)) {
             int nDoS;
             if (state.IsInvalid(nDoS)) {
                 if (nDoS > 0) {
@@ -2358,14 +2356,15 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                         // Probably out of memory attack. Punish peer for a long time.
                         pfrom->nPoSTemperature = 0;
                         if (Params().NetworkIDString() != "test")
-                            g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
-                    } else
+                            g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 7);
+                    } else {
+                        pfrom->nPoSTemperature *= 3;
                         Misbehaving(pfrom->GetId(), nDoS);
+                    }
                 }
                 return error("invalid header received");
             }
         }
-        pfrom->nPoSTemperature = tmp;
 
         {
         LOCK(cs_main);
@@ -2459,9 +2458,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             }
 
             if (!fRequested) {
-                if (pblock2->IsProofOfStake())
-                    pfrom->nPoSTemperature += 100;
-                if (pfrom->nPoSTemperature >= (int)MAX_CONSECUTIVE_POS_HEADERS) {
+                if (pfrom->nPoSTemperature >= (uint32_t)MAX_CONSECUTIVE_POS_HEADERS) {
                     pfrom->nPoSTemperature = 0;
                     if (Params().NetworkIDString() != "test") {
                         g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
@@ -2469,7 +2466,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     }
                 }
                 if (!miPrev->second->IsValid(BLOCK_VALID_TRANSACTIONS)) {
-                    return error("this block does not connect to any valid known block");
+                    if (pblock2->IsProofOfStake())
+                        pfrom->nPoSTemperature += 100;
                 }
             }
             // emercoin: store in memory until we can connect it to some chain
