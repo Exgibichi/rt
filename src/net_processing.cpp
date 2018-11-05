@@ -2293,7 +2293,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 nPoSTemperature += POW_HEADER_COOLING;
             nPoSTemperature = std::max(nPoSTemperature, 0);
             if (nPoSTemperature >= (int)MAX_CONSECUTIVE_POS_HEADERS) {
-                pfrom->nPoSTemperature = 0;
+                pfrom->nPoSTemperature = (MAX_CONSECUTIVE_POS_HEADERS*3)/4;
                 if (Params().NetworkIDString() != "test") {
                     g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 7);
                     return error("too many consecutive pos headers");
@@ -2359,7 +2359,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                         // A lot of PoS headers followed by some failed header (most likely PoW).
                         // This situation is very unusual, because normaly you don't get a failed PoW header with a ton of PoS headers.
                         // Probably out of memory attack. Punish peer for a long time.
-                        pfrom->nPoSTemperature = 0;
+                        pfrom->nPoSTemperature = (MAX_CONSECUTIVE_POS_HEADERS*3)/4;
                         if (Params().NetworkIDString() != "test")
                             g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 7);
                     } else {
