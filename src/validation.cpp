@@ -3494,7 +3494,7 @@ static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidation
     return true;
 }
 
-bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool *fNewBlock)
+bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool* fNewBlock, CBlockIndex** ppindex)
 {
     {
         CBlockIndex *pindex = NULL;
@@ -3509,6 +3509,8 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
         if (ret) {
             // Store to disk
             ret = AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, NULL, fNewBlock);
+            if (ppindex)
+                *ppindex = pindex;
         }
         CheckBlockIndex(chainparams.GetConsensus());
         if (!ret) {
