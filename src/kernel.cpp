@@ -349,32 +349,33 @@ static bool GetKernelStakeModifier(CBlockIndex* pindexPrev, uint256 hashBlockFro
     int32_t nDepth = pindexPrev->nHeight - (pindexFrom->nHeight-1); // -1 is used to also include pindexFrom
     tmpChain.reserve(nDepth);
     CBlockIndex* it = pindexPrev;
-    for (int i=1; i<=nDepth; i++) {
+    for (int i=1; i<=nDepth && !chainActive.Contains(it); i++) {
         tmpChain.push_back(it);
         it = it->pprev;
     }
+
     std::reverse(tmpChain.begin(), tmpChain.end());
 
     size_t n = 0;
-    const CBlockIndex* pindex = tmpChain[n];
+    const CBlockIndex* pindex = pindexFrom;
     // loop to find the stake modifier later by a selection interval
     while (nStakeModifierTime < pindexFrom->GetBlockTime() + nStakeModifierSelectionInterval)
     {
-        if (n > tmpChain.size()) // check if tmpChain[n+1] exists
+        const CBlockIndex* old_pindex = pindex;
+        pindex = (!tmpChain.empty() && pindex->nHeight >= tmpChain[0]->nHeight - 1)? tmpChain[n++] : chainActive.Next(pindex); 
+        if (n > tmpChain.size() || pindex == NULL) // check if tmpChain[n+1] exists
         {   // reached best block; may happen if node is behind on block chain
-            if (fPrintProofOfStake || (pindex->GetBlockTime() + params.nStakeMinAge - nStakeModifierSelectionInterval > GetAdjustedTime()))
+            if (fPrintProofOfStake || (old_pindex->GetBlockTime() + params.nStakeMinAge - nStakeModifierSelectionInterval > GetAdjustedTime()))
                 return error("%s: reached best block %s at height %d from block %s", __func__,
-                    pindex->GetBlockHash().ToString(), pindex->nHeight, hashBlockFrom.ToString());
+                    old_pindex->GetBlockHash().ToString(), old_pindex->nHeight, hashBlockFrom.ToString());
             else
                 return false;
         }
-        pindex = tmpChain[n+1];
         if (pindex->GeneratedStakeModifier())
         {
             nStakeModifierHeight = pindex->nHeight;
             nStakeModifierTime = pindex->GetBlockTime();
         }
-        n++;
     }
     nStakeModifier = pindex->nStakeModifier;
 
