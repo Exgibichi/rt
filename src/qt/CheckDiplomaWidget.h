@@ -11,6 +11,7 @@ class CheckDiplomaWidget: public QWidget {
 	protected:
 		QLineEdit* _name = 0;
 		QLineEdit* _university = 0;
-		QSpinBox* _year = 0;
+		QSpinBox* _yearAdmission = 0;
+		QSpinBox* _yearGraduation = 0;
 		void onSearch();
 };

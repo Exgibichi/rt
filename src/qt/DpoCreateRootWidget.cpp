@@ -20,10 +20,11 @@ DpoCreateRootWidget::DpoCreateRootWidget() {
 
 	auto form = new QFormLayout;
 	lay->addLayout(form);
-	_editName = addLineEdit(form, QString(), tr("Organization abbreviation for blockchain (?)"),
+	_editName = addLineEdit(form, QString(), tr("Organization abbreviation for blockchain"),
 		tr("Use short name preferably. If this abbreviation is already registered, you can modify name (for example, add city name) to prevent conflicts"));
 	form->addRow(_NVPair->availabilityLabel());
-    addLineEdit(form, "brand", tr("Full organization name (?)"), tr("Or brand name. There will be no conflicts within blockchain, insert any text here"));
+	addLineEdit(form, "brand", tr("Full organization name)"), {})
+		->setPlaceholderText(tr("or brand name. Any text here."));
     addLineEdit(form, "url", tr("Web-site address"), tr("Your organization website address"));
 	{
 		auto lay = new QVBoxLayout;
