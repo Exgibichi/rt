@@ -1127,6 +1127,9 @@ bool AppInitSanityChecks()
     ECC_Start();
     globalVerifyHandle.reset(new ECCVerifyHandle());
 
+    // emercoin: init hash seed
+    emercoinRandseed = GetRand(1 << 30);
+
     // emercoin: moved here because ECC need to be initialized to execute this
     if (IsArgSet("-checkpointkey")) // ppcoin: checkpoint master priv key
     {

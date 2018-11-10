@@ -207,4 +207,7 @@ public:
  */
 uint64_t SipHashUint256(uint64_t k0, uint64_t k1, const uint256& val);
 
+extern int32_t emercoinRandseed;
+int univHash(const uint256 &x);
+
 #endif // BITCOIN_HASH_H

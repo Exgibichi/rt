@@ -161,6 +161,8 @@ namespace {
 
     /** Dirty block file entries. */
     std::set<int> setDirtyFileInfo;
+
+    uint256 vStakeSeen[1024];
 } // anon namespace
 
 /* Use this class to start tracking transactions that are removed from the
@@ -1827,11 +1829,9 @@ static int64_t nTimeTotal = 0;
 bool ppcoinContextualBlockChecks(const CBlock& block, CValidationState& state, CBlockIndex* pindex, bool fJustCheck)
 {
     uint256 hashProofOfStake = uint256();
-    if (block.IsProofOfStake())
-    {
+    if (block.IsProofOfStake()) {
         // ppcoin: verify hash target and signature of coinstake tx
-        if (!CheckProofOfStake(state, pindex->pprev, block.vtx[1], block.nBits, hashProofOfStake))
-        {
+        if (!CheckProofOfStake(state, pindex->pprev, block.vtx[1], block.nBits, hashProofOfStake)) {
             LogPrintf("WARNING: %s: check proof-of-stake failed for block %s\n", __func__, block.GetHash().ToString());
             return false; // do not error here as we expect this during initial block download
         }
@@ -3499,11 +3499,13 @@ static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidation
     return true;
 }
 
-bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool* fNewBlock, CBlockIndex** ppindex)
+bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool* fNewBlock, CBlockIndex** ppindex, bool* fPoSDuplicate)
 {
     {
         CBlockIndex *pindex = NULL;
         if (fNewBlock) *fNewBlock = false;
+        if (fPoSDuplicate) *fPoSDuplicate = false;
+
         CValidationState state;
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders.
@@ -3520,7 +3522,14 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
         CheckBlockIndex(chainparams.GetConsensus());
         if (!ret) {
             GetMainSignals().BlockChecked(*pblock, state);
-            return error("%s: AcceptBlock FAILED", __func__);
+            return error("%s: AcceptBlock FAILED - %s", __func__, state.GetRejectReason());
+        }
+
+        int32_t ndx = univHash(pindex->hashProofOfStake);
+        if (pindex->IsProofOfStake()) {
+            if (fPoSDuplicate && vStakeSeen[ndx] == pindex->hashProofOfStake)
+                *fPoSDuplicate = true;
+            vStakeSeen[ndx] = pindex->hashProofOfStake;
         }
     }
 

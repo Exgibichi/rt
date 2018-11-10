@@ -2453,8 +2453,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         LogPrint("net", "received block %s peer=%d\n", pblock2->GetHash().ToString(), pfrom->id);
 
-        const uint256 hash2(pblock2->GetHash());
         {
+            const uint256 hash2(pblock2->GetHash());
             LOCK(cs_main);
             bool fRequested = mapBlocksInFlight.count(hash2);
 
@@ -2465,15 +2465,19 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
             if (!fRequested) {
                 if (pfrom->nPoSTemperature >= (uint32_t)MAX_CONSECUTIVE_POS_HEADERS) {
-                    pfrom->nPoSTemperature = 0;
+                    pfrom->nPoSTemperature = (MAX_CONSECUTIVE_POS_HEADERS*3)/4;
                     if (Params().NetworkIDString() != "test") {
                         g_connman->Ban(pfrom->addr, BanReasonNodeMisbehaving, GetArg("-bantime", DEFAULT_MISBEHAVING_BANTIME) * 100);
                         return error("too many consecutive pos headers");
                     }
                 }
-                if (!miPrev->second->IsValid(BLOCK_VALID_TRANSACTIONS)) {
-                    if (pblock2->IsProofOfStake())
-                        pfrom->nPoSTemperature += 100;
+
+                if (pblock2->IsProofOfStake() && !IsInitialBlockDownload()){
+                    pfrom->nPoSTemperature += 1;
+                    if (!miPrev->second->IsValid(BLOCK_VALID_TRANSACTIONS)) {
+                        MarkBlockAsReceived(hash2);
+                        return error("this block does not connect to any valid known blocks");
+                    }
                 }
             }
             // emercoin: store in memory until we can connect it to some chain
@@ -2549,7 +2553,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             }   // LOCK(cs_main);
 
             bool fNewBlock = false;
-            ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock, &pindexLastAccepted);
+            bool fPoSDuplicate = false;
+            ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock, &pindexLastAccepted, &fPoSDuplicate);
+            if (fPoSDuplicate)
+                pfrom->nPoSTemperature += 100;
             if (fNewBlock)
                 pfrom->nLastBlockTime = GetTime();
         }
