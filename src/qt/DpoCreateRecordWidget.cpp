@@ -4,6 +4,7 @@
 #include "PhoneNumberLineEdit.h"
 #include "SelectableTextEdit.h"
 #include "NameEqValueTextEdit.h"
+#include "QNameCoin.h"
 #include <QFormLayout>
 #include <QSettings>
 #include <QLabel>
@@ -19,11 +20,12 @@ DpoCreateRecordWidget::DpoCreateRecordWidget() {
 
 	auto form = new QFormLayout;
 	lay->addLayout(form);
-	_editName = addLineEdit(form, {}, tr("Organisation abbreviation (?) dpo:"),
+	_editName = addLineEdit(form, {}, tr("Organisation abbreviation (?)"),
 		tr("This must be already registered DPO root record, like dpo:NDI"));
+	form->addRow(_rootAvailable = new QLabel());
 	_editSN = addLineEdit(form, {}, tr("Your name or nickname (?)"),
 		tr("If this name is already registered, add any number after it (like ':1234')"));
-	
+	form->addRow(_NVPair->availabilityLabel());
 	form->addRow(newLabel(tr("Send the following text to your organization:")));
 
 	_askSignature = new SelectableTextEdit;
@@ -66,15 +68,14 @@ void DpoCreateRecordWidget::updateSettings(bool save) {
 		_signature->setText(sett.value("SIG").toString());
 }
 void DpoCreateRecordWidget::recalcValue() {
-	const QString name = _editName->text().trimmed();
+	QString name = _editName->text().trimmed();
+	_rootAvailable->setText(QNameCoin::labelForNameExistOrError(name, "dpo:"));
 	const QString serial = _editSN->text().trimmed();
     if(name.isEmpty() || serial.isEmpty()) {
 		_NVPair->setName({});//to display placeholderText
 		_askSignature->setPlainText({});
 	} else {
 		QString s = name + ':' + serial;
-		if(!s.startsWith("dpo:"))
-			s.prepend("dpo:");
         _NVPair->setName(s);
 		_askSignature->setPlainText(tr("Hi! I want to participate in your program, please sign my name:\n%1\n"
 			"and then send signature back to me. Thanks.").arg(s));

@@ -94,7 +94,7 @@ NameValueLineEdits::NameValueLineEdits() {
 void NameValueLineEdits::setName(const QString & name) {
 	_name->setText(name);
 	if(name.isEmpty()) {
-		_availability->hide();
+		_availability->setText({});
 		_availability->setToolTip({});
 		QToolTip::hideText();
 		return;
@@ -102,11 +102,11 @@ void NameValueLineEdits::setName(const QString & name) {
 	_availability->show();
 	QString text;
 	if(QNameCoin::isMyName(name)) {
-	   text = QChar(0x2705) + tr(" You are owner of this name and can change it (%1)").arg(name);
-	} else if(!QNameCoin::nameActive(name)) {
-		text = QChar(0x2705) + tr(" This name is free (%1)").arg(name);
+	   text = QChar(QNameCoin::charCheckOk) + tr(" You are owner of this name and can change it (%1)").arg(name);
+	} else if(QNameCoin::nameActive(name)) {
+		text = QNameCoin::trNameAlreadyRegistered(name, false);
 	} else {
-		text = QChar(0x274C) + tr(" This name is already registered in blockchain (%1)").arg(name);
+		text = QNameCoin::trNameIsFree(name);
 	}
 	_availability->setText(text);
 	//if(tooltip!=_availability->toolTip()) {

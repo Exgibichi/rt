@@ -2,6 +2,7 @@
 #include "DpoRegisterDocWidget.h"
 #include "SelectableLineEdit.h"
 #include "signverifymessagedialog.h"
+#include "QNameCoin.h"
 #include <QFormLayout>
 #include <QSettings>
 #include <QLabel>
@@ -14,10 +15,11 @@
 
 DpoRegisterDocWidget::DpoRegisterDocWidget() {
 	setWindowTitle(tr("3) Document registration"));
+	_NVPair = new NameValueLineEdits;
 	auto lay = new QVBoxLayout(this);
 
 	lay->addWidget(new QLabel(tr("Choose a file to add to blockchain:")));
-	
+	_labelRoot = new QLabel;
 	{
 		auto lay2 = new QHBoxLayout;
 		lay->addLayout(lay2);
@@ -38,6 +40,7 @@ DpoRegisterDocWidget::DpoRegisterDocWidget() {
 	_editHash->hide();
 	connect(_editHash, &QLineEdit::textChanged, this, &DpoRegisterDocWidget::recalcValue);
 	lay->addWidget(_editHash);
+	lay->addWidget(_NVPair->availabilityLabel());
 
 	lay->addWidget(new QLabel("You can change default document name:"));
 	_editDocName = new QLineEdit;
@@ -71,8 +74,8 @@ DpoRegisterDocWidget::DpoRegisterDocWidget() {
 	_editName->setToolTip(_editName->placeholderText());
 	connect(_editName, &QLineEdit::textChanged, this, &DpoRegisterDocWidget::recalcValue);
 	lay->addWidget(_editName);
+	lay->addWidget(_labelRoot);
 
-	_NVPair = new NameValueLineEdits;
 	_NVPair->setValueMultiline(true);
 	_NVPair->hide();
 	lay->addWidget(_NVPair);
@@ -110,6 +113,7 @@ void DpoRegisterDocWidget::recalcValue() {
 	}
 
 	const QString name = _editName->text().trimmed();
+	_labelRoot->setText(QNameCoin::labelForNameExistOrError(name, "dpo:"));
 	const QString sig  = _editSignature->text().trimmed();
 	if(name.isEmpty() || sig.isEmpty()) {
 		_NVPair->setValue({});//to display placeholderText

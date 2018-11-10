@@ -1893,6 +1893,10 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 {
     AssertLockHeld(cs_main);
 
+    // emercoin: check PoS and compute stake modifier if we did not do that earlier
+    if (pindex->nStakeModifier == 0 && pindex->nStakeModifierChecksum == 0 && !ppcoinContextualBlockChecks(block, state, pindex, false))
+        return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
+
     int64_t nTimeStart = GetTimeMicros();
 
     // Check it again in case a previous version let a bad block in
@@ -3398,7 +3402,7 @@ bool ProcessNewBlockHeaders(uint32_t& nPoSTemperature, const uint256& lastAccept
 }
 
 /** Store block on disk. If dbp is non-NULL, the file is known to already reside on disk */
-static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock)
+static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock, bool fCheckPoS=true)
 {
     const CBlock& block = *pblock;
 
@@ -3412,7 +3416,7 @@ static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidation
         return false;
 
     // emercoin: we should only accept blocks that can be connected to a prev block with validated PoS
-    if (!pindex->pprev->IsValid(BLOCK_VALID_TRANSACTIONS)) {
+    if (pindex->pprev && !pindex->pprev->IsValid(BLOCK_VALID_TRANSACTIONS)) {
         return error("%s: this block does not connect to any valid known block", __func__);
     }
 
@@ -3445,7 +3449,7 @@ static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidation
 
     if (!CheckBlock(block, state, chainparams.GetConsensus()) ||
         !ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindex->pprev) ||
-        !ppcoinContextualBlockChecks(block, state, pindex, false)) {
+        (fCheckPoS && !ppcoinContextualBlockChecks(block, state, pindex, false))) {
         if (state.IsInvalid() && !state.CorruptionPossible()) {
             pindex->nStatus |= BLOCK_FAILED_VALID;
             setDirtyBlockIndex.insert(pindex);
@@ -4242,7 +4246,7 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
                 if (mapBlockIndex.count(hash) == 0 || (mapBlockIndex[hash]->nStatus & BLOCK_HAVE_DATA) == 0) {
                     LOCK(cs_main);
                     CValidationState state;
-                    if (AcceptBlock(pblock, state, chainparams, NULL, true, dbp, NULL))
+                    if (AcceptBlock(pblock, state, chainparams, NULL, true, dbp, NULL, false))
                         nLoaded++;
                     if (state.IsError())
                         break;
@@ -4276,7 +4280,7 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
                                     head.ToString());
                             LOCK(cs_main);
                             CValidationState dummy;
-                            if (AcceptBlock(pblockrecursive, dummy, chainparams, NULL, true, &it->second, NULL))
+                            if (AcceptBlock(pblockrecursive, dummy, chainparams, NULL, true, &it->second, NULL, false))
                             {
                                 nLoaded++;
                                 queue.push_back(pblockrecursive->GetHash());

@@ -181,6 +181,9 @@ bool CheckSync(const CBlockIndex* pindexNew)
 {
     if (strMasterPubKey == "") return true;  // no public key == no checkpoints
 
+    // skip checks during reindex, except for genesis block
+    if (pindexNew->nHeight > 0 && chainActive.Height() == 0) return true;
+
     LOCK(cs_main);
     assert(pindexNew != NULL);
     if (pindexNew->nHeight == 0) return true;                // genesis cannot be checked against previous block

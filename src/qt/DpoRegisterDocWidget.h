@@ -16,4 +16,5 @@ class DpoRegisterDocWidget: public QWidget {
 		QLineEdit* _editSignature = 0;
 		QLineEdit* _editDocName = 0;
 		QLineEdit* _signLabel= 0;
+		QLabel* _labelRoot = 0;
 };

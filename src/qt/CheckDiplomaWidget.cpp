@@ -8,7 +8,7 @@
 #include <QDesktopServices>
 
 const QString CheckDiplomaWidget::s_checkUniversity = "https://trusted-diploma.com/?univ=%1";
-const QString CheckDiplomaWidget::s_checkStudent = s_checkUniversity + "&name=%2&admission_year=%3";
+const QString CheckDiplomaWidget::s_checkStudent = s_checkUniversity + "&name=%2&%3_year=%4";
 CheckDiplomaWidget::CheckDiplomaWidget() {
 	setWindowTitle(tr("Check diploma"));
 
@@ -23,11 +23,25 @@ CheckDiplomaWidget::CheckDiplomaWidget() {
 	_university->setMaxLength(emcMaxNameLen);
 	form->addRow(tr("University"), _university);
 
-	_year  = new QSpinBox;
-	_year->setMinimum(-10000);
-	_year->setMaximum(std::numeric_limits<qint32>::max());
-	_year->setValue(QDate::currentDate().year());
-	form->addRow(tr("Year of admission or graduation"), _year);
+	struct OptionalYearSpinBox: public QSpinBox {
+		public:
+			OptionalYearSpinBox() {
+				setMinimum(-10000);
+				setMaximum(std::numeric_limits<qint32>::max());
+				setValue(0);//could be QDate::currentDate().year(), but make it empty
+			}
+			virtual QString textFromValue(int value)const override {
+				if(value==0)
+					return {};
+				return QSpinBox::textFromValue(value);
+			}
+	};
+
+	_yearAdmission  = new OptionalYearSpinBox;
+	form->addRow(tr("Admission year"), _yearAdmission);
+
+	_yearGraduation  = new OptionalYearSpinBox;
+	form->addRow(tr("... or graduation year"), _yearGraduation);
 
 	auto search = new QPushButton(tr("Check..."));
 	search->setShortcut(QKeySequence("Return"));
@@ -52,6 +66,16 @@ void CheckDiplomaWidget::onSearch() {
 		showMsg(_university);
 		return;
 	}
-	QString url = s_checkStudent.arg(univ).arg(name).arg(_year->value());
+	bool admission = true;
+	int year = _yearAdmission->value();
+	if(year==0) {
+		admission = false;
+		year = _yearGraduation->value();
+		if(year==0) {
+			showMsg(_yearAdmission);
+			return;
+		}
+	}
+	QString url = s_checkStudent.arg(univ, name, admission ? "admission" : "graduation").arg(year);
 	QDesktopServices::openUrl(url);
 }

@@ -18,6 +18,7 @@ class DpoCreateRecordWidget: public QWidget {
 		QPlainTextEdit* _askSignature = 0;
 		QLineEdit* _signature = 0;
 		QList<QLineEdit*> _edits;
+		QLabel* _rootAvailable = 0;
 		void recalcValue();
 		QLineEdit* addLineEdit(QFormLayout*form, const QString& name, const QString& text, const QString& tooltip, bool readOnly = false);
 		QLabel* newLabel(const QString & s);
