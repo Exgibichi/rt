@@ -3525,8 +3525,8 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
             return error("%s: AcceptBlock FAILED - %s", __func__, state.GetRejectReason());
         }
 
-        int32_t ndx = univHash(pindex->hashProofOfStake);
-        if (pindex->IsProofOfStake()) {
+        if (pindex->IsProofOfStake() && pindex->nTime >= 1489782503) {
+            int32_t ndx = univHash(pindex->hashProofOfStake);
             if (fPoSDuplicate && vStakeSeen[ndx] == pindex->hashProofOfStake)
                 *fPoSDuplicate = true;
             vStakeSeen[ndx] = pindex->hashProofOfStake;
