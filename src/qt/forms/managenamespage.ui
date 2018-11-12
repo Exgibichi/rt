@@ -25,7 +25,7 @@
      <item>
       <widget class="QLabel" name="labelPrepareRecords">
        <property name="text">
-        <string>Prepare records for:</string>
+        <string>Additional services:</string>
        </property>
       </widget>
      </item>
@@ -35,7 +35,7 @@
         <string>Host your domains in EmerDNS system</string>
        </property>
        <property name="text">
-        <string>DNS...</string>
+        <string>DNS</string>
        </property>
        <property name="icon">
         <iconset resource="../bitcoin.qrc">
@@ -49,7 +49,7 @@
         <string>Protect your rights using Digital Proof of Ownership.</string>
        </property>
        <property name="text">
-        <string>DPO...</string>
+        <string>DPO</string>
        </property>
        <property name="icon">
         <iconset resource="../bitcoin.qrc">
@@ -63,7 +63,7 @@
         <string>Trusted Diploma</string>
        </property>
        <property name="text">
-        <string>TD</string>
+        <string>Trusted Diploma</string>
        </property>
        <property name="icon">
         <iconset resource="../bitcoin.qrc">

@@ -57,8 +57,8 @@ QString DiplomaWidget::name()const {
 		return {};
 	if(w==_RegisterUniversityWidget)
 		return _RegisterUniversityWidget->_NVPair->name();
-	//if(w==_RegisterDiplomaWidget)
-		//return _RegisterDiplomaWidget->_NVPair->name();
+	if(w==_RegisterDiplomaWidget)
+		return _RegisterDiplomaWidget->_NVPair->name();
 	return {};
 }
 QString DiplomaWidget::value()const {
@@ -67,7 +67,7 @@ QString DiplomaWidget::value()const {
 		return {};
 	if(w==_RegisterUniversityWidget)
 		return _RegisterUniversityWidget->_NVPair->value();
-	//if(w==_RegisterDiplomaWidget)
-		//return _RegisterDiplomaWidget->_NVPair->value();
+	if(w==_RegisterDiplomaWidget)
+		return _RegisterDiplomaWidget->_NVPair->value();
 	return {};
 }

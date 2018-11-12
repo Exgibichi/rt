@@ -66,8 +66,9 @@ QString DpoWidget::name()const {
 		return _createRoot->_NVPair->name();
 	if(w==_registerDoc)
 		return _registerDoc->_NVPair->name();
-	//if(w==_createRecord)
+	if(w==_createRecord)
 		return _createRecord->_NVPair->name();
+	return {};
 }
 QString DpoWidget::value()const {
 	auto w = _tab->currentWidget();
@@ -75,6 +76,7 @@ QString DpoWidget::value()const {
 		return _createRoot->_NVPair->value();
 	if(w==_registerDoc)
 		return _registerDoc->_NVPair->value();
-	//if(w==_createRecord)
+	if(w==_createRecord)
 		return _createRecord->_NVPair->value();
+	return {};
 }

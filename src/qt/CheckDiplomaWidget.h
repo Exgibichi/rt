@@ -1,7 +1,7 @@
 ﻿//CheckDiplomaWidget.h by Emercoin developers
 #pragma once
 #include <QLineEdit>
-#include <QSpinBox>
+#include "YearSpinBox.h"
 
 class CheckDiplomaWidget: public QWidget {
 	public:

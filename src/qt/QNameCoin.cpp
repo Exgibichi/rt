@@ -1,4 +1,6 @@
 #include "QNameCoin.h"
+#include <QDate>
+#include "../rpc/server.h"
 
 using CNameVal = std::vector<unsigned char>;
 std::vector<CNameVal> NameCoin_myNames();
@@ -78,4 +80,49 @@ QString QNameCoin::labelForNameExistOrError(const QString & name, const QString 
 		return charBy(true) + tr(" This name is registered (%1)").arg(name);
 
 	return trNameNotFound(name);
+}
+QString QNameCoin::numberLikeBase64(quint64 n) {
+	//like QByteArray::OmitTrailingEquals + but omit also leading zeroes
+	static const QList<QChar> chars = []() {
+		QList<QChar> ret;
+		for(char c ='0'; c<='9'; ++c)
+			ret << c;
+		for(char c ='a'; c<='z'; ++c)
+			ret << c;
+		for(char c ='A'; c<='Z'; ++c)
+			ret << c;
+		ret << '_' << '-';
+		return ret;
+	}();
+	if(0==n)
+		return QStringLiteral("0");
+	const quint32 base = chars.size();
+	QString ret;
+	while(n!=0) {
+		ret.prepend(chars[n % base]);
+		n /= base;
+	}
+	return ret;
+}
+QString QNameCoin::currentSecondsPseudoBase64() {
+	const QDateTime start(QDate(2018, 11, 10));
+	auto secs = start.secsTo(QDateTime::currentDateTime());
+	return numberLikeBase64(secs);
+}
+
+UniValue signmessage(const JSONRPCRequest& request);
+UniValue QNameCoin::signMessage(const QString& address, const QString& message) {
+	JSONRPCRequest request;
+	request.params.setArray();
+	request.params.push_back(address.toStdString());
+	request.params.push_back(message.toStdString());
+	return signmessage(request);
+}
+
+UniValue name_show(const JSONRPCRequest& request);
+UniValue QNameCoin::nameShow(const QString& name) {
+	JSONRPCRequest request;
+	request.params.setArray();
+	request.params.push_back(name.toStdString());
+	return name_show(request);
 }

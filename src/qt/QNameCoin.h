@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+class UniValue;
 
 //Qt NameCoin interface
 class QNameCoin: public QObject {//for tr()
@@ -9,6 +10,9 @@ class QNameCoin: public QObject {//for tr()
         static QStringList myNames();
         static QStringList myNamesStartingWith(const QString & prefix);
 
+        static UniValue signMessage(const QString& address, const QString& message);
+        static UniValue nameShow(const QString& name);
+
         static QString labelForNameExistOrError(const QString & name);
         static QString labelForNameExistOrError(const QString & name, const QString & prefix);
         static QString trNameNotFound(const QString & name);
@@ -17,4 +21,7 @@ class QNameCoin: public QObject {//for tr()
         static const int charCheckOk = 0x2705;
         static const int charX = 0x274C;
         static QChar charBy(bool ok);
+
+        static QString numberLikeBase64(quint64 n);
+        static QString currentSecondsPseudoBase64();
 };

@@ -23,24 +23,10 @@ CheckDiplomaWidget::CheckDiplomaWidget() {
 	_university->setMaxLength(emcMaxNameLen);
 	form->addRow(tr("University"), _university);
 
-	struct OptionalYearSpinBox: public QSpinBox {
-		public:
-			OptionalYearSpinBox() {
-				setMinimum(-10000);
-				setMaximum(std::numeric_limits<qint32>::max());
-				setValue(0);//could be QDate::currentDate().year(), but make it empty
-			}
-			virtual QString textFromValue(int value)const override {
-				if(value==0)
-					return {};
-				return QSpinBox::textFromValue(value);
-			}
-	};
-
-	_yearAdmission  = new OptionalYearSpinBox;
+	_yearAdmission  = new YearSpinBox;
 	form->addRow(tr("Admission year"), _yearAdmission);
 
-	_yearGraduation  = new OptionalYearSpinBox;
+	_yearGraduation  = new YearSpinBox;
 	form->addRow(tr("... or graduation year"), _yearGraduation);
 
 	auto search = new QPushButton(tr("Check..."));
