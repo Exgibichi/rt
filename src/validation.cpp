@@ -4128,7 +4128,7 @@ bool LoadBlockIndex(const CChainParams& chainparams)
     if (pblocktree->ReadFlag("txindex", txindex))
     {
         bool fAuxPow;
-        if (!fReindex && (!pblocktree->ReadFlag("auxpow2", fAuxPow) || !fAuxPow)) {
+        if (!fReindex && (!pblocktree->ReadFlag("reindex-0.7.3", fAuxPow) || !fAuxPow)) {
             return false;
         }
     }
@@ -4152,7 +4152,7 @@ bool InitBlockIndex(const CChainParams& chainparams)
     // Use the provided setting for -txindex in the new database
     fTxIndex = GetBoolArg("-txindex", DEFAULT_TXINDEX);
     pblocktree->WriteFlag("txindex", fTxIndex);
-    pblocktree->WriteFlag("auxpow2", true);
+    pblocktree->WriteFlag("reindex-0.7.3", true);
     LogPrintf("Initializing databases...\n");
 
     // Only add the genesis block if not reindexing (in which case we reuse the one already on disk)

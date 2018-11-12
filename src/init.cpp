@@ -1469,9 +1469,9 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 
                 if (!LoadBlockIndex(chainparams)) {
                     bool fAuxPow;
-                    if (fAuxReindex == 0 && (!pblocktree->ReadFlag("auxpow2", fAuxPow) || !fAuxPow))
+                    if (fAuxReindex == 0 && (!pblocktree->ReadFlag("reindex-0.7.3", fAuxPow) || !fAuxPow))
                     {
-                        strLoadError = _("No auxpow support found, trying to reindex blockindex...");
+                        strLoadError = _("Pre 0.7.3 blockchain found, trying to reindex blockindex...");
                         fAuxReindex++;
                     }
                     else
@@ -1548,7 +1548,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
             if (!fReset) {
                 // emercoin: try to reindex if no auxpow flag
                 bool fAuxPow;
-                if (fAuxReindex == 1 && (!pblocktree->ReadFlag("auxpow2", fAuxPow) || !fAuxPow))
+                if (fAuxReindex == 1 && (!pblocktree->ReadFlag("reindex-0.7.3", fAuxPow) || !fAuxPow))
                 {
                     fReindex = true;
                     fRequestShutdown = false;
