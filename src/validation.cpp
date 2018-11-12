@@ -3456,19 +3456,19 @@ static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidation
         return error("%s: %s", __func__, FormatStateMessage(state));
     }
 
+    // ppcoin: check PoS
+    if (fCheckPoS && !ppcoinContextualBlockChecks(block, state, pindex, false)) {
+        pindex->nStatus |= BLOCK_FAILED_VALID;
+        setDirtyBlockIndex.insert(pindex);
+        return state.DoS(100, false, REJECT_INVALID, "bad-pos", false, "proof of stake is incorrect");
+    }
+
     bool fInitialDownload = IsInitialBlockDownload();
     // ppcoin: check that the block satisfies synchronized checkpoint
     if (!fInitialDownload && !CheckpointsSync::CheckSync(pindex)) {
         pindex->nStatus |= BLOCK_FAILED_VALID;
         setDirtyBlockIndex.insert(pindex);
         return error("%s: rejected by synchronized checkpoint", __func__);
-    }
-
-    // ppcoin: check PoS
-    if (fCheckPoS && !ppcoinContextualBlockChecks(block, state, pindex, false)) {
-        pindex->nStatus |= BLOCK_FAILED_VALID;
-        setDirtyBlockIndex.insert(pindex);
-        return error("%s: rejected by PoS check", __func__);
     }
 
     // Header is valid/has work, merkle tree and segwit merkle tree are good...RELAY NOW
