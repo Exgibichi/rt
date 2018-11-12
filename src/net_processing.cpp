@@ -2472,12 +2472,12 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     }
                 }
 
-                if (pblock2->IsProofOfStake() && !IsInitialBlockDownload()){
+                if (pblock2->IsProofOfStake() && !IsInitialBlockDownload())
                     pfrom->nPoSTemperature += 1;
-                    if (!miPrev->second->IsValid(BLOCK_VALID_TRANSACTIONS)) {
-                        MarkBlockAsReceived(hash2);
-                        return error("this block does not connect to any valid known blocks");
-                    }
+
+                if (!miPrev->second->IsValid(BLOCK_VALID_TRANSACTIONS)) {
+                    MarkBlockAsReceived(hash2);
+                    return error("this block does not connect to any valid known blocks");
                 }
             }
             // emercoin: store in memory until we can connect it to some chain

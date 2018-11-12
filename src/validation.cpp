@@ -3517,7 +3517,7 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
             // Store to disk
             ret = AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, NULL, fNewBlock);
             if (ppindex)
-                *ppindex = pindex;
+                *ppindex = ret ? pindex : nullptr;
         }
         CheckBlockIndex(chainparams.GetConsensus());
         if (!ret) {
