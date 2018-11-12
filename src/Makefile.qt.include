@@ -218,6 +218,7 @@ BITCOIN_QT_H = \
   qt/DpoCreateRootWidget.h \
   qt/DpoRegisterDocWidget.h \
   qt/DpoWidget.h \
+  qt/YearSpinBox.h \
   qt/DpoUseCaseScheme.h \
   qt/NameValueLineEdits.h \
   qt/SelectableLineEdit.h \
