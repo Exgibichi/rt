@@ -3448,8 +3448,7 @@ static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidation
     if (fNewBlock) *fNewBlock = true;
 
     if (!CheckBlock(block, state, chainparams.GetConsensus()) ||
-        !ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindex->pprev) ||
-        (fCheckPoS && !ppcoinContextualBlockChecks(block, state, pindex, false))) {
+        !ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindex->pprev)) {
         if (state.IsInvalid() && !state.CorruptionPossible()) {
             pindex->nStatus |= BLOCK_FAILED_VALID;
             setDirtyBlockIndex.insert(pindex);
@@ -3459,11 +3458,17 @@ static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidation
 
     bool fInitialDownload = IsInitialBlockDownload();
     // ppcoin: check that the block satisfies synchronized checkpoint
-    if (!fInitialDownload && !CheckpointsSync::CheckSync(pindex))
-    {
+    if (!fInitialDownload && !CheckpointsSync::CheckSync(pindex)) {
         pindex->nStatus |= BLOCK_FAILED_VALID;
         setDirtyBlockIndex.insert(pindex);
-        return error("AcceptBlock() : rejected by synchronized checkpoint");
+        return error("%s: rejected by synchronized checkpoint", __func__);
+    }
+
+    // ppcoin: check PoS
+    if (fCheckPoS && !ppcoinContextualBlockChecks(block, state, pindex, false)) {
+        pindex->nStatus |= BLOCK_FAILED_VALID;
+        setDirtyBlockIndex.insert(pindex);
+        return error("%s: rejected by PoS check", __func__);
     }
 
     // Header is valid/has work, merkle tree and segwit merkle tree are good...RELAY NOW
@@ -4713,7 +4718,7 @@ bool GetEmc7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmou
 
     // Apply 6% APY and round to DP-unit
     nReward = ((bnSatYr * 6 / 100).GetLow64() / TX_DP_AMOUNT) * TX_DP_AMOUNT;
- 
+
     if (fDebug && GetBoolArg("-printcreation", false))
         LogPrintf("GetEmc7POSReward(): create=%s nCoinAge=%s\n", FormatMoney(nReward), bnSatYr.ToString());
 
