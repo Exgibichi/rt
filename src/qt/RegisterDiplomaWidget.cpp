@@ -41,7 +41,7 @@ RegisterDiplomaWidget::RegisterDiplomaWidget() {
 	_chooseRoot->addItems(names);
 	if(names.isEmpty()) {
 		addText(lay, tr("You didn't register any university.\n"
-						"Please register, wait untill acccepted by blockchain and return here."));
+						"Please register, wait until the record is accepted by the blockchain and return here."));
 	} else {
 		addText(lay, tr("Choose university root record:"));
 	}
