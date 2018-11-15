@@ -11,20 +11,38 @@
 #include <QFileDialog>
 #include <QApplication>
 #include <QMessageBox>
+#include <QComboBox>
 #include <QCryptographicHash>
 
 DpoRegisterDocWidget::DpoRegisterDocWidget() {
 	setWindowTitle(tr("3) Document registration"));
+
 	_NVPair = new NameValueLineEdits;
+	_editHash = new QLineEdit;
+	_chooseRoot = new QComboBox;
+	_editFile = new QLineEdit;
+	_editDocName = new QLineEdit;
+	_editSignature = new SelectableLineEdit;
+
 	auto lay = new QVBoxLayout(this);
 
-	lay->addWidget(new QLabel(tr("Choose a file to add to blockchain:")));
-	_labelRoot = new QLabel;
+	QStringList names = QNameCoin::myNamesStartingWith("dpo:");
+	connect(_chooseRoot, &QComboBox::currentTextChanged, this, &DpoRegisterDocWidget::recalcValue);
+	_chooseRoot->addItems(names);
+	if(names.isEmpty()) {
+		addText(lay, tr("You didn't register any identity in previous tab.\n"
+						"Please register, wait until the record is accepted by the blockchain and return here."));
+	} else {
+		addText(lay, tr("Choose your identity - registered record from previous tab,\n"
+					"like dpo:Organization:YourName. This name will sign message."));
+	}
+	lay->addWidget(_chooseRoot);
+
+	addText(lay, tr("Choose a file to add to blockchain:"));
 	{
 		auto lay2 = new QHBoxLayout;
 		lay->addLayout(lay2);
 
-		_editFile = new QLineEdit;
 		_editFile->setReadOnly(true);
 		_editFile->setPlaceholderText(tr("Click button to the right"));
 		lay2->addWidget(_editFile);
@@ -35,46 +53,18 @@ DpoRegisterDocWidget::DpoRegisterDocWidget() {
 		lay2->addWidget(open);
 	}
 
-	_editHash = new QLineEdit;
 	_editHash->setEnabled(false);
 	_editHash->hide();
 	connect(_editHash, &QLineEdit::textChanged, this, &DpoRegisterDocWidget::recalcValue);
 	lay->addWidget(_editHash);
-	lay->addWidget(_NVPair->availabilityLabel());
+	//lay->addWidget(_NVPair->availabilityLabel());
 
-	lay->addWidget(new QLabel("You can change default document name:"));
-	_editDocName = new QLineEdit;
+	addText(lay, tr("You can change default document name:"));
 	lay->addWidget(_editDocName);
 
-	lay->addWidget(new QLabel("Sign next message (menu File -> Sign message):"));
-	
-	_signLabel = new SelectableLineEdit;
-	_signLabel->setReadOnly(true);
-	lay->addWidget(_signLabel);
-
-//	auto btnSign = new QPushButton();
-//	btnSign->setText(tr("Sign..."));
-//	connect(btnSign, &QAbstractButton::clicked, this, [this]() {
-//		QString s = _signLabel->text();
-//		SignVerifyMessageDialog *signVerifyMessageDialog = new SignVerifyMessageDialog(0/* style */, this);
-//		signVerifyMessageDialog->setAttribute(Qt::WA_DeleteOnClose);
-//		//signVerifyMessageDialog->setModel(walletModel);
-//		signVerifyMessageDialog->showTab_SM(true);
-//	});
-//	lay->addWidget(btnSign);
-
-	lay->addWidget(new QLabel("Write this signature here:"));
-	_editSignature = new QLineEdit;
+	addText(lay, tr("Your signature with selected identity:"));
+	_editSignature->setReadOnly(true);
 	lay->addWidget(_editSignature);
-	connect(_editSignature, &QLineEdit::textChanged, this, &DpoRegisterDocWidget::recalcValue);
-
-	lay->addWidget(new QLabel(tr("Enter your name from the previous tab:")));
-	_editName = new QLineEdit;
-	_editName->setPlaceholderText(tr("Like dpo:NDI:someName"));
-	_editName->setToolTip(_editName->placeholderText());
-	connect(_editName, &QLineEdit::textChanged, this, &DpoRegisterDocWidget::recalcValue);
-	lay->addWidget(_editName);
-	lay->addWidget(_labelRoot);
 
 	_NVPair->setValueMultiline(true);
 	_NVPair->hide();
@@ -100,31 +90,39 @@ void DpoRegisterDocWidget::openFileDialog() {
 	auto hash = QCryptographicHash::hash(arr, QCryptographicHash::Sha256);
 	_editHash->setText(hash.toHex());
 }
+void DpoRegisterDocWidget::showError(const QString & s) {
+	_NVPair->availabilityLabel()->setText(s);
+}
 void DpoRegisterDocWidget::recalcValue() {
-	QString hash = _editHash->text().trimmed();
-	if(!hash.isEmpty())
-		hash.prepend("doc:");
-	if(hash.isEmpty()) {
-		_NVPair->setName({});//to display placeholderText
-		_signLabel->setText({});
-	} else {
-        _NVPair->setName(hash);
-		_signLabel->setText(hash);
-	}
+	_editSignature->setText({});
+	_NVPair->setName({});
+	_NVPair->setValue({});
 
-	const QString name = _editName->text().trimmed();
-	_labelRoot->setText(QNameCoin::labelForNameExistOrError(name, "dpo:"));
-	const QString sig  = _editSignature->text().trimmed();
-	if(name.isEmpty() || sig.isEmpty()) {
-		_NVPair->setValue({});//to display placeholderText
-	} else {
-		QString v = QString("SIG=%1|%2\n").arg(name, sig);
-		QString name = _editDocName->text().trimmed();
-		if(name.isEmpty())
-			name = QFileInfo(_editFile->text()).completeBaseName();
-		if(name.isEmpty())
-			name = QFileInfo(_editFile->text()).fileName();
-		v += "name=" + name;
-		_NVPair->setValue(v);
+	const QString root = _chooseRoot->currentText().trimmed();
+	QString docHash = _editHash->text().trimmed();
+	if(!docHash.isEmpty())
+		docHash.prepend("doc:");
+	if(docHash.isEmpty() || root.isEmpty())
+		return;
+
+	auto sig = QNameCoin::signMessageByName(root, docHash);
+	if(sig.isError()) {
+		showError(sig.error);
+		return;
 	}
+	_editSignature->setText(sig.signature);
+	_NVPair->setName(docHash);
+	QString value = QString("SIG=%1|%2\n").arg(root, sig.signature);
+	QString docName = _editDocName->text().trimmed();
+	if(docName.isEmpty())
+		docName = QFileInfo(_editFile->text()).completeBaseName();
+	if(docName.isEmpty())
+		docName = QFileInfo(_editFile->text()).fileName();
+	value += "name=" + docName;
+	_NVPair->setValue(value);
+}
+QLabel* DpoRegisterDocWidget::addText(QBoxLayout*lay, const QString& s) {
+	auto ret = new QLabel(s);
+	lay->addWidget(ret);
+	return ret;
 }

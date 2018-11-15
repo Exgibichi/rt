@@ -25,12 +25,23 @@ QString toQString(const CNameVal & v) {
 	const unsigned char* start = &v[0];
 	return QString::fromUtf8(reinterpret_cast<const char*>(start), v.size());
 }
-
-QStringList QNameCoin::myNames() {
+static bool compareByLessParts(const QString& a, const QString& b) {
+	int c1 = a.count(':');
+	int c2 = b.count(':');
+	if(c1<c2)
+		return true;
+	if(c1>c2)
+		return false;
+	return a<b;
+}
+QStringList QNameCoin::myNames(bool sortByLessParts) {
 	QStringList ret;
 	std::vector<CNameVal> names = NameCoin_myNames();
 	for(const auto & name: names) {
 		ret << toQString(name);
+	}
+	if(sortByLessParts) {
+		qSort(ret.begin(), ret.end(), compareByLessParts);
 	}
 	return ret;
 }
@@ -110,8 +121,32 @@ QString QNameCoin::currentSecondsPseudoBase64() {
 	return numberLikeBase64(secs);
 }
 
+QNameCoin::SignMessageRet QNameCoin::signMessageByName(const QString& name, const QString& message) {
+	SignMessageRet ret;
+	try {
+		auto val = nameShow(name);
+		UniValue address_uni = find_value(val, "address");
+		if(!address_uni.isStr()) {
+			ret.error = tr("Can't get address for name %1").arg(name);
+			return ret;
+		}
+		ret.address = QString::fromStdString(address_uni.get_str());
+
+		val = signMessageByAddress(ret.address, message);
+		if(!val.isStr()) {
+			ret.error = tr("Can't sign message");
+			return ret;
+		}
+		ret.signature = QString::fromStdString(val.get_str());
+	} catch (UniValue& objError) {
+		ret.error = errorToString(objError);
+	} catch (const std::exception& e) {
+		ret.error = toString(e);
+	}
+	return ret;
+}
 UniValue signmessage(const JSONRPCRequest& request);
-UniValue QNameCoin::signMessage(const QString& address, const QString& message) {
+UniValue QNameCoin::signMessageByAddress(const QString& address, const QString& message) {
 	JSONRPCRequest request;
 	request.params.setArray();
 	request.params.push_back(address.toStdString());
@@ -125,4 +160,16 @@ UniValue QNameCoin::nameShow(const QString& name) {
 	request.params.setArray();
 	request.params.push_back(name.toStdString());
 	return name_show(request);
+}
+QString QNameCoin::errorToString(UniValue& objError) {
+	try {
+		// Nice formatting for standard-format error
+		std::string message = find_value(objError, "message").get_str();
+		return QString::fromStdString(message);
+	} catch (const std::runtime_error&) { // raised when converting to invalid type, i.e. missing code or message
+		return QString::fromStdString(objError.write());// Show raw JSON object
+	}
+}
+QString QNameCoin::toString(const std::exception& e) {
+	return QString::fromStdString(e.what());
 }

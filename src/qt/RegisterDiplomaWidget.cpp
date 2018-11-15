@@ -46,7 +46,7 @@ RegisterDiplomaWidget::RegisterDiplomaWidget() {
 		addText(lay, tr("Choose university root record:"));
 	}
 	lay->addWidget(_chooseRoot);
-	form->addRow(tr("Address from that record:"), _lineAddress);
+	form->addRow(tr("Address from that record to sign message:"), _lineAddress);
 	form->addRow(tr("Proposed serial number:"), _lineSerial);
 
 	lay->addLayout(form);
@@ -77,47 +77,30 @@ void RegisterDiplomaWidget::recalcValue() {
 	if(root.isEmpty() || serial.isEmpty())
 		return;
 	const QString name = root + ':' + serial;
-	try {
-		auto ret = QNameCoin::nameShow(root);
-		UniValue address_uni = find_value(ret, "address");
-		if(!address_uni.isStr()) {
-			_lineAddress->setText(tr("Can't get address"));
-			return;
-		}
-		const QString addr = QString::fromStdString(address_uni.get_str());
-		_lineAddress->setText(addr);
 
-		ret = QNameCoin::signMessage(addr, name);
-		if(!ret.isStr()) {
-			showError(tr("Can't sign message"));
-			return;
-		}
-		const QString signature = QString::fromStdString(ret.get_str());
-		QString value = "Signature=" + signature;
-		if(!_yearGraduation->text().isEmpty())
-			value += QString("\ngraduation_year=%1").arg(_yearGraduation->text());
-		if(!_yearAdmission->text().isEmpty())
-			value += QString("\nadmission_year=%1").arg(_yearAdmission->text());
-		QString student = _lineName->text().trimmed();
-		if(!student.isEmpty())
-			value += QString("\nname=%1").arg(student);
-
-		value += '\n' + _editOther->toPlainText().trimmed();
-		value = value.trimmed();
-		_NVPair->setName(name);
-		_NVPair->setValue(value);
-	} catch (UniValue& objError) {
-		try { // Nice formatting for standard-format error
-			int code = find_value(objError, "code").get_int();
-			std::string message = find_value(objError, "message").get_str();
-			showError(QString::fromStdString(message));
-		} catch (const std::runtime_error&) { // raised when converting to invalid type, i.e. missing code or message
-			// Show raw JSON object
-			showError(QString::fromStdString(objError.write()));
-		}
-	} catch (const std::exception& e) {
-		showError(QString::fromStdString(e.what()));
+	auto sig = QNameCoin::signMessageByName(root, name);
+	if(sig.isError()) {
+		showError(sig.error);
+		return;
 	}
+	if(sig.address.isEmpty()) {
+		_lineAddress->setText(tr("Can't get address"));
+		return;
+	}
+	_lineAddress->setText(sig.address);
+	QString value = "Signature=" + sig.signature;
+	if(!_yearGraduation->text().isEmpty())
+		value += QString("\ngraduation_year=%1").arg(_yearGraduation->text());
+	if(!_yearAdmission->text().isEmpty())
+		value += QString("\nadmission_year=%1").arg(_yearAdmission->text());
+	QString student = _lineName->text().trimmed();
+	if(!student.isEmpty())
+		value += QString("\nname=%1").arg(student);
+
+	value += '\n' + _editOther->toPlainText().trimmed();
+	value = value.trimmed();
+	_NVPair->setName(name);
+	_NVPair->setValue(value);
 }
 void RegisterDiplomaWidget::showError(const QString & s) {
 	_NVPair->availabilityLabel()->setText(s);
