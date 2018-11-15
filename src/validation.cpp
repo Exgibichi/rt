@@ -1895,7 +1895,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     AssertLockHeld(cs_main);
 
     // emercoin: check PoS and compute stake modifier if we did not do that earlier
-    if (pindex->nStakeModifier == 0 && pindex->nStakeModifierChecksum == 0 && !ppcoinContextualBlockChecks(block, state, pindex, false))
+    if (pindex->nStakeModifier == 0 && pindex->nStakeModifierChecksum == 0 && !ppcoinContextualBlockChecks(block, state, pindex, fJustCheck))
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
 
     int64_t nTimeStart = GetTimeMicros();
