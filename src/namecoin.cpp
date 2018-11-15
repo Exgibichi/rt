@@ -1422,15 +1422,15 @@ bool CNamecoinHooks::CheckPendingNames(const CTransactionRef& tx)
         return false;
 
     if (tx->vout.size() < 1)
-        return error("CheckPendingNames() : no output in tx %s\n", tx->ToString());
+        return error("%s: no output in tx %s\n", __func__, tx->GetHash().ToString());
 
     NameTxInfo nti;
     if (!DecodeNameTx(tx, nti))
-        return error("CheckPendingNames() : could not decode name script in tx %s\n", tx->ToString());
+        return error("%s: could not decode name script in tx %s\n", __func__, tx->GetHash().ToString());
 
     if (mapNamePending.count(nti.name))
     {
-        LogPrintf("CheckPendingNames() : there is already a pending operation on this name\n");
+        LogPrintf("%s: there is already a pending operation on this name %s\n", __func__, stringFromNameVal(nti.name));
         return false;
     }
     return true;
@@ -1444,19 +1444,19 @@ void CNamecoinHooks::AddToPendingNames(const CTransactionRef& tx)
 
     if (tx->vout.size() < 1)
     {
-        LogPrintf("AddToPendingNames() : no output in tx %s\n", tx->ToString());
+        LogPrintf("%s : no output in tx %s\n", __func__, tx->GetHash().ToString());
         return;
     }
 
     NameTxInfo nti;
     if (!DecodeNameTx(tx, nti))
     {
-        LogPrintf("AddToPendingNames() : could not decode name script in tx %s\n", tx->ToString());
+        LogPrintf("%s : could not decode name script in tx %s\n", __func__, tx->GetHash().ToString());
         return;
     }
 
     mapNamePending[nti.name].insert(tx->GetHash());
-    LogPrintf("AddToPendingNames(): added %s %s from tx %s\n", stringFromOp(nti.op), stringFromNameVal(nti.name), tx->ToString());
+    LogPrintf("%s: added %s %s from tx %s\n", __func__, stringFromOp(nti.op), stringFromNameVal(nti.name), tx->GetHash().ToString());
 }
 
 // Checks name tx and save name data to vName if valid

@@ -1010,7 +1010,8 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
 
         // Store transaction in memory
         pool.addUnchecked(hash, entry, setAncestors, validForFeeEstimation);
-        hooks->AddToPendingNames(ptx);
+        if (isNameTx)
+            hooks->AddToPendingNames(ptx);
 
         // trim mempool and check if tx was trimmed
         if (!fOverrideMempoolLimit) {
