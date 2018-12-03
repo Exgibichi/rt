@@ -574,7 +574,7 @@ EOF
 	if grep bos325 /usr/include/stdio.h >/dev/null 2>&1; then
 		eval $set_cc_for_build
 		sed 's/^		//' << EOF >$dummy.c
-		#include <sys/systemcfg.h>
+		#include <sys/systrngfg.h>
 
 		main()
 			{

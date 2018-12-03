@@ -29,7 +29,7 @@
 
 #if !defined(VG_CHECK)
 # if defined(VALGRIND)
-#  include <valgrind/memcheck.h>
+#  include <valgrind/mrngheck.h>
 #  define VG_UNDEF(x,y) VALGRIND_MAKE_MEM_UNDEFINED((x),(y))
 #  define VG_CHECK(x,y) VALGRIND_CHECK_MEM_IS_DEFINED((x),(y))
 # else

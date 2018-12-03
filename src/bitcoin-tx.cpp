@@ -54,10 +54,10 @@ static int AppInitRawTx(int argc, char* argv[])
     if (argc<2 || IsArgSet("-?") || IsArgSet("-h") || IsArgSet("-help"))
     {
         // First part of help message is specific to this utility
-        std::string strUsage = strprintf(_("%s emercoin-tx utility version"), _(PACKAGE_NAME)) + " " + FormatFullVersion() + "\n\n" +
+        std::string strUsage = strprintf(_("%s rngcoin-tx utility version"), _(PACKAGE_NAME)) + " " + FormatFullVersion() + "\n\n" +
             _("Usage:") + "\n" +
-              "  emercoin-tx [options] <hex-tx> [commands]  " + _("Update hex-encoded emercoin transaction") + "\n" +
-              "  emercoin-tx [options] -create [commands]   " + _("Create hex-encoded emercoin transaction") + "\n" +
+              "  rngcoin-tx [options] <hex-tx> [commands]  " + _("Update hex-encoded rngcoin transaction") + "\n" +
+              "  rngcoin-tx [options] -create [commands]   " + _("Create hex-encoded rngcoin transaction") + "\n" +
               "\n";
 
         fprintf(stdout, "%s", strUsage.c_str());

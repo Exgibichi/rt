@@ -45,7 +45,7 @@ unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfS
     CBigNum bnNew;
     bnNew.SetCompact(pindexPrev->nBits);
 
-    // emercoin: first 10 000 blocks are faster to mine.
+    // rngcoin: first 10 000 blocks are faster to mine.
     int64_t nSpacingRatio = (pindexLast->nHeight <= 10000) ? max((int64_t)10, params.nStakeTargetSpacing * pindexLast->nHeight / 10000) :
                                                              max((int64_t)10, params.nStakeTargetSpacing);
 

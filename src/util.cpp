@@ -104,8 +104,8 @@ namespace boost {
 
 using namespace std;
 
-const char * const BITCOIN_CONF_FILENAME = "emercoin.conf";
-const char * const BITCOIN_PID_FILENAME = "emercoind.pid";
+const char * const BITCOIN_CONF_FILENAME = "rngcoin.conf";
+const char * const BITCOIN_PID_FILENAME = "rngcoind.pid";
 
 CCriticalSection cs_args;
 map<string, string> mapArgs;
@@ -463,7 +463,7 @@ static std::string FormatException(const std::exception* pex, const char* pszThr
     char pszModule[MAX_PATH] = "";
     GetModuleFileNameA(NULL, pszModule, sizeof(pszModule));
 #else
-    const char* pszModule = "emercoin";
+    const char* pszModule = "rngcoin";
 #endif
     if (pex)
         return strprintf(
@@ -489,17 +489,17 @@ boost::filesystem::path GetDefaultDataDir()
     // Unix: ~/.bitcoin
 #ifdef WIN32
     // Windows
-    return GetSpecialFolderPath(CSIDL_APPDATA) / "Emercoin";
+    return GetSpecialFolderPath(CSIDL_APPDATA) / "Rngcoin";
 #else
     struct passwd *pw_ptr = getpwuid(geteuid());
     const char *pszHome = pw_ptr? pw_ptr->pw_dir : getenv("HOME"); 
     fs::path pathRet((pszHome == NULL || *pszHome == 0)? "/" : pszHome);
 #ifdef MAC_OSX
     // Mac
-    return pathRet / "Library/Application Support/Emercoin";
+    return pathRet / "Library/Application Support/Rngcoin";
 #else
     // Unix
-    return pathRet / ".emercoin";
+    return pathRet / ".rngcoin";
 #endif
 #endif
 }

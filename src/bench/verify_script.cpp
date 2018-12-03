@@ -5,7 +5,7 @@
 #include "bench.h"
 #include "key.h"
 #if defined(HAVE_CONSENSUS_LIB)
-#include "script/emercoinconsensus.h"
+#include "script/rngcoinconsensus.h"
 #endif
 #include "script/script.h"
 #include "script/sign.h"

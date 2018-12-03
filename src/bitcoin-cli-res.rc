@@ -16,14 +16,14 @@ BEGIN
     BEGIN
         BLOCK "040904E4" // U.S. English - multilingual (hex)
         BEGIN
-            VALUE "CompanyName",        "Emercoin"
-            VALUE "FileDescription",    "emercoin-cli (JSON-RPC client for " PACKAGE_NAME ")"
+            VALUE "CompanyName",        "Rngcoin"
+            VALUE "FileDescription",    "rngcoin-cli (JSON-RPC client for " PACKAGE_NAME ")"
             VALUE "FileVersion",        VER_FILEVERSION_STR
-            VALUE "InternalName",       "emercoin-cli"
+            VALUE "InternalName",       "rngcoin-cli"
             VALUE "LegalCopyright",     COPYRIGHT_STR
             VALUE "LegalTrademarks1",   "Distributed under the GPL3 software license, see the accompanying file COPYING or http://www.gnu.org/licenses/gpl.html."
-            VALUE "OriginalFilename",   "emercoin-cli.exe"
-            VALUE "ProductName",        "emercoin-cli"
+            VALUE "OriginalFilename",   "rngcoin-cli.exe"
+            VALUE "ProductName",        "rngcoin-cli"
             VALUE "ProductVersion",     VER_PRODUCTVERSION_STR
         END
     END

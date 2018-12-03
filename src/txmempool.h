@@ -40,7 +40,7 @@ inline bool AllowFree(double dPriority)
     // Large (in bytes) low-priority (new, small-coin) transactions
     // need a fee.
     // return dPriority > AllowFreeThreshold();
-    return false; // emercoin: we have no free transaction
+    return false; // rngcoin: we have no free transaction
 }
 
 /** Fake height value used in CCoins to signify they are only in the memory pool (since 0.8) */

@@ -114,7 +114,7 @@ bool AcceptPendingSyncCheckpoint()
     if (!chainActive.Contains(mapBlockIndex[hashPendingCheckpoint]))
         return false;
 
-    // emercoin: checkpoint needs to be a block with 32 confirmation
+    // rngcoin: checkpoint needs to be a block with 32 confirmation
     if (mapBlockIndex[hashPendingCheckpoint]->nHeight > chainActive.Height() - 32)
         return false;
 
@@ -308,7 +308,7 @@ bool IsSyncCheckpointTooOld(unsigned int nSeconds)
 
 
 
-// emercoin: sync-checkpoint master key
+// rngcoin: sync-checkpoint master key
 std::string CSyncCheckpoint::strMasterPrivKey = "";
 
 // ppcoin: verify signature of sync-checkpoint message

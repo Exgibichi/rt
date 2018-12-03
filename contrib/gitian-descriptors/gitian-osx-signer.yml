@@ -1,5 +1,5 @@
 ---
-name: "emercoin-dmg-signer"
+name: "rngcoin-dmg-signer"
 suites:
 - "trusty"
 architectures:

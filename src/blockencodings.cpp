@@ -21,9 +21,9 @@ CBlockHeaderAndShortTxIDs::CBlockHeaderAndShortTxIDs(const CBlock& block, bool f
         nonce(GetRand(std::numeric_limits<uint64_t>::max())),
         shorttxids(block.vtx.size() - 1), prefilledtxn(1) {
 
-    // emercoin: get header with correct nFlags and auxpow
+    // rngcoin: get header with correct nFlags and auxpow
     BlockMap::iterator mi = mapBlockIndex.find(block.GetHash());
-    assert(mi != mapBlockIndex.end()); // emercoin: we should always have index for a block that we have accepted
+    assert(mi != mapBlockIndex.end()); // rngcoin: we should always have index for a block that we have accepted
     header = (*mi).second->GetBlockHeader();
     vchBlockSig = block.vchBlockSig;
 

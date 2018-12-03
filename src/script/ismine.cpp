@@ -167,7 +167,7 @@ isminetype IsMine(const CKeyStore &keystore, const CTxDestination& dest, bool& i
     return IsMine(keystore, script, isInvalid, sigversion);
 }
 
-// emercoin: normal check + name check
+// rngcoin: normal check + name check
 isminetype IsMine(bool &fName, const CKeyStore &keystore, const CScript& scriptPubKey)
 {
     bool isInvalid = false;

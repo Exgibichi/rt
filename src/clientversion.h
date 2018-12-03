@@ -18,9 +18,9 @@
 #define CLIENT_VERSION_MINOR 14
 #define CLIENT_VERSION_REVISION 2
 
-#define EMERCOIN_VERSION_MAJOR 0
-#define EMERCOIN_VERSION_MINOR 7
-#define EMERCOIN_VERSION_REVISION 3
+#define RNGCOIN_VERSION_MAJOR 0
+#define RNGCOIN_VERSION_MINOR 7
+#define RNGCOIN_VERSION_REVISION 3
 
 #define CLIENT_VERSION_BUILD 0
 
@@ -62,11 +62,11 @@ static const int CLIENT_VERSION =
                          +     100 * CLIENT_VERSION_REVISION
                          +       1 * CLIENT_VERSION_BUILD;
 
-// note: emercoin version is used for display purpose AND to accept alerts
-static const int EMERCOIN_VERSION =
-                           1000000 * EMERCOIN_VERSION_MAJOR
-                         +   10000 * EMERCOIN_VERSION_MINOR
-                         +     100 * EMERCOIN_VERSION_REVISION
+// note: rngcoin version is used for display purpose AND to accept alerts
+static const int RNGCOIN_VERSION =
+                           1000000 * RNGCOIN_VERSION_MAJOR
+                         +   10000 * RNGCOIN_VERSION_MINOR
+                         +     100 * RNGCOIN_VERSION_REVISION
                          +       1 * CLIENT_VERSION_BUILD;
 
 extern const std::string CLIENT_NAME;

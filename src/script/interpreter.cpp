@@ -1420,7 +1420,7 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, int nVe
 
     set_error(serror, SCRIPT_ERR_UNKNOWN_ERROR);
 
-    // emercoin: for backward compatability namecoin script should not be checked for minimaldata
+    // rngcoin: for backward compatability namecoin script should not be checked for minimaldata
     if (nVersion == NAMECOIN_TX_VERSION)
         flags &= ~SCRIPT_VERIFY_MINIMALDATA;
 
@@ -1461,7 +1461,7 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, int nVe
         }
     }
 
-    // emercoin: check names in P2SH only after V7 fork
+    // rngcoin: check names in P2SH only after V7 fork
     bool fIsP2SH = (flags & SCRIPT_VERIFY_WITNESS) ? scriptPubKey.IsPayToScriptHash(nVersion) : scriptPubKey.IsPayToScriptHash(0);
 
     // Additional validation for spend-to-script-hash transactions:
@@ -1493,7 +1493,7 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, int nVe
 
         // P2SH witness program
         if (flags & SCRIPT_VERIFY_WITNESS) {
-            if (pubKey2.IsWitnessProgram(witnessversion, witnessprogram, 0)) {  // emercoin: this is a witness program inside scriptSig - we don't store names in scriptSig
+            if (pubKey2.IsWitnessProgram(witnessversion, witnessprogram, 0)) {  // rngcoin: this is a witness program inside scriptSig - we don't store names in scriptSig
                 hadWitness = true;
                 if (scriptSig != CScript() << std::vector<unsigned char>(pubKey2.begin(), pubKey2.end())) {
                     // The scriptSig must be _exactly_ a single push of the redeemScript. Otherwise we
@@ -1575,7 +1575,7 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
             scriptSig.GetOp(pc, opcode, data);
         }
         CScript subscript(data.begin(), data.end());
-        if (subscript.IsWitnessProgram(witnessversion, witnessprogram, 0)) { // emercoin: this is a witness program inside scriptSig - we don't store names in scriptSig
+        if (subscript.IsWitnessProgram(witnessversion, witnessprogram, 0)) { // rngcoin: this is a witness program inside scriptSig - we don't store names in scriptSig
             return WitnessSigOps(witnessversion, witnessprogram, witness ? *witness : witnessEmpty, flags);
         }
     }

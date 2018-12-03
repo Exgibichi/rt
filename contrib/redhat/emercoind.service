@@ -1,14 +1,14 @@
 [Unit]
-Description=Emercoin Wallet
+Description=Rngcoin Wallet
 After=network.target
 
 [Service]
 Type=forking
-User=emc
-ExecStart=/usr/bin/emercoind -daemon -datadir=/var/lib/emc/.emercoin -conf=/var/lib/emc/.emercoin/emercoin.conf -pid=/var/lib/emc/.emercoin/emercoind.pid
-ExecStop=/usr/bin/emercoin-cli -datadir=/var/lib/emc/.emercoin stop
+User=rng
+ExecStart=/usr/bin/rngcoind -daemon -datadir=/var/lib/rng/.rngcoin -conf=/var/lib/rng/.rngcoin/rngcoin.conf -pid=/var/lib/rng/.rngcoin/rngcoind.pid
+ExecStop=/usr/bin/rngcoin-cli -datadir=/var/lib/rng/.rngcoin stop
 ExecReload=/usr/bin/kill -HUP $MAINPID
-PIDFile=/var/lib/emc/.emercoin/emercoind.pid
+PIDFile=/var/lib/rng/.rngcoin/rngcoind.pid
 Restart=on-failure
 
 [Install]

@@ -209,11 +209,11 @@ uint64_t SipHashUint256(uint64_t k0, uint64_t k1, const uint256& val)
     return v0 ^ v1 ^ v2 ^ v3;
 }
 
-int32_t emercoinRandseed;
+int32_t rngcoinRandseed;
 int univHash(const uint256 &x) {
-  int h = emercoinRandseed >> 20;
+  int h = rngcoinRandseed >> 20;
   const uint32_t *p = x.GetDataPtr();
   for(int i = 0; i < 8; i++)
-    h ^=  (p[i] >> (h & 0xf)) + (emercoinRandseed >> i);
+    h ^=  (p[i] >> (h & 0xf)) + (rngcoinRandseed >> i);
   return (h + (h >> 16))  & 1023; // 2^n - 1
 }

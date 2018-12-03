@@ -111,7 +111,7 @@ namespace {
     };
     std::map<uint256, std::pair<NodeId, std::list<QueuedBlock>::iterator> > mapBlocksInFlight;
 
-    /** emercoin: blocks that are waiting to be processed, the key points to previous CBlockIndex entry */
+    /** rngcoin: blocks that are waiting to be processed, the key points to previous CBlockIndex entry */
     struct WaitElement {
         std::shared_ptr<CBlock> pblock;
         int64_t time;
@@ -1188,7 +1188,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         return true;
     }
 
-    // emercoin: set deserialization mode to read PoS flag in headers
+    // rngcoin: set deserialization mode to read PoS flag in headers
     // serialization mode to encode PoS flags is set in CSerializedNetMsg Make()
     vRecv.SetType(vRecv.GetType() | SER_POSMARKER);
 
@@ -1840,7 +1840,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         std::list<CTransactionRef> lRemovedTxn;
 
         if (!AlreadyHave(inv) && AcceptToMemoryPool(mempool, state, ptx, &fMissingInputs, &lRemovedTxn)) {
-            // emercoin: raise temerature for this peer
+            // rngcoin: raise temerature for this peer
             pfrom->temperature  += (int32_t)::GetVirtualTransactionSize(*ptx);
 
             mempool.check(pcoinsTip);
@@ -2014,7 +2014,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         const CBlockIndex *pindex = NULL;
         CValidationState state;
-        //emcTODO - do we care about nPoSTemperature inside CMPCTBLOCK?
+        //rngTODO - do we care about nPoSTemperature inside CMPCTBLOCK?
         uint32_t tmp1;
         uint256 tmp2;
         if (!ProcessNewBlockHeaders(tmp1, tmp2, {cmpctblock.header}, state, chainparams, &pindex)) {
@@ -2282,7 +2282,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
             ReadCompactSize(vRecv); // ignore vchBlockSig.
 
-            // emercoin: quick check to see if we should ban peers for PoS spam
+            // rngcoin: quick check to see if we should ban peers for PoS spam
             // note: at this point we don't know if PoW headers are valid - we just assume they are
             // so we need to update pfrom->nPoSTemperature once we actualy check them
             int nPoSTemperature = pfrom->nPoSTemperature;
@@ -2480,7 +2480,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     return error("this block does not connect to any valid known blocks");
                 }
             }
-            // emercoin: store in memory until we can connect it to some chain
+            // rngcoin: store in memory until we can connect it to some chain
             WaitElement we; we.pblock = pblock2; we.time = nTimeNow;
             mapBlocksWait[miPrev->second] = we;
         }
@@ -2489,7 +2489,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         if (pindexLastAccepted == nullptr)
             pindexLastAccepted = chainActive.Tip();
         bool fContinue = true;
-        // emercoin: accept as many blocks as we possibly can from mapBlocksWait
+        // rngcoin: accept as many blocks as we possibly can from mapBlocksWait
         while (fContinue) {
             fContinue = false;
             bool fSelected = false;
@@ -2499,7 +2499,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
             {
             LOCK(cs_main);
-            // emercoin: try to select next block in a constant time
+            // rngcoin: try to select next block in a constant time
             std::map<CBlockIndex*, WaitElement>::iterator it = mapBlocksWait.find(pindexLastAccepted);
             if (it != mapBlocksWait.end() && pindexLastAccepted != nullptr) {
                 pindexPrev = it->first;

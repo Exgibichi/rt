@@ -1,13 +1,13 @@
 *.tar.gz
 
 *.exe
-src/emercoin
-src/emercoind
-src/emercoin-cli
-src/emercoin-tx
-src/test/test_emercoin
-src/test/test_emercoin_fuzzy
-src/qt/test/test_emercoin-qt
+src/rngcoin
+src/rngcoind
+src/rngcoin-cli
+src/rngcoin-tx
+src/test/test_rngcoin
+src/test/test_rngcoin_fuzzy
+src/qt/test/test_rngcoin-qt
 
 # autoreconf
 Makefile.in
@@ -74,12 +74,12 @@ src/qt/test/moc*.cpp
 # Compilation and Qt preprocessor part
 *.qm
 Makefile
-emercoin-qt
-Emercoin-Qt.app
+rngcoin-qt
+Rngcoin-Qt.app
 
 # Unit-tests
 Makefile.test
-emercoin-qt_test
+rngcoin-qt_test
 src/test/buildenv.py
 
 # Resources cpp

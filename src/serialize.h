@@ -148,8 +148,8 @@ enum
     SER_GETHASH         = (1 << 2),
 
     // modifiers
-    SER_POSMARKER       = (1 << 18),  // emercoin: for sending block headers with PoS marker, to allow headers-first syncronization
-    SER_BTC_TX          = (1 << 19),  // emercoin: for merged mining, to read tx without nTime.
+    SER_POSMARKER       = (1 << 18),  // rngcoin: for sending block headers with PoS marker, to allow headers-first syncronization
+    SER_BTC_TX          = (1 << 19),  // rngcoin: for merged mining, to read tx without nTime.
 };
 
 #define READWRITE(obj)      (::SerReadWrite(s, (obj), ser_action))

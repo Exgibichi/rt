@@ -37,7 +37,7 @@ if ENABLE_ZMQ
 LIBBITCOIN_ZMQ=libbitcoin_zmq.a
 endif
 if BUILD_BITCOIN_LIBS
-LIBBITCOINCONSENSUS=libemercoinconsensus.la
+LIBBITCOINCONSENSUS=librngcoinconsensus.la
 endif
 if ENABLE_WALLET
 LIBBITCOIN_WALLET=libbitcoin_wallet.a
@@ -66,11 +66,11 @@ TESTS =
 BENCHMARKS =
 
 if BUILD_BITCOIND
-  bin_PROGRAMS += emercoind
+  bin_PROGRAMS += rngcoind
 endif
 
 if BUILD_BITCOIN_UTILS
-  bin_PROGRAMS += emercoin-cli emercoin-tx
+  bin_PROGRAMS += rngcoin-cli rngcoin-tx
 endif
 
 .PHONY: FORCE check-symbols check-security
@@ -165,12 +165,12 @@ BITCOIN_CORE_H = \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h \
-## --- ppcoin and emercoin headers start from this line --- ##
+## --- ppcoin and rngcoin headers start from this line --- ##
   uint256hm.h \
   kernel.h \
   namecoin.h \
   hooks.h \
-  emcdns.h \
+  rngdns.h \
   checkpoints_eb.h \
   ministun.h \
   exch.h
@@ -221,10 +221,10 @@ libbitcoin_server_a_SOURCES = \
   ui_interface.cpp \
   validation.cpp \
   validationinterface.cpp \
-## --- ppcoin and emercoin sources start from this line --- ##
+## --- ppcoin and rngcoin sources start from this line --- ##
   kernel.cpp \
   namecoin.cpp \
-  emcdns.cpp \
+  rngdns.cpp \
   stun.cpp \
   exch.cpp \
   https-cli.cpp \
@@ -298,7 +298,7 @@ libbitcoin_consensus_a_SOURCES = \
   primitives/transaction.h \
   pubkey.cpp \
   pubkey.h \
-  script/emercoinconsensus.cpp \
+  script/rngcoinconsensus.cpp \
   script/interpreter.cpp \
   script/interpreter.h \
   script/script.cpp \
@@ -374,16 +374,16 @@ nodist_libbitcoin_util_a_SOURCES = $(srcdir)/obj/build.h
 #
 
 # bitcoind binary #
-emercoind_SOURCES = bitcoind.cpp
-emercoind_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
-emercoind_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-emercoind_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+rngcoind_SOURCES = bitcoind.cpp
+rngcoind_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+rngcoind_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+rngcoind_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-emercoind_SOURCES += bitcoind-res.rc
+rngcoind_SOURCES += bitcoind-res.rc
 endif
 
-emercoind_LDADD = \
+rngcoind_LDADD = \
   $(LIBBITCOIN_SERVER) \
   $(LIBBITCOIN_COMMON) \
   $(LIBUNIVALUE) \
@@ -396,38 +396,38 @@ emercoind_LDADD = \
   $(LIBMEMENV) \
   $(LIBSECP256K1)
 
-emercoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_OPENSSL_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
+rngcoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(COMPRESS_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_OPENSSL_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
 
 # bitcoin-cli binary #
-emercoin_cli_SOURCES = bitcoin-cli.cpp
-emercoin_cli_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(EVENT_CFLAGS)
-emercoin_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-emercoin_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+rngcoin_cli_SOURCES = bitcoin-cli.cpp
+rngcoin_cli_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(EVENT_CFLAGS)
+rngcoin_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+rngcoin_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-emercoin_cli_SOURCES += bitcoin-cli-res.rc
+rngcoin_cli_SOURCES += bitcoin-cli-res.rc
 endif
 
-emercoin_cli_LDADD = \
+rngcoin_cli_LDADD = \
   $(LIBBITCOIN_CLI) \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO)
 
-emercoin_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
+rngcoin_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(COMPRESS_LIBS) $(EVENT_LIBS)
 #
 
 # bitcoin-tx binary #
-emercoin_tx_SOURCES = bitcoin-tx.cpp
-emercoin_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
-emercoin_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-emercoin_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+rngcoin_tx_SOURCES = bitcoin-tx.cpp
+rngcoin_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+rngcoin_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+rngcoin_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-emercoin_tx_SOURCES += bitcoin-tx-res.rc
+rngcoin_tx_SOURCES += bitcoin-tx-res.rc
 endif
 
-emercoin_tx_LDADD = \
+rngcoin_tx_LDADD = \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_COMMON) \
   $(LIBBITCOIN_UTIL) \
@@ -435,23 +435,23 @@ emercoin_tx_LDADD = \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBSECP256K1)
 
-emercoin_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
+rngcoin_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(COMPRESS_LIBS)
 #
 
-# emercoinconsensus library #
+# rngcoinconsensus library #
 if BUILD_BITCOIN_LIBS
-include_HEADERS = script/emercoinconsensus.h
-libemercoinconsensus_la_SOURCES = $(crypto_libbitcoin_crypto_a_SOURCES) $(libbitcoin_consensus_a_SOURCES)
-libemercoinconsensus_la_SOURCES += support/cleanse.cpp
+include_HEADERS = script/rngcoinconsensus.h
+librngcoinconsensus_la_SOURCES = $(crypto_libbitcoin_crypto_a_SOURCES) $(libbitcoin_consensus_a_SOURCES)
+librngcoinconsensus_la_SOURCES += support/cleanse.cpp
 
 if GLIBC_BACK_COMPAT
-  libemercoinconsensus_la_SOURCES += compat/glibc_compat.cpp
+  librngcoinconsensus_la_SOURCES += compat/glibc_compat.cpp
 endif
 
-libemercoinconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
-libemercoinconsensus_la_LIBADD = $(LIBSECP256K1) $(CRYPTO_LIBS)
-libemercoinconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL
-libemercoinconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+librngcoinconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
+librngcoinconsensus_la_LIBADD = $(LIBSECP256K1) $(CRYPTO_LIBS) $(COMPRESS_LIBS)
+librngcoinconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL
+librngcoinconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
 endif
 #

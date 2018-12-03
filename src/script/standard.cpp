@@ -66,7 +66,7 @@ static bool SolverInner(const CScript& scriptPubKey, txnouttype& typeRet, vector
 
     // Shortcut for pay-to-script-hash, which are more constrained than the other types:
     // it is always OP_HASH160 20 [20 byte hash] OP_EQUAL
-    if (scriptPubKey.IsPayToScriptHash(0))  // emercoin: there is no need to check for names here, because caller of this function will do just that
+    if (scriptPubKey.IsPayToScriptHash(0))  // rngcoin: there is no need to check for names here, because caller of this function will do just that
     {
         typeRet = TX_SCRIPTHASH;
         vector<unsigned char> hashBytes(scriptPubKey.begin()+2, scriptPubKey.begin()+22);
@@ -76,7 +76,7 @@ static bool SolverInner(const CScript& scriptPubKey, txnouttype& typeRet, vector
 
     int witnessversion;
     std::vector<unsigned char> witnessprogram;
-    if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram, 0)) {  // emercoin: there is no need to check for names here, because caller of this function will do just that
+    if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram, 0)) {  // rngcoin: there is no need to check for names here, because caller of this function will do just that
         if (witnessversion == 0 && witnessprogram.size() == 20) {
             typeRet = TX_WITNESS_V0_KEYHASH;
             vSolutionsRet.push_back(witnessprogram);
@@ -189,7 +189,7 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
 {
     bool ret = SolverInner(scriptPubKey, typeRet, vSolutionsRet);
 
-    // emercoin: remove name (if any exist) and try again
+    // rngcoin: remove name (if any exist) and try again
     CScript scriptWithoutName;
     if (!ret && RemoveNameScriptPrefix(scriptPubKey, scriptWithoutName))
     {
@@ -353,7 +353,7 @@ CScript GetScriptForWitness(const CScript& redeemscript)
     return ret;
 }
 
-// emercoin: scriptPubKey should come from vout[0]
+// rngcoin: scriptPubKey should come from vout[0]
 CScript GenerateScriptForRandPay(const CScript& scriptPubKey)
 {
     CTxDestination address;

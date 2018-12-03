@@ -1,7 +1,7 @@
-contrib/trusty/emc usr/bin
-contrib/trusty/emercoin.conf var/lib/emc/.emercoin
-contrib/trusty/emercoind etc/init.d
-contrib/trusty/emercoind.logrotate etc/logrotate.d
-usr/local/bin/emercoind usr/bin
-usr/local/bin/emercoin-cli usr/bin
-usr/local/bin/emercoin-tx usr/bin
+contrib/trusty/rng usr/bin
+contrib/trusty/rngcoin.conf var/lib/rng/.rngcoin
+contrib/trusty/rngcoind etc/init.d
+contrib/trusty/rngcoind.logrotate etc/logrotate.d
+usr/local/bin/rngcoind usr/bin
+usr/local/bin/rngcoin-cli usr/bin
+usr/local/bin/rngcoin-tx usr/bin

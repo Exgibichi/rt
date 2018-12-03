@@ -216,9 +216,9 @@ static const unsigned int DEFAULT_CHECKLEVEL = 3;
 // Setting the target to > than 550MB will make it likely we can respect the target.
 static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
 
-/** emercoin values */
+/** rngcoin values */
 static const CAmount MAX_MINT_PROOF_OF_WORK = 5020 * COIN;
-static const int64_t nMaxClockDrift = 2 * 60 * 60;       // two hours
+static const int64_t nMaxClockDrift = 7 * 24 * 2 * 60 * 60;       // two hours
 extern std::map<uint256, std::shared_ptr<CAuxPow>> mapDirtyAuxPow;
 extern int64_t nLastCoinStakeSearchInterval;
 
@@ -290,8 +290,8 @@ bool GetTransaction(const CDiskTxPos& postx, CTransactionRef &txOut);
 /** Find the best known block, and make it the tip of the block chain */
 bool ActivateBestChain(CValidationState& state, const CChainParams& chainparams, std::shared_ptr<const CBlock> pblock = std::shared_ptr<const CBlock>());
 
-// emercoin: reward for blocks
-CAmount GetProofOfWorkReward(unsigned int nBits, bool fV7Enabled);
+// rngcoin: reward for blocks
+CAmount GetProofOfWorkReward(unsigned int nBits, bool fV7Enabled, unsigned int nHeight);
 
 /** Guess verification progress (as a fraction between 0.0=genesis and 1.0=current tip). */
 double GuessVerificationProgress(const ChainTxData& data, CBlockIndex* pindex);
@@ -581,11 +581,11 @@ void DumpMempool();
 bool LoadMempool();
 
 // ppcoin:
-bool GetEmc7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmount &nReward);
+bool GetRng7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmount &nReward);
 bool SignBlock(CBlock& block, const CKeyStore& keystore);
 bool CheckBlockSignature(const CBlock& block, bool fV7Enabled);
 
-// emercoin: check that tx output is not below MIN_TX_AMOUNT
+// rngcoin: check that tx output is not below MIN_TX_AMOUNT
 bool CheckMinTxOut(const CTransactionRef& tx);
 bool CheckMinTxOut(const CBlock& block, bool fV7Enabled);
 

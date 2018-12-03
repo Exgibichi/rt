@@ -1,23 +1,23 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:          emercoind
+# Provides:          rngcoind
 # Required-Start:    $remote_fs $syslog
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Emercoin Daemon
-# Description:       This file should be used to manage the Emercoin Daemon
+# Short-Description: Rngcoin Daemon
+# Description:       This file should be used to manage the Rngcoin Daemon
 ### END INIT INFO
 
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/bin:/usr/local/sbin
-DESC="Emercoin Daemon"
-NAME=emercoind
+DESC="Rngcoin Daemon"
+NAME=rngcoind
 DAEMON=/usr/bin/$NAME
 DAEMON_ARGS="-daemon"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
-CHUID=emc:emc
+CHUID=rng:rng
 
 # Exit if the package is not installed
 [ -x "$DAEMON" ] || exit 0

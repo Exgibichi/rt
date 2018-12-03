@@ -1,5 +1,5 @@
 /*
- * Part of Emercoin project
+ * Part of Rngcoin project
  *
  * This code is based on the examples from 
  * https://github.com/libevent/libevent/tree/master/sample
@@ -74,7 +74,7 @@ typedef enum {
 
 //--------------- Body of "hostcheck.c"
 
-// EMC works on Intel platform only, there is always ASCII
+// RNG works on Intel platform only, there is always ASCII
 static char Curl_raw_toupper(char in) {
   return toupper(in);
 }
@@ -594,7 +594,7 @@ HttpsLE(const char *host, const char *get, const char *post, const std::map<std:
     // Create HTTP heeader
     output_headers = evhttp_request_get_output_headers(req);
     evhttp_add_header(output_headers, "Host", host);
-    sprintf(tmp, "emercoin-json-rpc/%s", FormatFullVersion().c_str());
+    sprintf(tmp, "rngcoin-json-rpc/%s", FormatFullVersion().c_str());
     evhttp_add_header(output_headers, "User-Agent", tmp);
     evhttp_add_header(output_headers, "Accept", "application/json");
     evhttp_add_header(output_headers, "Connection", "close");

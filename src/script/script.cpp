@@ -214,7 +214,7 @@ bool CScript::IsPayToScriptHash(int nVersion) const
 {
     bool ret = IsPayToScriptHashInner(*this);
 
-    // emercoin: remove name (if any) and try again
+    // rngcoin: remove name (if any) and try again
     if (!ret && nVersion == NAMECOIN_TX_VERSION)
     {
         CScript scriptRemainder;
@@ -237,7 +237,7 @@ bool CScript::IsPayToWitnessScriptHash(int nVersion) const
 {
     bool ret = IsPayToWitnessScriptHashInner(*this);
 
-    // emercoin: remove name (if any) and try again
+    // rngcoin: remove name (if any) and try again
     if (!ret && nVersion == NAMECOIN_TX_VERSION)
     {
         CScript scriptRemainder;
@@ -270,7 +270,7 @@ bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program
 {
     bool ret = IsWitnessProgramInner(*this, version, program);
 
-    // emercoin: remove name (if any) and try again
+    // rngcoin: remove name (if any) and try again
     if (!ret && txVersion == NAMECOIN_TX_VERSION)
     {
         CScript scriptRemainder;
