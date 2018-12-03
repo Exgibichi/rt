@@ -63,7 +63,7 @@ public:
     static const int CURRENT_VERSION = 1;
     int nVersion;
 
-    // emercoin: used by exchange
+    // rngcoin: used by exchange
     std::string comment;
     std::string commentto;
 
@@ -162,10 +162,10 @@ public:
     };
 
     // prepare transaction for getting txfee before sending coins
-    SendCoinsReturn prepareTransaction(WalletModelTransaction &transaction, const CCoinControl *coinControl = NULL);
+    SendCoinsReturn prepareTransaction(const QString &txcomment, WalletModelTransaction &transaction, const CCoinControl *coinControl = NULL);
 
     // Send coins to a list of recipients
-    SendCoinsReturn sendCoins(WalletModelTransaction &transaction);
+    SendCoinsReturn sendCoins(const QString &txcomment, WalletModelTransaction &transaction);
 
     // Wallet encryption
     bool setWalletEncrypted(bool encrypted, const SecureString &passphrase);
@@ -221,7 +221,7 @@ public:
 
     int getDefaultConfirmTarget() const;
 
-    // emercoin:
+    // rngcoin:
     bool getAddressForChange(std::string &sAddress);
 
 private:

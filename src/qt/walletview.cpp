@@ -58,6 +58,15 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, WalletFrame *parent)
     connect(transactionView, &TransactionView::amountSelected, labelTotal, &QLabel::setText);
     transactionsPage->setLayout(vbox);
 
+    transactionsPage->setObjectName("transactionsPage");
+    transactionsPage->setStyleSheet( "#transactionsPage {"
+                                 "background-color:    rgb(246, 246, 247);                     "
+                                 "background-image:    url(:/icons/res/icons/tx_page_bkg.png); "
+                                 "background-repeat:   false;                                  "
+                                 "background-position: right bottom;                           "
+                                 "}"
+                                 );
+
     receiveCoinsPage = new ReceiveCoinsDialog(platformStyle);
     sendCoinsPage = new SendCoinsDialog(platformStyle);
     manageNamesPage = new ManageNamesPage();
@@ -108,12 +117,12 @@ void WalletView::setBitcoinGUI(BitcoinGUI *gui)
         connect(this, SIGNAL(encryptionStatusChanged(int)), gui, SLOT(setEncryptionStatus(int)));
 
         // Pass through transaction notifications
-        connect(this, SIGNAL(incomingTransaction(QString,int,CAmount,QString,QString,QString)), gui, SLOT(incomingTransaction(QString,int,CAmount,QString,QString,QString)));
+        connect(this, SIGNAL(incomingTransaction(QString,int,CAmount,QString,QString,QString,QString)), gui, SLOT(incomingTransaction(QString,int,CAmount,QString,QString,QString,QString)));
 
         // Connect HD enabled state signal 
         connect(this, SIGNAL(hdEnabledStatusChanged(int)), gui, SLOT(setHDStatus(int)));
 
-        // emercoin:
+        // rngcoin:
         connect(gui->labelWalletEncryptionIcon, SIGNAL(clicked(QPoint)), this, SLOT(on_labelWalletEncryptionIcon_clicked()));
     }
 }
@@ -179,8 +188,9 @@ void WalletView::processNewTransaction(const QModelIndex& parent, int start, int
     QModelIndex index = ttm->index(start, 0, parent);
     QString address = ttm->data(index, TransactionTableModel::AddressRole).toString();
     QString label = ttm->data(index, TransactionTableModel::LabelRole).toString();
+    QString txComment = ttm->data(index, TransactionTableModel::TxCommentRole).toString();
 
-    Q_EMIT incomingTransaction(date, walletModel->getOptionsModel()->getDisplayUnit(), amount, type, address, label);
+    Q_EMIT incomingTransaction(date, walletModel->getOptionsModel()->getDisplayUnit(), amount, type, address, label, txComment);
 }
 
 void WalletView::gotoOverviewPage()

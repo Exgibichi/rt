@@ -1,4 +1,4 @@
-﻿//DpoUseCaseScheme.cpp by Emercoin developers
+﻿//DpoUseCaseScheme.cpp by Rngcoin developers
 #include "DpoUseCaseScheme.h"
 #include <QVBoxLayout>
 #include <QLabel>

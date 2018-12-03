@@ -13,7 +13,7 @@
 - (NSString *)__bundleIdentifier
 {
     if (self == [NSBundle mainBundle]) {
-        return @"com.emercoin.Emercoin-Qt";
+        return @"com.rngcoin.Rngcoin-Qt";
     } else {
         return [self __bundleIdentifier];
     }

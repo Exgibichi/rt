@@ -1,4 +1,4 @@
-﻿//DiplomaWidget.cpp by Emercoin developers
+﻿//DiplomaWidget.cpp by Rngcoin developers
 #include "DiplomaWidget.h"
 #include "CheckDiplomaWidget.h"
 #include "RegisterDiplomaWidget.h"

@@ -1,4 +1,4 @@
-﻿//CheckDiplomaWidget.h by Emercoin developers
+﻿//CheckDiplomaWidget.h by Rngcoin developers
 #pragma once
 #include <QLineEdit>
 #include "YearSpinBox.h"

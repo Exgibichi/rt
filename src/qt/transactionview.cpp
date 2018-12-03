@@ -79,7 +79,7 @@ struct TransactionView::TableView: public QTableView{
         }
         QString s;
         if(!rowToIndex.isEmpty()) {
-            s = tr("%1 EMC selected in %2 transactions")
+            s = tr("%1 RNG selected in %2 transactions")
                     .arg(format(amountPos + amountNeg))
                     .arg(rowToIndex.count());
             if(amountNeg!=0) {
@@ -176,6 +176,46 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
     vlayout->setContentsMargins(0,0,0,0);
     vlayout->setSpacing(0);
 
+    /*QTableView *view = new QTableView(this);
+    view->setStyleSheet(
+                    "QTableView{"
+                    "   gridline-color: rgb(246,246,247);"
+                    "   border: 2px solid rgb(246,246,247,200);"
+                    "   border-radius : 10px;"
+                    "   background: rgb(255,255,255, 200);"
+                    "   color: rgb(32,32,32);"
+                    "}"
+                    );
+
+        view->horizontalHeader()->setStyleSheet(
+                    "QHeaderView {        "
+                    "    background: rgb(255,255,255);"
+                    "    border-radius : 10px;     "
+                    "}                             "
+
+                    "QHeaderView::section {        "
+                    "    background: rgb(255,255,255); "
+                    "    border-right:  2px solid rgb(246,246,247); "
+                    "    border-bottom: 2px solid rgb(246,246,247); "
+                    "    border-left:   0px;       "
+                    "    border-top:    0px;       "
+                    "    padding: 4px;             "
+                    "    font-size: 10pt;          "
+                    "    font: \"Montserrat SemiBold\";"
+                    "}                             "
+
+                    "QHeaderView::section:first {        "
+                    "    border-top-left-radius: 10px;   "
+                    "    border-right: 2px solid rgb(246,246,247);    "
+                    "} "
+
+                    "QHeaderView::section:last {        "
+                    "    border-top-right-radius: 10px; "
+                    "}                                  "
+
+                    );*/
+
+
     transactionView = new TableView(this);
     vlayout->addLayout(hlayout);
     vlayout->addWidget(createDateRangeWidget());
@@ -237,6 +277,57 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
     connect(copyTxPlainText, SIGNAL(triggered()), this, SLOT(copyTxPlainText()));
     connect(editLabelAction, SIGNAL(triggered()), this, SLOT(editLabel()));
     connect(showDetailsAction, SIGNAL(triggered()), this, SLOT(showDetails()));
+
+    //
+    //  setup stylesheets
+    //
+    this->setObjectName("txViewWidget");
+    this->setStyleSheet( "#txViewWidget {"
+                         "background-color: rgb(246, 246, 247,20);"
+                         "}"
+                         );
+
+    // QComboBox
+    dateWidget->setStyleSheet("QComboBox {                                      "
+                              " border: 0px;                                    "
+                              " border-radius: 10px;                            "
+                              " min-width: 6em;                                 "
+                              " font-size: 14px;                                "
+                              " font: \"Montserrat\";                           "
+                              " color: rgb(136, 136, 136);                      "
+                              " background-color: rgb(255, 255, 255);           "
+                              " }                                               "
+                              "                                                 "
+                              " QComboBox::drop-down {                          "
+                              "     subcontrol-origin: padding;                 "
+                              "     subcontrol-position: top right;             "
+                              "     padding-right: 10px;                        "
+                              "     image: url(:/icons/res/icons/triangle-down.png);"
+                              "     width: 15px;                                "
+                              "     border-top-right-radius: 10px;              "
+                              "     border-bottom-right-radius: 10px;           "
+                              " }                                               "
+                              "                                                 "
+                              " QComboBox QAbstractItemView {                   "
+                              "     background-color: white;                    "
+                              "     border: 0px;                                "
+                              "     selection-background-color:  #3796a8;       "
+                              " }                                               "
+                          );
+
+    typeWidget->setStyleSheet( dateWidget->styleSheet() );
+    watchOnlyWidget->setStyleSheet( dateWidget->styleSheet() );
+
+    // QLineEdit
+    amountWidget->setStyleSheet(
+                "border-radius: 10px;                  "
+                "background-color: rgb(255, 255, 255); "
+                "font-size: 14px;                      "
+                "font: \"Montserrat\";                 "
+                "color: rgb(136, 136, 136);            "
+                "padding-left: 8px;                    "
+                "padding-right: px;                    "
+                );
 }
 
 void TransactionView::setModel(WalletModel *_model)
@@ -598,7 +689,8 @@ void TransactionView::focusTransaction(const QModelIndex &idx)
 void TransactionView::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
-    columnResizingFixer->stretchColumnWidth(TransactionTableModel::ToAddress);
+    //columnResizingFixer->stretchColumnWidth(TransactionTableModel::ToAddress);
+    columnResizingFixer->stretchColumnWidth(TransactionTableModel::TxComment);
 }
 
 // Need to override default Ctrl+C action for amount as default behaviour is just to copy DisplayRole text

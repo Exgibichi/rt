@@ -1,4 +1,4 @@
-﻿//CheckDiplomaWidget.cpp by Emercoin developers
+﻿//CheckDiplomaWidget.cpp by Rngcoin developers
 #include "CheckDiplomaWidget.h"
 #include <QFormLayout>
 #include <QPushButton>
@@ -14,13 +14,13 @@ CheckDiplomaWidget::CheckDiplomaWidget() {
 
 	auto form = new QFormLayout(this);
 
-	const int emcMaxNameLen = 500;
+	const int rngMaxNameLen = 500;
 	_name = new QLineEdit;
-	_name->setMaxLength(emcMaxNameLen);
+	_name->setMaxLength(rngMaxNameLen);
 	form->addRow(tr("First name and last name"), _name);
 
 	_university = new QLineEdit;
-	_university->setMaxLength(emcMaxNameLen);
+	_university->setMaxLength(rngMaxNameLen);
 	form->addRow(tr("University"), _university);
 
 	_yearAdmission  = new YearSpinBox;

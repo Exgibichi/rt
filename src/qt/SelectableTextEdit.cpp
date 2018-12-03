@@ -1,4 +1,4 @@
-﻿//SelectableTextEdit.cpp by Emercoin developers
+﻿//SelectableTextEdit.cpp by Rngcoin developers
 #include "SelectableTextEdit.h"
 #include <QLineEdit>
 #include <QApplication>

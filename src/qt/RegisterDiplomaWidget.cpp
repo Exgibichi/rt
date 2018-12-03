@@ -1,4 +1,4 @@
-﻿//RegisterDiplomaWidget.cpp by Emercoin developers
+﻿//RegisterDiplomaWidget.cpp by Rngcoin developers
 #include "RegisterDiplomaWidget.h"
 #include "QNameCoin.h"
 #include "../rpc/server.h"

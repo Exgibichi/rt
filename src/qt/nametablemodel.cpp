@@ -314,11 +314,11 @@ QVariant NameTableModel::headerData(int section, Qt::Orientation orientation, in
             switch (section)
             {
             case Name:
-                return tr("Name registered using Emercoin.");
+                return tr("Name registered using Rngcoin.");
             case Value:
                 return tr("Data associated with the name.");
             case Address:
-                return tr("Emercoin address to which the name is registered.");
+                return tr("Rngcoin address to which the name is registered.");
             case ExpiresIn:
                 return tr("Number of blocks, after which the name will expire. Update name to renew it.");
             }

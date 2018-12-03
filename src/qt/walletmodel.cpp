@@ -206,7 +206,7 @@ bool WalletModel::validateAddress(const QString &address)
     return addressParsed.IsValid();
 }
 
-WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransaction &transaction, const CCoinControl *coinControl)
+WalletModel::SendCoinsReturn WalletModel::prepareTransaction(const QString &txComment, WalletModelTransaction &transaction, const CCoinControl *coinControl)
 {
     if (fWalletUnlockMintOnly)
         return MintOnlyMode;
@@ -291,11 +291,15 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
 
         CAmount nFeeRequired = 0;
         int nChangePosRet = -1;
+
+        std::string strTxComment = txComment.toStdString();
+        if (!strTxComment.empty())
+            strTxComment = "text:" + strTxComment;
         std::string strFailReason;
 
         CWalletTx *newTx = transaction.getTransaction();
         CReserveKey *keyChange = transaction.getPossibleKeyChange();
-        bool fCreated = wallet->CreateTransaction(vecSend, *newTx, *keyChange, nFeeRequired, nChangePosRet, strFailReason, coinControl);
+        bool fCreated = wallet->CreateTransaction(vecSend, *newTx, *keyChange, nFeeRequired, nChangePosRet, strFailReason, strTxComment, coinControl);
         transaction.setTransactionFee(nFeeRequired);
         if (fSubtractFeeFromAmount && fCreated)
             transaction.reassignAmounts(nChangePosRet);
@@ -321,7 +325,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
     return SendCoinsReturn(OK);
 }
 
-WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction &transaction)
+WalletModel::SendCoinsReturn WalletModel::sendCoins(const QString &txcomment, WalletModelTransaction &transaction)
 {
     QByteArray transaction_array; /* store serialized transaction */
 
@@ -738,7 +742,7 @@ int WalletModel::getDefaultConfirmTarget() const
     return nTxConfirmTarget;
 }
 
-// emercoin: get existing address from keypool without removing it from keypool
+// rngcoin: get existing address from keypool without removing it from keypool
 bool WalletModel::getAddressForChange(std::string &sAddress)
 {
     if (!wallet->IsLocked())

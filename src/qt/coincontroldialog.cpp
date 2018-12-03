@@ -480,7 +480,7 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
         CTxDestination address;
         int witnessversion = 0;
         std::vector<unsigned char> witnessprogram;
-        if (out.tx->tx->vout[out.i].scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram, 0))  // emercoin: there should not be any names in coin control dialog
+        if (out.tx->tx->vout[out.i].scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram, 0))  // rngcoin: there should not be any names in coin control dialog
         {
             nBytesInputs += (32 + 4 + 1 + (107 / WITNESS_SCALE_FACTOR) + 4);
             fWitness = true;
@@ -521,7 +521,7 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
                 nBytes -= 34;
 
         // Fee
-        nPayFee = CWallet::GetMinimumFee(nBytes);
+        nPayFee = CWallet::GetMinimumFee(nBytes, 0);
         if (nPayFee > 0 && coinControl->nMinimumTotalFee > nPayFee)
             nPayFee = coinControl->nMinimumTotalFee;
 
@@ -531,7 +531,7 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
         //dPriority = dPriorityInputs / (nBytes - nBytesInputs + (nQuantityUncompressed * 29)); // 29 = 180 - 151 (uncompressed public keys are over the limit. max 151 bytes of the input are ignored for priority)
         //double dPriorityNeeded = std::max(mempoolEstimatePriority, AllowFreeThreshold());
         //fAllowFree = (dPriority >= dPriorityNeeded);
-        fAllowFree = false; // emercoin: we have no free transaction
+        fAllowFree = false; // rngcoin: we have no free transaction
 
         if (fSendFreeTransactions)
             if (fAllowFree && nBytes <= MAX_FREE_TRANSACTION_CREATE_SIZE)
@@ -611,9 +611,9 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
     // how many satoshis the estimated fee can vary per byte we guess wrong
     double dFeeVary;
     if (payTxFee.GetFeePerK() > 0)
-        dFeeVary = (double)std::max(CWallet::GetRequiredFee(1000), payTxFee.GetFeePerK()) / 1000;
+        dFeeVary = (double)std::max(CWallet::GetRequiredFee(1000, 0), payTxFee.GetFeePerK()) / 1000;
     else {
-        dFeeVary = (double)CWallet::GetRequiredFee(1000) / 1000;
+        dFeeVary = (double)CWallet::GetRequiredFee(1000, 0) / 1000;
     }
     QString toolTip4 = tr("Can vary +/- %1 satoshi(s) per input.").arg(dFeeVary);
 

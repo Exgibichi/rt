@@ -52,10 +52,10 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *par
     connect(ui->deleteButton_is, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_s, SIGNAL(clicked()), this, SLOT(deleteClicked()));
 
-    ui->payTo->setValidator(0);  // emercoin: disable validator so that we can type names
+    ui->payTo->setValidator(0);  // rngcoin: disable validator so that we can type names
     ui->payAmountExch->setValidator( new QDoubleValidator(0, 1e20, 8, this) );
     qsExchInfo = "<html><head/><body><p><span style=\" font-weight:600;\">"+
-            tr("WARNING: You're using external service! Emercoin is not responsible for functionality and correct behavior of this service.")+"</span><br/>"+
+            tr("WARNING: You're using external service! Rngcoin is not responsible for functionality and correct behavior of this service.")+"</span><br/>"+
             tr("Usage: Enter amount, currency type and address. Press Request Payment and select desired exchange service.")+"<br/>"+
             tr("After creating transaction you can view details by double clicking that transaction in transaction list tab.")+"</p></body></html>";
     ui->infoExchLabel->setText(qsExchInfo);
@@ -100,7 +100,7 @@ void SendCoinsEntry::setModel(WalletModel *_model)
 
     clear();
 
-    // emercoin: initialize exchange box
+    // rngcoin: initialize exchange box
     // initialize with refund address:
 //    std::string sAddress;
 //    if (this->model)
@@ -115,7 +115,7 @@ void SendCoinsEntry::setModel(WalletModel *_model)
 //        }
 //    }
 
-    // emercoin: disabled in this version
+    // rngcoin: disabled in this version
     ui->checkBoxExch->setVisible(false);
     ui->toggleExchLabel->setVisible(false);
     ui->checkBoxExch->setDisabled(true);
@@ -361,7 +361,7 @@ void SendCoinsEntry::on_requestPaymentButton_clicked()
     }
 
     // loop over exchanges to populate combobox
-    multimap<double, pair<Exch *, bool> > mapExch;   // double: emc per 1 btc
+    multimap<double, pair<Exch *, bool> > mapExch;   // double: rng per 1 btc
     bool validExist = false;
     for (Exch* exch : eBox.m_v_exch)
     {
@@ -373,7 +373,7 @@ void SendCoinsEntry::on_requestPaymentButton_clicked()
         if (valid)
             validExist = true;
 
-        mapExch.insert(pair<double, pair<Exch *, bool> >(exch->EstimatedEMC(dPay), pair<Exch *, bool>(exch, valid)));
+        mapExch.insert(pair<double, pair<Exch *, bool> >(exch->EstimatedRNG(dPay), pair<Exch *, bool>(exch, valid)));
     }
 
     ui->exchComboBox->clear();
@@ -388,7 +388,7 @@ void SendCoinsEntry::on_requestPaymentButton_clicked()
         QString qsEntry;
         bool valid = p.second.second;
         if (valid)
-            qsEntry = QString::number(p.first)+"emc ["+QString::fromStdString(p.second.first->Name())+"]";
+            qsEntry = QString::number(p.first)+"rng ["+QString::fromStdString(p.second.first->Name())+"]";
         else
             qsEntry = tr("%1 out of bounds: min=%2, max=%3 [%4]").arg(ui->payTypeExch->text()).arg(p.second.first->m_min).arg(p.second.first->m_limit).arg(QString::fromStdString(p.second.first->Name()));
         ui->exchComboBox->addItem(qsEntry, qVariantFromValue((void *) p.second.first));
@@ -467,7 +467,7 @@ void SendCoinsEntry::on_exchComboBox_currentIndexChanged(int index)
     msgBox.setStyleSheet("QLabel{min-width: 650px;}");
     msgBox.setWindowTitle(tr("Payment confirmation."));
     msgBox.setText(tr("%1 will send %2%3 to %4\n").arg(qsHost, QString::number(exch->m_outAmo), ui->payTypeExch->text().toLower(), QString::fromStdString(exch->m_outAddr))+
-                   tr("You will need to send %1emc to %2\n").arg(QString::number(exch->m_depAmo), QString::fromStdString(exch->m_depAddr))+
+                   tr("You will need to send %1rng to %2\n").arg(QString::number(exch->m_depAmo), QString::fromStdString(exch->m_depAddr))+
                    tr("Payment id: %1\n").arg(QString::fromStdString(exch->m_txKey))+
                    tr("Time to complete: %1 minutes").arg(ttl/60));
     QAbstractButton* pButtonSend = msgBox.addButton(tr("Send Now"), QMessageBox::YesRole);

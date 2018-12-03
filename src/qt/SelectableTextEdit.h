@@ -1,4 +1,4 @@
-﻿//SelectableTextEdit.h by Emercoin developers
+﻿//SelectableTextEdit.h by Rngcoin developers
 #pragma once
 #include <QPlainTextEdit>
 #include <QWidget>

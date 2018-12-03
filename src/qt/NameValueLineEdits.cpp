@@ -1,4 +1,4 @@
-﻿//NameValueLineEdits.cpp by Emercoin developers
+﻿//NameValueLineEdits.cpp by Rngcoin developers
 #include "NameValueLineEdits.h"
 #include <QPlainTextEdit>
 #include <QFormLayout>

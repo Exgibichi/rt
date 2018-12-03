@@ -65,7 +65,7 @@ private Q_SLOTS:
     void on_addressBookButton_clicked();
     void on_pasteButton_clicked();
     void updateDisplayUnit();
-    // emercoin GUI slots
+    // rngcoin GUI slots
     void on_payTo_editingFinished();
     void on_checkBoxExch_toggled(bool checked);
     void on_requestPaymentButton_clicked();

@@ -1,4 +1,4 @@
-﻿//EmailValidator.cpp by Emercoin developers
+﻿//EmailValidator.cpp by Rngcoin developers
 #include "EmailValidator.h"
 
 void EmailValidator::fixup(QString &input)const {

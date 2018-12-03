@@ -1,4 +1,4 @@
-﻿//NameEqValueTextEdit.h by Emercoin developers
+﻿//NameEqValueTextEdit.h by Rngcoin developers
 #pragma once
 #include <QPlainTextEdit>
 class QSize;

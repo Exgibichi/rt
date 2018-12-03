@@ -1,4 +1,4 @@
-﻿//PhoneNumberLineEdit.h by Emercoin developers
+﻿//PhoneNumberLineEdit.h by Rngcoin developers
 #include <QLineEdit>
 
 struct PhoneNumberLineEdit: public QLineEdit {

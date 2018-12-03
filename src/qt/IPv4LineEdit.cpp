@@ -1,4 +1,4 @@
-﻿//IPv4LineEdit.cpp by emercoin developers
+﻿//IPv4LineEdit.cpp by rngcoin developers
 #include "IPv4LineEdit.h"
 
 IPv4LineEdit::Validator::Validator(QObject*parent): QRegExpValidator(parent) {

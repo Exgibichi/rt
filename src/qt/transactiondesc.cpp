@@ -244,6 +244,9 @@ QString TransactionDesc::toHTML(CWallet *wallet, CWalletTx &wtx, TransactionReco
     if (wtx.mapValue.count("comment") && !wtx.mapValue["comment"].empty())
         strHTML += "<br><b>" + tr("Comment") + ":</b><br>" + GUIUtil::HtmlEscape(wtx.mapValue["comment"], true) + "<br>";
 
+    if (!wtx.GetTxComment().empty())
+        strHTML += "<b>" + tr("Transaction comment") + ":</b><br>" + wtx.GetTxComment().c_str() + "<br>";
+
     strHTML += "<b>" + tr("Transaction ID") + ":</b> " + rec->getTxID() + "<br>";
     strHTML += "<b>" + tr("Transaction total size") + ":</b> " + QString::number(wtx.tx->GetTotalSize()) + " bytes<br>";
     strHTML += "<b>" + tr("Output index") + ":</b> " + QString::number(rec->getOutputIndex()) + "<br>";
@@ -274,7 +277,7 @@ QString TransactionDesc::toHTML(CWallet *wallet, CWalletTx &wtx, TransactionReco
     if (wtx.IsCoinStake())
         strHTML += "<br>" + tr("Staked coins must mature %1 blocks before they can return to balance and be spent.  When you generated this proof-of-stake block, it was broadcast to the network to be added to the block chain.  If it fails to get into the chain, it will change to \"not accepted\" and not be a valid stake.  This may occasionally happen if another node generates a proof-of-stake block within a few seconds of yours.").arg(QString::number(numBlocksToMaturity)) + "<br>";
 
-    // emercoin: show TxStat for exchanges
+    // rngcoin: show TxStat for exchanges
     while (true)
     {
         if (wtx.mapValue["to"].empty() || wtx.mapValue["comment"].empty())
@@ -307,7 +310,7 @@ QString TransactionDesc::toHTML(CWallet *wallet, CWalletTx &wtx, TransactionReco
     //
     // Debug view
     //
-    if (true)      // emercoin: enable debug view print even when not debuging
+    if (true)      // rngcoin: enable debug view print even when not debuging
     {
         strHTML += "<hr><br>" + tr("Debug information") + "<br><br>";
         BOOST_FOREACH(const CTxIn& txin, wtx.tx->vin)

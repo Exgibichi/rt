@@ -1,4 +1,4 @@
-﻿//DpoCreateRecordWidget.cpp by Emercoin developers
+﻿//DpoCreateRecordWidget.cpp by Rngcoin developers
 #include "DpoCreateRecordWidget.h"
 #include "EmailLineEdit.h"
 #include "PhoneNumberLineEdit.h"

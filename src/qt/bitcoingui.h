@@ -69,7 +69,7 @@ public:
     void removeAllWallets();
 #endif // ENABLE_WALLET
     bool enableWallet;
-    QLabel *labelWalletEncryptionIcon; // emercoin: changed from private to public
+    QLabel *labelWalletEncryptionIcon; // rngcoin: changed from private to public
 
 protected:
     void changeEvent(QEvent *e);
@@ -201,7 +201,7 @@ public Q_SLOTS:
     bool handlePaymentRequest(const SendCoinsRecipient& recipient);
 
     /** Show incoming transaction notification for new transactions. */
-    void incomingTransaction(const QString& date, int unit, const CAmount& amount, const QString& type, const QString& address, const QString& label);
+    void incomingTransaction(const QString& date, int unit, const CAmount& amount, const QString& type, const QString& address, const QString& label, const QString &comment);
 #endif // ENABLE_WALLET
 
 private Q_SLOTS:

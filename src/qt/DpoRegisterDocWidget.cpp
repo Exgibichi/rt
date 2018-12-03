@@ -1,4 +1,4 @@
-﻿//DpoRegisterDocWidget.cpp by Emercoin developers
+﻿//DpoRegisterDocWidget.cpp by Rngcoin developers
 #include "DpoRegisterDocWidget.h"
 #include "SelectableLineEdit.h"
 #include "signverifymessagedialog.h"

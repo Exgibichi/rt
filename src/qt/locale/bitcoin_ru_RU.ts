@@ -66,8 +66,8 @@
 <context>
     <name>BitcoinGUI</name>
     <message>
-        <source>Emercoin</source>
-        <translation>Emercoin Core</translation>
+        <source>Rngcoin</source>
+        <translation>Rngcoin Core</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -236,12 +236,12 @@
 <context>
     <name>bitcoin-core</name>
     <message>
-        <source>Emercoin Core</source>
-        <translation>Emercoin Core</translation>
+        <source>Rngcoin Core</source>
+        <translation>Rngcoin Core</translation>
     </message>
     <message>
         <source>Whitelisted peers cannot be DoS banned and their transactions are always relayed, even if they are already in the mempool, useful e.g. for a gateway</source>
-        <translation>Emercoin-core</translation>
+        <translation>Rngcoin-core</translation>
     </message>
     <message>
         <source>Information</source>

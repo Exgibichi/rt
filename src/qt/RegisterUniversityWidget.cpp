@@ -1,4 +1,4 @@
-﻿//RegisterUniversityWidget.cpp by Emercoin developers
+﻿//RegisterUniversityWidget.cpp by Rngcoin developers
 #include "RegisterUniversityWidget.h"
 #include "EmailLineEdit.h"
 #include "PhoneNumberLineEdit.h"

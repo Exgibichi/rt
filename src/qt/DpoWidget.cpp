@@ -1,4 +1,4 @@
-﻿//DpoWidget.cpp by Emercoin developers
+﻿//DpoWidget.cpp by Rngcoin developers
 #include "DpoWidget.h"
 #include "DpoUseCaseScheme.h"
 #include "DpoCreateRootWidget.h"
@@ -16,7 +16,7 @@ DpoWidget::DpoWidget(QWidget*parent): QDialog(parent) {
 
 	auto lay = new QVBoxLayout(this);
     auto description = new QLabel(tr(	
-		R"STR(DPO is <a href="https://emercoin.com/en/emerdpo">Digital Proof of Ownership</a>)STR"
+		R"STR(DPO is <a href="https://rngcoin.com/en/emerdpo">Digital Proof of Ownership</a>)STR"
 		));	
     description->setOpenExternalLinks(true);
     lay->addWidget(description);

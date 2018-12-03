@@ -1,4 +1,4 @@
-﻿//NameEqValueTextEdit.cpp by Emercoin developers
+﻿//NameEqValueTextEdit.cpp by Rngcoin developers
 #include "NameEqValueTextEdit.h"
 #include <QTextDocument>
 #include <QSyntaxHighlighter>

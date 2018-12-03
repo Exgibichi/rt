@@ -1,4 +1,4 @@
-﻿//DiplomaWidget.h by Emercoin developers
+﻿//DiplomaWidget.h by Rngcoin developers
 #pragma once
 #include <QTabWidget>
 #include <QDialog>

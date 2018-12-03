@@ -1,4 +1,4 @@
-﻿//SelectableLineEdit.h by Emercoin developers
+﻿//SelectableLineEdit.h by Rngcoin developers
 #pragma once
 #include <QPointer>
 #include <QLineEdit>

@@ -5,5 +5,5 @@ clean: FORCE
 	$(MAKE) -C .. bitcoin_qt_clean test_bitcoin_qt_clean
 check: FORCE
 	$(MAKE) -C .. test_bitcoin_qt_check
-emercoin-qt emercoin-qt.exe: FORCE
+rngcoin-qt rngcoin-qt.exe: FORCE
 	 $(MAKE) -C .. bitcoin_qt

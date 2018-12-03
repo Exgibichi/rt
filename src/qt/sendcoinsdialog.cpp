@@ -23,6 +23,7 @@
 #include "txmempool.h"
 #include "wallet/wallet.h"
 
+#include <QFontMetrics>
 #include <QMessageBox>
 #include <QScrollBar>
 #include <QSettings>
@@ -167,7 +168,7 @@ void SendCoinsDialog::setModel(WalletModel *_model)
         connect(ui->checkBoxMinimumFee, SIGNAL(stateChanged(int)), this, SLOT(updateFeeSectionControls()));
         connect(ui->checkBoxMinimumFee, SIGNAL(stateChanged(int)), this, SLOT(updateGlobalFeeVariables()));
         connect(ui->checkBoxMinimumFee, SIGNAL(stateChanged(int)), this, SLOT(coinControlUpdateLabels()));
-        ui->customFee->setSingleStep(CWallet::GetRequiredFee(1000));
+        ui->customFee->setSingleStep(CWallet::GetRequiredFee(1000, 0));
         updateFeeSectionControls();
         updateMinFeeLabel();
         updateSmartFeeLabel();
@@ -180,7 +181,7 @@ void SendCoinsDialog::setModel(WalletModel *_model)
         else
             ui->sliderSmartFee->setValue(settings.value("nSmartFeeSliderPosition").toInt());
 
-        // emercoin: disable fee section
+        // rngcoin: disable fee section
         ui->frameFee->setHidden(true);
         ui->frameFee->setDisabled(true);
     }
@@ -204,6 +205,7 @@ void SendCoinsDialog::on_sendButton_clicked()
     if(!model || !model->getOptionsModel())
         return;
 
+    QString txcomment = ui->editTxComment->text();
     QList<SendCoinsRecipient> recipients;
     bool valid = true;
 
@@ -250,7 +252,7 @@ void SendCoinsDialog::on_sendButton_clicked()
     else
         ctrl.nConfirmTarget = 0;
 
-    prepareStatus = model->prepareTransaction(currentTransaction, &ctrl);
+    prepareStatus = model->prepareTransaction(txcomment, currentTransaction, &ctrl);
 
     // process prepareStatus and on error generate message shown to user
     processSendCoinsReturn(prepareStatus,
@@ -303,6 +305,11 @@ void SendCoinsDialog::on_sendButton_clicked()
     QString questionString = tr("Are you sure you want to send?");
     questionString.append("<br /><br />%1");
 
+    const auto redSpan = [] (QString content)
+    {
+        return "<span style='color:#aa0000;'>" + content + "</span>";
+    };
+
     if(txFee > 0)
     {
         // append fee string if a fee is required
@@ -313,6 +320,16 @@ void SendCoinsDialog::on_sendButton_clicked()
 
         // append transaction size
         questionString.append(" (" + QString::number((double)currentTransaction.getTransactionSize() / 1000) + " kB)");
+    }
+
+    const auto& txComment = currentTransaction.getTransaction()->tx->txComment;
+    if (! txComment.empty())
+    {
+        questionString.append("<br />" + redSpan(QString::number(txComment.getSerializedLength())) + " symbols accounted in fee");
+        if (txComment.get().length() != txComment.getSerializedLength())
+        {
+            questionString.append(" (" + redSpan(QString::number(txComment.get().length())) + " before compression)");
+        }
     }
 
     // add total amount in all subdivision units
@@ -340,7 +357,7 @@ void SendCoinsDialog::on_sendButton_clicked()
         return;
     }
 
-    // emercoin: add comment and comment-to
+    // rngcoin: add comment and comment-to
     CWalletTx* wtx = currentTransaction.getTransaction();
     for (const auto& rcp : recipients)
     {
@@ -357,7 +374,7 @@ void SendCoinsDialog::on_sendButton_clicked()
         wtx->mapValue["to"].erase(wtx->mapValue["to"].end()-1);
 
     // now send the prepared transaction
-    WalletModel::SendCoinsReturn sendStatus = model->sendCoins(currentTransaction);
+    WalletModel::SendCoinsReturn sendStatus = model->sendCoins(txcomment, currentTransaction);
     // process sendStatus and on error generate message shown to user
     processSendCoinsReturn(sendStatus);
 
@@ -372,6 +389,7 @@ void SendCoinsDialog::on_sendButton_clicked()
 
 void SendCoinsDialog::clear()
 {
+    ui->editTxComment->clear();
     // Remove entries until only one left
     while(ui->entries->count())
     {
@@ -436,6 +454,7 @@ void SendCoinsDialog::removeEntry(SendCoinsEntry* entry)
 
 QWidget *SendCoinsDialog::setupTabChain(QWidget *prev)
 {
+    QWidget::setTabOrder(prev,ui->editTxComment);
     for(int i = 0; i < ui->entries->count(); ++i)
     {
         SendCoinsEntry *entry = qobject_cast<SendCoinsEntry*>(ui->entries->itemAt(i)->widget());
@@ -603,7 +622,7 @@ void SendCoinsDialog::on_buttonMinimizeFee_clicked()
 void SendCoinsDialog::setMinimumFee()
 {
     ui->radioCustomPerKilobyte->setChecked(true);
-    ui->customFee->setValue(CWallet::GetRequiredFee(1000));
+    ui->customFee->setValue(CWallet::GetRequiredFee(1000, 0));
 }
 
 void SendCoinsDialog::updateFeeSectionControls()
@@ -625,7 +644,7 @@ void SendCoinsDialog::updateFeeSectionControls()
 
 void SendCoinsDialog::updateGlobalFeeVariables()
 {
-    // emercoin: disabled
+    // rngcoin: disabled
 //    if (ui->radioSmartFee->isChecked())
 //    {
 //        int nConfirmTarget = ui->sliderSmartFee->maximum() - ui->sliderSmartFee->value() + 2;
@@ -664,7 +683,7 @@ void SendCoinsDialog::updateMinFeeLabel()
 {
     if (model && model->getOptionsModel())
         ui->checkBoxMinimumFee->setText(tr("Pay only the required fee of %1").arg(
-            BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), CWallet::GetRequiredFee(1000)) + "/kB")
+            BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), CWallet::GetRequiredFee(1000, 0)) + "/kB")
         );
 }
 
@@ -673,7 +692,7 @@ void SendCoinsDialog::updateSmartFeeLabel()
     if(!model || !model->getOptionsModel())
         return;
 
-    ui->labelSmartFee->setText(BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), CWallet::GetRequiredFee(1000)) + "/kB");
+    ui->labelSmartFee->setText(BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), CWallet::GetRequiredFee(1000, 0)) + "/kB");
     ui->labelSmartFee2->hide(); // (Smart fee not initialized yet. This usually takes a few blocks...)
     ui->labelFeeEstimation->setText("");
 
@@ -776,7 +795,7 @@ void SendCoinsDialog::coinControlChangeEdited(const QString& text)
         }
         else if (!addr.IsValid()) // Invalid address
         {
-            ui->labelCoinControlChangeLabel->setText(tr("Warning: Invalid Emercoin address"));
+            ui->labelCoinControlChangeLabel->setText(tr("Warning: Invalid Rngcoin address"));
         }
         else // Valid address
         {

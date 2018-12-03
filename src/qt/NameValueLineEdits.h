@@ -1,4 +1,4 @@
-﻿//NameValueLineEdits.h by Emercoin developers
+﻿//NameValueLineEdits.h by Rngcoin developers
 #pragma once
 #include "SelectableLineEdit.h"
 class SelectableTextEdit;

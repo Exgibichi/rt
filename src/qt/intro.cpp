@@ -124,7 +124,7 @@ Intro::Intro(QWidget *parent) :
     ui->setupUi(this);
     ui->welcomeLabel->setText(ui->welcomeLabel->text().arg(tr(PACKAGE_NAME)));
     ui->storageLabel->setText(ui->storageLabel->text().arg(tr(PACKAGE_NAME)));
-    // emc - disabled until correctly implemented
+    // rng - disabled until correctly implemented
     //uint64_t pruneTarget = std::max<int64_t>(0, GetArg("-prune", 0));
     uint64_t pruneTarget = 0;
     requiredSpace = BLOCK_CHAIN_SIZE;
@@ -190,7 +190,7 @@ bool Intro::pickDataDirectory()
         /* If current default data directory does not exist, let the user choose one */
         Intro intro;
         intro.setDataDirectory(dataDir);
-        intro.setWindowIcon(QIcon(":icons/emercoin"));
+        intro.setWindowIcon(QIcon(":icons/rngcoin"));
 
         while(true)
         {

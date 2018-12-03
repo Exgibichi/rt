@@ -1,4 +1,4 @@
-﻿//RegisterDiplomaWidget.h by Emercoin developers
+﻿//RegisterDiplomaWidget.h by Rngcoin developers
 #pragma once
 #include <QLabel>
 #include "NameValueLineEdits.h"

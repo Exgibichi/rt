@@ -90,8 +90,8 @@
         <translation>&amp;செய்தியை சரிசெய்...</translation>
     </message>
     <message>
-        <source>Emercoin</source>
-        <translation>Emercoin</translation>
+        <source>Rngcoin</source>
+        <translation>Rngcoin</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -708,8 +708,8 @@
 <context>
     <name>bitcoin-core</name>
     <message>
-        <source>Emercoin Core</source>
-        <translation>Emercoin மையம்</translation>
+        <source>Rngcoin Core</source>
+        <translation>Rngcoin மையம்</translation>
     </message>
     <message>
         <source>(default: %u)</source>

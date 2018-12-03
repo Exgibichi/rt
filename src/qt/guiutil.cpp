@@ -133,7 +133,7 @@ void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent)
 #if QT_VERSION >= 0x040700
     // We don't want translators to use own addresses in translations
     // and this is the only place, where this address is supplied.
-    widget->setPlaceholderText(QObject::tr("Enter an Emercoin address or name (e.g. %1)").arg(
+    widget->setPlaceholderText(QObject::tr("Enter an Rngcoin address or name (e.g. %1)").arg(
         QString::fromStdString(DummyAddress(Params()))));
 #endif
     widget->setValidator(new BitcoinAddressEntryValidator(parent));
@@ -206,12 +206,12 @@ bool parseBitcoinURI2(const QUrl &uri, std::vector<SendCoinsRecipient> &out)
 }
 
 // URI format for sendmany:
-// emercoin:sendmany?Addr1=Amount1\lLabel1\mMsg1&Addr2=Amount2&Addr3=Amount3\mMsg3
+// rngcoin:sendmany?Addr1=Amount1\lLabel1\mMsg1&Addr2=Amount2&Addr3=Amount3\mMsg3
 // Label starts from   \l
 // Message starts from \m
 // No "\&=" permitted within label and msg
 
-bool parseEmercoinSendmany(const QUrl &uri, std::vector<SendCoinsRecipient> &out) {
+bool parseRngcoinSendmany(const QUrl &uri, std::vector<SendCoinsRecipient> &out) {
 
 #if QT_VERSION < 0x050000
     QList<QPair<QString, QString> > items = uri.queryItems();
@@ -259,23 +259,23 @@ bool parseBitcoinURI(QString uri, std::vector<SendCoinsRecipient> &out)
     //
     //    Cannot handle this later, because bitcoin:// will cause Qt to see the part after // as host,
     //    which will lower-case it (and thus invalidate the address).
-    if(uri.startsWith("emercoin://", Qt::CaseInsensitive))
-        uri.replace(0, 11, "emercoin:");
+    if(uri.startsWith("rngcoin://", Qt::CaseInsensitive))
+        uri.replace(0, 11, "rngcoin:");
 
     QUrl uriInstance(uri);
 
     // return if URI is not valid or is no bitcoin: URI
-    if(!uriInstance.isValid() || uriInstance.scheme() != QString("emercoin"))
+    if(!uriInstance.isValid() || uriInstance.scheme() != QString("rngcoin"))
         return false;
 
     out.clear();
 
-    return uriInstance.path().startsWith("sendmany")? parseEmercoinSendmany(uriInstance, out) : parseBitcoinURI2(uriInstance, out);
+    return uriInstance.path().startsWith("sendmany")? parseRngcoinSendmany(uriInstance, out) : parseBitcoinURI2(uriInstance, out);
 }
 
 QString formatBitcoinURI(const SendCoinsRecipient &info)
 {
-    QString ret = QString("emercoin:%1").arg(info.address);
+    QString ret = QString("rngcoin:%1").arg(info.address);
     int paramCount = 0;
 
     if (info.amount)
@@ -307,7 +307,7 @@ bool isDust(const QString& address, const CAmount& amount)
 //    CScript script = GetScriptForDestination(dest);
 //    CTxOut txOut(amount, script);
 //    return txOut.IsDust(dustRelayFee);
-    return false; // there is no dust in emercoin
+    return false; // there is no dust in rngcoin
 }
 
 QString HtmlEscape(const QString& str, bool fMultiLine)
@@ -655,10 +655,10 @@ boost::filesystem::path static StartupShortcutPath()
 {
     std::string chain = ChainNameFromCommandLine();
     if (chain == CBaseChainParams::MAIN)
-        return GetSpecialFolderPath(CSIDL_STARTUP) / "Emercoin.lnk";
+        return GetSpecialFolderPath(CSIDL_STARTUP) / "Rngcoin.lnk";
     if (chain == CBaseChainParams::TESTNET) // Remove this special case when CBaseChainParams::TESTNET = "testnet4"
-        return GetSpecialFolderPath(CSIDL_STARTUP) / "Emercoin (testnet).lnk";
-    return GetSpecialFolderPath(CSIDL_STARTUP) / strprintf("Emercoin (%s).lnk", chain);
+        return GetSpecialFolderPath(CSIDL_STARTUP) / "Rngcoin (testnet).lnk";
+    return GetSpecialFolderPath(CSIDL_STARTUP) / strprintf("Rngcoin (%s).lnk", chain);
 }
 
 bool GetStartOnSystemStartup()
@@ -755,8 +755,8 @@ boost::filesystem::path static GetAutostartFilePath()
 {
     std::string chain = ChainNameFromCommandLine();
     if (chain == CBaseChainParams::MAIN)
-        return GetAutostartDir() / "emercoin.desktop";
-    return GetAutostartDir() / strprintf("emercoin-%s.lnk", chain);
+        return GetAutostartDir() / "rngcoin.desktop";
+    return GetAutostartDir() / strprintf("rngcoin-%s.lnk", chain);
 }
 
 bool GetStartOnSystemStartup()
@@ -799,9 +799,9 @@ bool SetStartOnSystemStartup(bool fAutoStart)
         optionFile << "[Desktop Entry]\n";
         optionFile << "Type=Application\n";
         if (chain == CBaseChainParams::MAIN)
-            optionFile << "Name=Emercoin\n";
+            optionFile << "Name=Rngcoin\n";
         else
-            optionFile << strprintf("Name=Emercoin (%s)\n", chain);
+            optionFile << strprintf("Name=Rngcoin (%s)\n", chain);
         optionFile << "Exec=" << pszExePath << strprintf(" -min -testnet=%d -regtest=%d\n", GetBoolArg("-testnet", false), GetBoolArg("-regtest", false));
         optionFile << "Terminal=false\n";
         optionFile << "Hidden=false\n";

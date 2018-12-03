@@ -33,6 +33,7 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 #define COLOR_TX_STATUS_DANGER QColor(200, 100, 100)
 /* Transaction list -- TX status decoration - default color */
 #define COLOR_BLACK QColor(0, 0, 0)
+#define COLOR_DATE_TIME QColor("#399caa")
 
 /* Tooltips longer than this (in characters) are converted into rich text,
    so that they can be word-wrapped.
@@ -48,9 +49,9 @@ static const int MAX_URI_LENGTH = 255;
 /* Number of frames in spinner animation */
 #define SPINNER_FRAMES 36
 
-#define QAPP_ORG_NAME "Emercoin"
-#define QAPP_ORG_DOMAIN "emercoin.com"
-#define QAPP_APP_NAME_DEFAULT "Emercoin-Qt"
-#define QAPP_APP_NAME_TESTNET "Emercoin-Qt-testnet"
+#define QAPP_ORG_NAME "RNGcoin"
+#define QAPP_ORG_DOMAIN "rng-coin.io"
+#define QAPP_APP_NAME_DEFAULT "RNGcoin-Qt"
+#define QAPP_APP_NAME_TESTNET "RNGcoin-Qt-testnet"
 
 #endif // BITCOIN_QT_GUICONSTANTS_H

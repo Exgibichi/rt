@@ -1,4 +1,4 @@
-﻿//RegisterUniversityWidget.h by Emercoin developers
+﻿//RegisterUniversityWidget.h by Rngcoin developers
 #pragma once
 #include "NameValueLineEdits.h"
 #include <QPlainTextEdit>

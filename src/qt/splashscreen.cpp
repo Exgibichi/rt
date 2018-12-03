@@ -68,7 +68,7 @@ SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle *networkStyle) 
     QRect rGradient(QPoint(0,0), splashSize);
     pixPaint.fillRect(rGradient, gradient);
 
-    // draw the emercoin logo
+    // draw the rngcoin logo
     pixPaint.setRenderHint(QPainter::SmoothPixmapTransform);
     pixPaint.drawPixmap(0, 0, 266, 322, networkStyle->getStartScreenIcon());
 

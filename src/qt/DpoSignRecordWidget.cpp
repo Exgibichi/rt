@@ -1,4 +1,4 @@
-﻿//DpoSignRecord.cpp by Emercoin developers
+﻿//DpoSignRecord.cpp by Rngcoin developers
 #include "DpoSignRecordWidget.h"
 
 DpoSignRecordWidget::DpoSignRecordWidget() {

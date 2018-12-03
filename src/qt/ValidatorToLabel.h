@@ -1,4 +1,4 @@
-﻿//ValidatorToLabel.h by Emercoin developers
+﻿//ValidatorToLabel.h by Rngcoin developers
 #pragma once
 #include <QValidator>
 class QLabel;

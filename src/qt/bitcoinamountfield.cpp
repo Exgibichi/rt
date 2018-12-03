@@ -301,7 +301,7 @@ void BitcoinAmountField::setSingleStep(const CAmount& step)
     amount->setSingleStep(step);
 }
 
-// emercoin: need for exchange code:
+// rngcoin: need for exchange code:
 void BitcoinAmountField::setString (QString input)
 {
     amount->fixup(input);

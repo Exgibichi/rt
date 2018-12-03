@@ -1,4 +1,4 @@
-﻿//SelectableLineEdit.cpp by Emercoin developers
+﻿//SelectableLineEdit.cpp by Rngcoin developers
 #include "SelectableLineEdit.h"
 #include <QApplication>
 #include <QClipboard>

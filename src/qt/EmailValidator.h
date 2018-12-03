@@ -1,4 +1,4 @@
-﻿//EmailValidator.h by Emercoin developers
+﻿//EmailValidator.h by Rngcoin developers
 #pragma once
 #include "ValidatorToLabel.h"
 
