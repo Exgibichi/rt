@@ -8,6 +8,7 @@
 #include "hash.h"
 #include "tinyformat.h"
 #include "utilstrencodings.h"
+#include "timedata.h"
 
 /** Compress a STL string using zlib with given compression level and return
   * the binary data. */
@@ -149,9 +150,10 @@ std::string CTxOut::ToString() const
     return strprintf("CTxOut(nValue=%d.%06d, scriptPubKey=%s)", nValue / COIN, nValue % COIN, HexStr(scriptPubKey).substr(0, 30));
 }
 
-CMutableTransaction::CMutableTransaction() : nVersion(CTransaction::CURRENT_VERSION), nLockTime(0), txComment() {}
+CMutableTransaction::CMutableTransaction() : nVersion(CTransaction::CURRENT_VERSION), nTime(GetAdjustedTime()), nLockTime(0), txComment() {}
 CMutableTransaction::CMutableTransaction(const CTransaction& tx) :
     nVersion(tx.nVersion),
+    nTime(tx.nTime),
     vin(tx.vin),
     vout(tx.vout),
     nLockTime(tx.nLockTime),
