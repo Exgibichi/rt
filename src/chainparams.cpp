@@ -67,7 +67,7 @@ void *SolveBlock(void *threadarg)
 
 void MineGenesisBlock(const CBlock& genesis, const Consensus::Params& consensus)
 {
-    const int NUM_THREADS = 8;
+    const int NUM_THREADS = 1;
 
     pthread_t threads[NUM_THREADS];
     struct thread_data td[NUM_THREADS];
@@ -111,6 +111,7 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     txNew.vout[0].nValue = genesisReward;
     txNew.vout[0].scriptPubKey = genesisOutputScript;
     txNew.nTime = nTimeTx;
+    txNew.strTxComment = "Hello World!";
 
     CBlock genesis;
     genesis.nTime    = nTimeBlock;
@@ -156,18 +157,18 @@ class CMainParams : public CChainParams {
 public:
     CMainParams() {
         strNetworkID = "main";
-        consensus.BIP34Height = 212806;
-        consensus.BIP34Hash = uint256S("0x00000000000000172a635091de597ef16848e9e6b7d3f3471c8724bc3fcc003d");
-        consensus.BIP65Height = 212920;
-        consensus.BIP66Height = 212806;
+        consensus.BIP34Height = std::numeric_limits<int>::max();
+        consensus.BIP34Hash = uint256S("0x01");
+        consensus.BIP65Height = 0;
+        consensus.BIP66Height = 0;
         consensus.MMHeight = 219809;
         consensus.V7Height = 311210;
-        consensus.powLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~arith_uint256(0) >> 32;
-        consensus.bnInitialHashTarget = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~arith_uint256(0) >> 32;
+        consensus.powLimit = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~arith_uint256(0) >> 32;
+        consensus.bnInitialHashTarget = uint256S("0000001fffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~arith_uint256(0) >> 32;
         consensus.nTargetTimespan = 7 * 24 * 60 * 60; // one week
         consensus.nTargetSpacing = 10 * 60;
 
-        // emercoin: PoS spacing = nStakeTargetSpacing
+        // rngcoin: PoS spacing = nStakeTargetSpacing
         //           PoW spacing = depends on how much PoS block are between last two PoW blocks, with maximum value = nTargetSpacingMax
         consensus.nStakeTargetSpacing = 10 * 60;                // 10 minutes
         consensus.nTargetSpacingMax = 12 * consensus.nStakeTargetSpacing; // 2 hours
@@ -181,44 +182,57 @@ public:
         consensus.fPowAllowMinDifficultyBlocks = false;
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainTrust = uint256S("0x000000000000000000000000000000000000000000000000002ceae94968cea4"); // at block 250 000
+        consensus.nMinimumChainTrust = uint256S("0x00"); // at block 250 000
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x3b5b8bb145e5d267b06430582f5efc4a1cbe128a836cdf07ab2000c9caabe550"); // at block 250 000
+        consensus.defaultAssumeValid = uint256S("0x00000008053002aded8128bd89794e59b6361eb9e135b00841d59bcbb922c648"); // at block 250 000
 
         consensus.nRejectBlockOutdatedMajority = 850;
         consensus.nToCheckBlockUpgradeMajority = 1000;
+
+        consensus.nPremine = 84000000;
+        consensus.nPremineLength = 1000;
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
          * a large 32-bit integer with any alignment.
          */
-        pchMessageStart[0] = 0xe6;
+        pchMessageStart[0] = 0xf3;
         pchMessageStart[1] = 0xe8;
-        pchMessageStart[2] = 0xe9;
-        pchMessageStart[3] = 0xe5;
+        pchMessageStart[2] = 0xb9;
+        pchMessageStart[3] = 0xdc;
         vAlertPubKey = ParseHex("04e14603d29d0a051df1392c6256bb271ff4a7357260f8e2b82350ad29e1a5063d4a8118fa4cc8a0175cb45776e720cf4ef02cc2b160f5ef0144c3bb37ba3eea58");
-        nDefaultPort = 6661;
+        nDefaultPort = 9342;
         nPruneAfterHeight = 100000;
 
-        genesis = CreateGenesisBlock(1386627289, 1386628033, 139946546, 0x1d00ffff, 1, 0);
+        //genesis = CreateGenesisBlock(1543390025, 1386628034, 424112391, 0x1d00ffff, 1, 0);
+        genesis = CreateGenesisBlock(1543527382, 1543527382, 96893647, 0x1d1fffff, 1, 0);
+
+        //MineGenesisBlock(genesis, consensus);
+
+       if (true) {
+         LogPrintf("%s\n","recalculating params for mainnet.\n");
+         LogPrintf("new mainnet genesis: %s\n", genesis.ToString().c_str());
+       }
+
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x00000000bcccd459d036a588d1008fce8da3754b205736f32ddfd35350e84c2d"));
-        assert(genesis.hashMerkleRoot == uint256S("0xd8eee032f95716d0cf14231dc7a238b96bbf827e349e75344c9a88e849262ee0"));
+        //assert(consensus.hashGenesisBlock == uint256S("0x00000008053002aded8128bd89794e59b6361eb9e135b00841d59bcbb922c648"));
+        //assert(genesis.hashMerkleRoot == uint256S("0xafadee093ae4d7b6771a60d15ef0a31337a7307d8739173f465fd4ef7ad3aecc"));
 
         // Note that of those with the service bits flag, most only support a subset of possible options
-        vSeeds.push_back(CDNSSeedData("emercoin.com", "seed.emercoin.com"));
-        vSeeds.push_back(CDNSSeedData("emercoin.net", "seed.emercoin.net"));
+/*        vSeeds.push_back(CDNSSeedData("rngcoin.com", "seed.rngcoin.com"));
+        vSeeds.push_back(CDNSSeedData("rngcoin.net", "seed.rngcoin.net"));
         vSeeds.push_back(CDNSSeedData("emergate.net", "seed.emergate.net"));
-        vSeeds.push_back(CDNSSeedData("emcdns", "seed.emc"));
+        vSeeds.push_back(CDNSSeedData("rngdns", "seed.rng"));*/
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,33);   // emercoin: addresses begin with 'E'
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,92);   // emercoin: addresses begin with 'e'
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);   // rngcoin: addresses begin with 'E'
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,92);   // rngcoin: addresses begin with 'e'
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,128);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x88)(0xB2)(0x1E).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x88)(0xAD)(0xE4).convert_to_container<std::vector<unsigned char> >();
 
+        vSeeds.clear();
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
 
         fMiningRequiresPeers = true;
@@ -228,22 +242,15 @@ public:
 
         checkpointData = (CCheckpointData) {
             boost::assign::map_list_of
-            ( 0,     uint256S("0x00000000bcccd459d036a588d1008fce8da3754b205736f32ddfd35350e84c2d"))
-            ( 25000, uint256S("0x20cc6639e9593e4e9344e1d40a234c552da81cb90b991aed6200ff0f72a69719"))
-            ( 50000, uint256S("0x4c3d02a982bcb47ed9e076f754870606a6892d258720dc13863e10badbfd0e78"))
-            (100000, uint256S("0x0000000000000071c614fefb88072459cced7b9d9a9cffd04064d3c3d539ecaf"))
-            (150000, uint256S("0x5d317133f36b13ba3cd335c142e51d7e7007c0e72fd8a0fef48d0f4f63f7827a"))
-            (200000, uint256S("0x7af70a03354a9ae3f9bf7f6a1dd3da6b03dcc14f8d6ad237095d73dbeaf5184c"))
-            (250000, uint256S("0x3b5b8bb145e5d267b06430582f5efc4a1cbe128a836cdf07ab2000c9caabe550"))
-            (300000, uint256S("0xc1eceed5949ef15c5c2877be22da7af1a3414af17e5f96976da4306a617f1e99"))
+            ( 0,  uint256S("0x00000008053002aded8128bd89794e59b6361eb9e135b00841d59bcbb922c648"))
         };
 
         chainTxData = ChainTxData{
             // Data as of block ???
-            1455207714, // * UNIX timestamp of last known number of transactions
-            365081,     // * total number of transactions between genesis and that timestamp
+            0, // * UNIX timestamp of last known number of transactions
+            0,     // * total number of transactions between genesis and that timestamp
                         //   (the tx=... number in the SetBestChain debug.log lines)
-            0.005787037 // * estimated number of transactions per second after that timestamp
+            0 // * estimated number of transactions per second after that timestamp
         };
     }
 };
@@ -262,12 +269,12 @@ public:
         consensus.BIP66Height = 0;
         consensus.MMHeight = 0;
         consensus.V7Height = 457;
-        consensus.powLimit = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~arith_uint256(0) >> 28;
-        consensus.bnInitialHashTarget = uint256S("00000007ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); //~uint256(0) >> 29;
+        consensus.powLimit = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~arith_uint256(0) >> 28;
+        consensus.bnInitialHashTarget = uint256S("0000001fffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); //~uint256(0) >> 29;
         consensus.nTargetTimespan = 7 * 24 * 60 * 60; // two week
         consensus.nTargetSpacing = 10 * 60;
 
-        // emercoin: PoS spacing = nStakeTargetSpacing
+        // rngcoin: PoS spacing = nStakeTargetSpacing
         //           PoW spacing = depends on how much PoS block are between last two PoW blocks, with maximum value = nTargetSpacingMax
         consensus.nStakeTargetSpacing = 10 * 60;                // 10 minutes
         consensus.nTargetSpacingMax = 12 * consensus.nStakeTargetSpacing; // 2 hours
@@ -289,6 +296,9 @@ public:
         consensus.nRejectBlockOutdatedMajority = 450;
         consensus.nToCheckBlockUpgradeMajority = 500;
 
+        consensus.nPremine = 84000000;
+        consensus.nPremineLength = 1000;
+
         pchMessageStart[0] = 0xcb;
         pchMessageStart[1] = 0xf2;
         pchMessageStart[2] = 0xc3;
@@ -296,15 +306,16 @@ public:
         nDefaultPort = 6663;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateGenesisBlock(1386627290, 1386628036, 38942574, 0x1d0fffff, 1, 0);
+        //genesis = CreateGenesisBlock(1386627290, 1386628036, 38942574, 0x1d0fffff, 1, 0);
+        genesis = CreateGenesisBlock(1543527382, 1543527382, 96893647, 0x1d1fffff, 1, 0);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x0000000642cfda7d39a8281e1f8791ceb240ce2f5ed9082f60040fe4210c6a58"));
-        assert(genesis.hashMerkleRoot == uint256S("0xbb898f6696fd0bc265978aa375b61a82aacfe6a95267d12605c82d11971d220e"));
+        //assert(consensus.hashGenesisBlock == uint256S("0x0000000642cfda7d39a8281e1f8791ceb240ce2f5ed9082f60040fe4210c6a58"));
+        //assert(genesis.hashMerkleRoot == uint256S("0xbb898f6696fd0bc265978aa375b61a82aacfe6a95267d12605c82d11971d220e"));
 
         vFixedSeeds.clear();
         vSeeds.clear();
         // nodes with support for servicebits filtering should be at the top
-        vSeeds.push_back(CDNSSeedData("emercoin", "tnseed.emercoin.com"));
+        vSeeds.push_back(CDNSSeedData("rngcoin", "tnseed.rngcoin.com"));
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -349,11 +360,11 @@ public:
         consensus.MMHeight = 0;
         consensus.V7Height = 457;
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.bnInitialHashTarget = uint256S("00000007ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); //~uint256(0) >> 29;
+        consensus.bnInitialHashTarget = uint256S("0000001fffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); //~uint256(0) >> 29;
         consensus.nTargetTimespan = 7 * 24 * 60 * 60; // one week
         consensus.nTargetSpacing = 10 * 60;
 
-        // emercoin: PoS spacing = nStakeTargetSpacing
+        // rngcoin: PoS spacing = nStakeTargetSpacing
         //           PoW spacing = depends on how much PoS block are between last two PoW blocks, with maximum value = nTargetSpacingMax
         consensus.nStakeTargetSpacing = 10 * 60;                // 10 minutes
         consensus.nTargetSpacingMax = 12 * consensus.nStakeTargetSpacing; // 2 hours
@@ -375,6 +386,9 @@ public:
         consensus.nRejectBlockOutdatedMajority = 850;
         consensus.nToCheckBlockUpgradeMajority = 1000;
 
+        consensus.nPremine = 84000000;
+        consensus.nPremineLength = 10;
+
         pchMessageStart[0] = 0xcb;
         pchMessageStart[1] = 0xf2;
         pchMessageStart[2] = 0xc0;
@@ -382,10 +396,11 @@ public:
         nDefaultPort = 6664;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateGenesisBlock(1386627289, 1386628033, 18330017, 0x1d0fffff, 1, 0);
+        //genesis = CreateGenesisBlock(1386627289, 1386628033, 18330017, 0x1d0fffff, 1, 0);
+        genesis = CreateGenesisBlock(1543527382, 1543527382, 96893647, 0x1d1fffff, 1, 0);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x0000000810da236a5c9239aa1c49ab971de289dbd41d08c4120fc9c8920d2212"));
-        assert(genesis.hashMerkleRoot == uint256S("0xd8eee032f95716d0cf14231dc7a238b96bbf827e349e75344c9a88e849262ee0"));
+        //assert(consensus.hashGenesisBlock == uint256S("0x0000000810da236a5c9239aa1c49ab971de289dbd41d08c4120fc9c8920d2212"));
+        //assert(genesis.hashMerkleRoot == uint256S("0xd8eee032f95716d0cf14231dc7a238b96bbf827e349e75344c9a88e849262ee0"));
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.

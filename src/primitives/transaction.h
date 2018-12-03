@@ -6,18 +6,117 @@
 #ifndef BITCOIN_PRIMITIVES_TRANSACTION_H
 #define BITCOIN_PRIMITIVES_TRANSACTION_H
 
+#include <stdint.h>
 #include "amount.h"
 #include "script/script.h"
 #include "serialize.h"
 #include "uint256.h"
+#include "zlib.h"
 
 #include "version.h"
+static const int32_t NO_TXCOMMENT_TX_VERSION = 2;
+static const int32_t CURRENT_TX_VERSION = 3;
 
 struct CDiskTxPos;
 
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
 static const int WITNESS_SCALE_FACTOR = 4;
+
+namespace Compression
+{
+/** Compress a STL string using zlib with given compression level and return
+  * the binary data. */
+   std::string compress_string(const std::string& str,
+                               int compressionlevel = Z_BEST_COMPRESSION);
+
+/** Decompress an STL string using zlib and return the original data. */
+   std::string decompress_string(const std::string& str);
+}
+
+/** Compressed string **/
+class CTxComment
+{
+public:
+
+   CTxComment()
+   {
+   }
+
+   CTxComment(const CTxComment &txComment) :
+         _compressed(txComment.getCompressed()),
+         _uncompressed(txComment.get())
+   {
+   }
+
+   const std::string& get() const
+   {
+       return _uncompressed;
+   }
+
+   const std::string& getCompressed() const
+   {
+       return _compressed;
+   }
+
+   void set(const std::string &s)
+   {
+       _compressed = Compression::compress_string(s);
+       _uncompressed = s;
+   }
+
+   void setCompressed(const std::string &s)
+   {
+       _compressed = s;
+       _uncompressed = Compression::decompress_string(s);
+   }
+
+   int getSerializedLength() const
+   {
+       return ShouldCompress(_uncompressed) ? _compressed.length() : _uncompressed.length();
+   }
+
+   bool empty() const
+   {
+       return _uncompressed.empty();
+   }
+
+   template<class Stream>
+   void serialize(Stream &s) const
+   {
+       const bool isCompressed = ShouldCompress(_uncompressed);
+       s << isCompressed;
+       s << (isCompressed ? _compressed : _uncompressed);
+   }
+
+   template<class Stream>
+   void unserialize(Stream &s)
+   {
+       bool isCompressed;
+       s >> isCompressed;
+
+       std::string txComment;
+       s >> txComment;
+
+       if (isCompressed)
+       {
+           setCompressed(txComment);
+       }
+       else
+       {
+           set(txComment);
+       }
+   }
+
+private:
+   std::string _compressed;
+   std::string _uncompressed;
+
+   inline bool ShouldCompress(const std::string &str) const
+   {
+       return str.length() > 52;
+   }
+};
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
 class COutPoint
@@ -197,7 +296,7 @@ public:
         int witnessversion = 0;
         std::vector<unsigned char> witnessprogram;
 
-        if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram, 0)) { // emercoin: can be ignored for names
+        if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram, 0)) { // rngcoin: can be ignored for names
             // sum the sizes of the parts of a transaction input
             // with 75% segwit discount applied to the script size.
             nSize += (32 + 4 + 1 + (107 / WITNESS_SCALE_FACTOR) + 4);
@@ -211,7 +310,7 @@ public:
     bool IsDust(const CFeeRate &minRelayTxFee) const
     {
         // return (nValue < GetDustThreshold(minRelayTxFee));
-        return false; // there is no dust in emercoin
+        return false; // there is no dust in rngcoin
     }
 
     friend bool operator==(const CTxOut& a, const CTxOut& b)
@@ -252,8 +351,9 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s >> tx.nVersion;
+    tx.txComment = CTxComment();
 
-    // emercoin: do not read/write nTime in case of auxPow tx
+    // rngcoin: do not read/write nTime in case of auxPow tx
     if (!(s.GetType() & SER_BTC_TX))
         s >> tx.nTime;
 
@@ -285,6 +385,10 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
         throw std::ios_base::failure("Unknown transaction optional data");
     }
     s >> tx.nLockTime;
+    if (tx.nVersion > NO_TXCOMMENT_TX_VERSION)
+    {
+        tx.txComment.unserialize(s);
+    }
 }
 
 template<typename Stream, typename TxType>
@@ -293,7 +397,7 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
 
     s << tx.nVersion;
 
-    // emercoin: do not read/write nTime in case of auxPow tx
+    // rngcoin: do not read/write nTime in case of auxPow tx
     if (!(s.GetType() & SER_BTC_TX))
         s << tx.nTime;
 
@@ -319,6 +423,11 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
         }
     }
     s << tx.nLockTime;
+
+    if (tx.nVersion > NO_TXCOMMENT_TX_VERSION)
+    {
+        tx.txComment.serialize(s);
+    }
 }
 
 
@@ -329,13 +438,14 @@ class CTransaction
 {
 public:
     // Default transaction version.
-    static const int32_t CURRENT_VERSION=2;
+    static const int32_t CURRENT_VERSION = CURRENT_TX_VERSION;
+   static const int32_t MAX_TX_COMMENT_LEN = 528;
 
     // Changing the default transaction version requires a two step process: first
     // adapting relay policy by bumping MAX_STANDARD_VERSION, and then later date
     // bumping the default CURRENT_VERSION at which point both CURRENT_VERSION and
     // MAX_STANDARD_VERSION will be equal.
-    static const int32_t MAX_STANDARD_VERSION=2;
+    static const int32_t MAX_STANDARD_VERSION = 4;
 
     // The local variables are made const to prevent unintended modification
     // without updating the cached hash value. However, CTransaction is not
@@ -347,6 +457,7 @@ public:
     const std::vector<CTxIn> vin;
     const std::vector<CTxOut> vout;
     const uint32_t nLockTime;
+    const CTxComment txComment;
 
 private:
     /** Memory only. */
@@ -380,7 +491,7 @@ public:
         return hash;
     }
 
-    // emercoin: get bitcoin compatible hash for merged mining usage
+    // rngcoin: get bitcoin compatible hash for merged mining usage
     //           this hash is computed without nTime
     const uint256 GetBtcHash() const;
 
@@ -451,7 +562,9 @@ struct CMutableTransaction
     uint32_t nTime;                    // PPCoin: transaction timestamp
     std::vector<CTxIn> vin;
     std::vector<CTxOut> vout;
+    std::string strTxComment;
     uint32_t nLockTime;
+    CTxComment txComment;
 
     CMutableTransaction();
     CMutableTransaction(const CTransaction& tx);

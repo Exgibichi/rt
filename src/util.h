@@ -25,6 +25,8 @@
 #include <string>
 #include <vector>
 
+#include "zlib.h"
+
 #include <boost/filesystem/path.hpp>
 #include <boost/signals2/signal.hpp>
 #include <boost/thread/exceptions.hpp>
@@ -73,6 +75,7 @@ bool LogAcceptCategory(const char* category);
 /** Send a string to the log output */
 int LogPrintStr(const std::string &str);
 
+#if 0
 #define LogPrint(category, ...) do { \
     if (LogAcceptCategory((category))) { \
         LogPrintStr(tfm::format(__VA_ARGS__)); \
@@ -82,6 +85,26 @@ int LogPrintStr(const std::string &str);
 #define LogPrintf(...) do { \
     LogPrintStr(tfm::format(__VA_ARGS__)); \
 } while(0)
+#endif
+
+/** Get format string from VA_ARGS for error reporting */
+template<typename... Args> std::string FormatStringFromLogArgs(const char *fmt, const Args&... args) { return fmt; }
+
+#define LogPrintf(...) do { \
+    try { \
+        LogPrintStr(tfm::format(__VA_ARGS__)); \
+    } catch (std::runtime_error &e) { \
+        /* Original format string will have newline so don't add one here */ \
+        LogPrintStr("Error \"" + std::string(e.what()) + "\" while formatting log message: " + FormatStringFromLogArgs(__VA_ARGS__)); \
+    } \
+} while(0)
+
+#define LogPrint(category, ...) do { \
+    if (LogAcceptCategory((category))) { \
+        LogPrintf(__VA_ARGS__); \
+    } \
+} while(0)
+
 
 template<typename... Args>
 bool error(const char* fmt, const Args&... args)
@@ -210,7 +233,7 @@ void RenameThread(const char* name);
  */
 template <typename Callable> void TraceThread(const char* name,  Callable func)
 {
-    std::string s = strprintf("emercoin-%s", name);
+    std::string s = strprintf("rngcoin-%s", name);
     RenameThread(s.c_str());
     try
     {

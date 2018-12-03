@@ -36,7 +36,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// EmercoinMiner
+// RngcoinMiner
 //
 
 //
@@ -127,7 +127,7 @@ void BlockAssembler::resetBlock()
     blockFinished = false;
 }
 
-// emercoin: if pwallet != NULL it will attempt to create coinstake
+// rngcoin: if pwallet != NULL it will attempt to create coinstake
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, CWallet* pwallet, bool* pfPoSCancel)
 {
     int64_t nTimeStart = GetTimeMicros();
@@ -158,6 +158,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     LOCK(cs_main);
     CBlockIndex* pindexPrev = chainActive.Tip();
 
+    nHeight = pindexPrev->nHeight + 1;
+
     bool fV7Enabled = IsV7Enabled(pindexPrev, chainparams.GetConsensus());
 
     if (pwallet)  // attemp to find a coinstake
@@ -168,7 +170,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         int64_t nSearchTime = txCoinStake.nTime; // search to current time
         if (nSearchTime > nLastCoinStakeSearchTime)
         {
-            if (pwallet->CreateCoinStake(*pwallet, pblock->nBits, nSearchTime-nLastCoinStakeSearchTime, txCoinStake, fV7Enabled))
+            if (pwallet->CreateCoinStake(*pwallet, pblock->nBits, nSearchTime-nLastCoinStakeSearchTime, txCoinStake, fV7Enabled, nHeight))
             {
                 if (txCoinStake.nTime >= std::max(pindexPrev->GetMedianTimePast()+1, pindexPrev->GetBlockTime() - nMaxClockDrift))
                 {   // make sure coinstake would meet timestamp protocol
@@ -183,14 +185,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             nLastCoinStakeSearchTime = nSearchTime;
         }
         if (*pfPoSCancel)
-            return nullptr; // emercoin: there is no point to continue if we failed to create coinstake
+            return nullptr; // rngcoin: there is no point to continue if we failed to create coinstake
     }
     else
         pblock->nBits = GetNextTargetRequired(pindexPrev, false, chainparams.GetConsensus());
 
     LOCK(mempool.cs);
-
-    nHeight = pindexPrev->nHeight + 1;
 
     pblock->SetBlockVersion(GetArg("-blockversion", CBlockHeader::CURRENT_VERSION));
 
@@ -219,8 +219,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Compute final coinbase transaction.
     if (pblock->IsProofOfWork())
-        coinbaseTx.vout[0].nValue = GetProofOfWorkReward(pblock->nBits, fV7Enabled);
+        coinbaseTx.vout[0].nValue = GetProofOfWorkReward(pblock->nBits, fV7Enabled, nHeight);
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
+    coinbaseTx.nTime = GetAdjustedTime();
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     if (fIncludeWitness)
         pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock);
@@ -241,7 +242,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
     CValidationState state;
-    if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false, false)) {   // emercoin: we do not check block signature here, since we did not sign it yet
+    if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false, false)) {   // rngcoin: we do not check block signature here, since we did not sign it yet
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
     }
     int64_t nTime2 = GetTimeMicros();
@@ -770,7 +771,7 @@ static bool ProcessBlockFound(const CBlock* pblock, const CChainParams& chainpar
     {
         LOCK(cs_main);
         if (pblock->hashPrevBlock != chainActive.Tip()->GetBlockHash())
-            return error("EmercoinMiner: generated block is stale");
+            return error("RngcoinMiner: generated block is stale");
     }
 
     // Inform about the new block
@@ -788,7 +789,7 @@ static bool ProcessBlockFound(const CBlock* pblock, const CChainParams& chainpar
 void PoSMiner(CWallet *pwallet)
 {
     LogPrintf("CPUMiner started for proof-of-stake\n");
-    RenameThread("emercoin-stake-minter");
+    RenameThread("rngcoin-stake-minter");
 
     unsigned int nExtraNonce = 0;
 
@@ -844,7 +845,7 @@ void PoSMiner(CWallet *pwallet)
                     MilliSleep(pos_timio);
                     continue;
                 }
-                LogPrintf("Error in EmercoinMiner: Keypool ran out, please call keypoolrefill before restarting the mining thread\n");
+                LogPrintf("Error in RngcoinMiner: Keypool ran out, please call keypoolrefill before restarting the mining thread\n");
                 return;
             }
             CBlock *pblock = &pblocktemplate->block;
@@ -873,13 +874,13 @@ void PoSMiner(CWallet *pwallet)
     }
     catch (boost::thread_interrupted)
     {
-        LogPrintf("EmercoinMiner terminated\n");
+        LogPrintf("RngcoinMiner terminated\n");
     return;
         // throw;
     }
     catch (const std::runtime_error &e)
     {
-        LogPrintf("EmercoinMiner runtime error: %s\n", e.what());
+        LogPrintf("RngcoinMiner runtime error: %s\n", e.what());
         return;
     }
 }
@@ -948,10 +949,10 @@ bool static ScanHash(const CBlockHeader *pblock, uint32_t& nNonce, uint256 *phas
     }
 }
 
-void static EmercoinMiner(const CChainParams& chainparams)
+void static RngcoinMiner(const CChainParams& chainparams)
 {
-    LogPrintf("EmercoinMiner started\n");
-    RenameThread("emercoin-miner");
+    LogPrintf("RngcoinMiner started\n");
+    RenameThread("rngcoin-miner");
 
     unsigned int nExtraNonce = 0;
 
@@ -982,13 +983,13 @@ void static EmercoinMiner(const CChainParams& chainparams)
             std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, true, nullptr, nullptr));
             if (!pblocktemplate.get())
             {
-                LogPrintf("Error in EmercoinMiner: Keypool ran out, please call keypoolrefill before restarting the mining hread\n");
+                LogPrintf("Error in RngcoinMiner: Keypool ran out, please call keypoolrefill before restarting the mining hread\n");
                 return;
             }
             CBlock *pblock = &pblocktemplate->block;
             IncrementExtraNonce(pblock, pindexPrev, nExtraNonce);
 
-            LogPrintf("Running EmercoinMiner with %u transactions in block (%u bytes)\n", pblock->vtx.size(),
+            LogPrintf("Running RngcoinMiner with %u transactions in block (%u bytes)\n", pblock->vtx.size(),
                 ::GetSerializeSize(*pblock, SER_NETWORK, PROTOCOL_VERSION));
 
             //
@@ -1015,7 +1016,7 @@ void static EmercoinMiner(const CChainParams& chainparams)
                             continue;
                         }
 
-                        LogPrintf("EmercoinMiner:\n");
+                        LogPrintf("RngcoinMiner:\n");
                         LogPrintf("proof-of-work found  \n  hash: %s  \ntarget: %s\n", hash.GetHex(), hashTarget.GetHex());
                         ProcessBlockFound(pblock, chainparams);
                         coinbaseScript->KeepScript();
@@ -1054,17 +1055,17 @@ void static EmercoinMiner(const CChainParams& chainparams)
     }
     catch (const boost::thread_interrupted&)
     {
-        LogPrintf("EmercoinMiner terminated\n");
+        LogPrintf("RngcoinMiner terminated\n");
         throw;
     }
     catch (const std::runtime_error &e)
     {
-        LogPrintf("EmercoinMiner runtime error: %s\n", e.what());
+        LogPrintf("RngcoinMiner runtime error: %s\n", e.what());
         return;
     }
 }
 
-void GenerateEmercoins(bool fGenerate, int nThreads, const CChainParams& chainparams)
+void GenerateRngcoins(bool fGenerate, int nThreads, const CChainParams& chainparams)
 {
     static boost::thread_group* minerThreads = NULL;
 
@@ -1083,5 +1084,5 @@ void GenerateEmercoins(bool fGenerate, int nThreads, const CChainParams& chainpa
 
     minerThreads = new boost::thread_group();
     for (int i = 0; i < nThreads; i++)
-        minerThreads->create_thread(boost::bind(&EmercoinMiner, boost::cref(chainparams)));
+        minerThreads->create_thread(boost::bind(&RngcoinMiner, boost::cref(chainparams)));
 }

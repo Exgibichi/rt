@@ -51,7 +51,7 @@
 #include <boost/thread.hpp>
 
 #if defined(NDEBUG)
-# error "Emercoin cannot be compiled without assertions."
+# error "Rngcoin cannot be compiled without assertions."
 #endif
 
 /**
@@ -93,8 +93,8 @@ static void CheckBlockIndex(const Consensus::Params& consensusParams);
 /** Constant stuff for coinbase transactions we create: */
 CScript COINBASE_FLAGS;
 
-const std::string strMessageMagic = "EmerCoin Signed Message:\n";
-CHooks* hooks = InitHook(); //this adds namecoin hooks which allow splicing of code inside standart emercoin functions.
+const std::string strMessageMagic = "RngCoin Signed Message:\n";
+CHooks* hooks = InitHook(); //this adds namecoin hooks which allow splicing of code inside standart rngcoin functions.
 
 std::map<uint256, std::shared_ptr<CAuxPow>> mapDirtyAuxPow;
 
@@ -608,18 +608,18 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
         return state.DoS(0, false, REJECT_NONSTANDARD, "no-witness-yet", true);
     }
 
-    // emercoin: rather not accept more than one name op on the same name
+    // rngcoin: rather not accept more than one name op on the same name
     bool isNameTx = tx.nVersion == NAMECOIN_TX_VERSION;
     if (isNameTx && !hooks->CheckPendingNames(ptx))
         return state.DoS(0, false, REJECT_NONSTANDARD, "name-op-on-pending-name");
 
-    // emercoin: reject names in P2SH transaction before V7 fork
+    // rngcoin: reject names in P2SH transaction before V7 fork
     if (!witnessEnabled && isNameTx && !GetBoolArg("-prematurewitness",false))
         for (const auto& out : tx.vout)
             if (out.scriptPubKey.IsPayToScriptHash(tx.nVersion))
                 return state.DoS(0, false, REJECT_NONSTANDARD, "premature-name-in-p2sh", true);
 
-    // emercoin: reject randpay until v7 fork
+    // rngcoin: reject randpay until v7 fork
     if (!witnessEnabled)
         for (const CTxIn& txin : tx.vin)
             if (txin.prevout.hash == randpaytx)
@@ -792,7 +792,13 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
             return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "insufficient priority");
         }
 
-        // emercoin: MIN_TXOUT_AMOUNT was added because of weird behavior of CreateTransactionInner that can add sub-subcents on top of absurd fee.
+        // Check for txComment fees
+        const CAmount minTxCommentFee = ((CAmount) TX_COMMENT_BYTE_PRICE) * tx.txComment.getSerializedLength();
+        if (nModifiedFees < minTxCommentFee) {
+            return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "txcomment fee not met");
+        }
+
+        // rngcoin: MIN_TXOUT_AMOUNT was added because of weird behavior of CreateTransactionInner that can add sub-subcents on top of absurd fee.
         if (nAbsurdFee && nFees > nAbsurdFee + MIN_TXOUT_AMOUNT && !isNameTx)
             return state.Invalid(false,
                 REJECT_HIGHFEE, "absurdly-high-fee",
@@ -992,7 +998,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
         // Remove conflicting transactions from the mempool
         BOOST_FOREACH(const CTxMemPool::txiter it, allConflicting)
         {
-            LogPrint("mempool", "replacing tx %s with %s for %s EMC additional fees, %d delta bytes\n",
+            LogPrint("mempool", "replacing tx %s with %s for %s RNG additional fees, %d delta bytes\n",
                     it->GetTx().GetHash().ToString(),
                     hash.ToString(),
                     FormatMoney(nModifiedFees - nConflictingFees),
@@ -1217,9 +1223,13 @@ double GetDifficulty(unsigned int nBits)
     return dDiff;
 }
 
-CAmount GetProofOfWorkReward(unsigned int nBits, bool fV7Enabled)
+CAmount GetProofOfWorkReward(unsigned int nBits, bool fV7Enabled, unsigned int nHeight)
 {
     const Consensus::Params& params = Params().GetConsensus();
+
+    if (nHeight <= params.nPremineLength) {
+       return params.nPremine / params.nPremineLength;
+    }
 
     CBigNum bnSubsidyLimit = MAX_MINT_PROOF_OF_WORK;
     CBigNum bnTarget;
@@ -1289,7 +1299,7 @@ CBlockIndex *pindexBestForkTip = NULL, *pindexBestForkBase = NULL;
 void AlertNotify(const std::string& strMessage, bool fUpdateUI)
 {
     if (fUpdateUI)
-        uiInterface.NotifyAlertChanged(uint256(), CT_UPDATED); // emercoin: we are using arguments that will have no effects in updateAlert()
+        uiInterface.NotifyAlertChanged(uint256(), CT_UPDATED); // rngcoin: we are using arguments that will have no effects in updateAlert()
     std::string strCmd = GetArg("-alertnotify", "");
     if (strCmd.empty()) return;
 
@@ -1412,7 +1422,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
     if (!tx.IsCoinBase()) {
         txundo.vprevout.reserve(tx.vin.size());
         BOOST_FOREACH(const CTxIn &txin, tx.vin) {
-            // emercoin: skip special randpay utxo, because we don't record undo information for it
+            // rngcoin: skip special randpay utxo, because we don't record undo information for it
             if (txin.prevout.hash == randpaytx)
                 continue;
 
@@ -1481,7 +1491,7 @@ bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoins
             assert(coins);
             // If prev is coinbase, check that it's matured
             if (coins->IsCoinBase() || coins->IsCoinStake()) {
-                // emercoin: at some point we changed coinbase maturity from 12 to 32
+                // rngcoin: at some point we changed coinbase maturity from 12 to 32
                 int cnbMaturity = nSpendHeight > 193912 ? ::Params().GetConsensus().nCoinbaseMaturity : ::Params().GetConsensus().nCoinbaseMaturityOld;
                 if (nSpendHeight - coins->nHeight < cnbMaturity)
                     return state.Invalid(false,
@@ -1504,7 +1514,7 @@ bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoins
     {
         // ppcoin: coin stake tx earns reward instead of paying fee
         CAmount nLimit = 0;
-        if (!GetEmc7POSReward(tx, inputs, nLimit))
+        if (!GetRng7POSReward(tx, inputs, nLimit))
             return error("CheckTxInputs() : %s unable to get coin reward for coinstake", tx.GetHash().ToString());
         CAmount nStakeReward = tx.GetValueOut() - nValueIn;
         if (nStakeReward > nLimit - tx.GetMinFee() + MIN_TX_FEE)
@@ -1747,7 +1757,7 @@ bool DisconnectBlock(const CBlock& block, CValidationState& state, const CBlockI
         // restore inputs
         if (i > 0) { // not coinbases
             const CTxUndo &txundo = blockUndo.vtxundo[i-1];
-            // emercoin: skip special randpay utxo, because we don't record undo information for it
+            // rngcoin: skip special randpay utxo, because we don't record undo information for it
             vector<reference_wrapper<const CTxIn>> vinWithoutRandpay;
             vinWithoutRandpay.reserve(tx.vin.size());
             for (const CTxIn& txin : tx.vin)
@@ -1766,11 +1776,11 @@ bool DisconnectBlock(const CBlock& block, CValidationState& state, const CBlockI
         }
     }
 
-    // emercoin: needed for FlushStateToDisk()
+    // rngcoin: needed for FlushStateToDisk()
     if (block.nVersion & BLOCK_VERSION_AUXPOW)
         mapDirtyAuxPow.insert(std::make_pair(block.GetHash(), block.auxpow));
 
-    // emercoin: undo name transactions in reverse order
+    // rngcoin: undo name transactions in reverse order
     if (fWriteNames)
         for (int i = block.vtx.size() - 1; i >= 0; i--)
             hooks->DisconnectInputs(block.vtx[i]);
@@ -1814,7 +1824,7 @@ bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, unsigne
 static CCheckQueue<CScriptCheck> scriptcheckqueue(128);
 
 void ThreadScriptCheck() {
-    RenameThread("emercoin-scriptch");
+    RenameThread("rngcoin-scriptch");
     scriptcheckqueue.Thread();
 }
 
@@ -1867,7 +1877,7 @@ bool ppcoinContextualBlockChecks(const CBlock& block, CValidationState& state, C
   // compute nStakeModifierChecksum end
 
     if (!CheckStakeModifierCheckpoints(pindex->nHeight, nStakeModifierChecksum))
-        return error("ConnectBlock() : Rejected by stake modifier checkpoint height=%d, modifier=0x%016llx", pindex->nHeight, nStakeModifier);
+        return error("ConnectBlock() : Rejected by stake modifier checkpoint height=%d, modifier=0x%016llx, hash: %d", pindex->nHeight, nStakeModifier, nStakeModifierChecksum);
 
     if (fJustCheck)
         return true;
@@ -1894,7 +1904,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 {
     AssertLockHeld(cs_main);
 
-    // emercoin: check PoS and compute stake modifier if we did not do that earlier
+    // rngcoin: check PoS and compute stake modifier if we did not do that earlier
     if (pindex->nStakeModifier == 0 && pindex->nStakeModifierChecksum == 0 && !ppcoinContextualBlockChecks(block, state, pindex, fJustCheck))
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
 
@@ -2029,7 +2039,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
 
-    // emercoin: variables for name fees check, nMoneySupply calculation and trustHeight option
+    // rngcoin: variables for name fees check, nMoneySupply calculation and trustHeight option
     CAmount nValueIn = 0;
     CAmount nValueOut = 0;
     std::vector<CAmount> vFees (block.vtx.size(), 0);
@@ -2116,7 +2126,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     pindex->nMint = nValueOut - nValueIn + nFees;
     pindex->nMoneySupply = (pindex->pprev? pindex->pprev->nMoneySupply : 0) + nValueOut - nValueIn;
 
-    // emercoin: collect valid name tx
+    // rngcoin: collect valid name tx
     // NOTE: tx.UpdateCoins should not affect this loop, probably...
     vector<nameTempProxy> vName;
     if (fWriteNames)
@@ -2157,7 +2167,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     GetMainSignals().UpdatedTransaction(hashPrevBestCoinBase);
     hashPrevBestCoinBase = block.vtx[0]->GetHash();
 
-    // emercoin: add names to nameindex.dat
+    // rngcoin: add names to nameindex.dat
     if (fWriteNames && !vName.empty())
         hooks->ConnectBlock(pindex, vName);
 
@@ -3062,6 +3072,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         if (block.vtx[i]->IsCoinStake())
             return state.DoS(100, false, REJECT_INVALID, "bad-cs-missing", false, "coinstake in wrong position");
 
+    //LogPrintf("Block time: %d, tx time: %d, drift: %d\n", block.GetBlockTime(), (int64_t)block.vtx[0]->nTime, nMaxClockDrift);
     // Check coinbase timestamp
     if (block.GetBlockTime() > (int64_t)block.vtx[0]->nTime + nMaxClockDrift)
         return state.DoS(50, false, REJECT_INVALID, "bad-cb-time", false, "coinbase timestamp is too early");
@@ -3080,7 +3091,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         if (block.GetBlockTime() < (int64_t)tx->nTime)
             return state.DoS(50, false, REJECT_INVALID, "bad-tx-time", false, strprintf("%s : block timestamp earlier than transaction timestamp", __func__));
 
-        // emercoin: only one randpay utxo is allowed per transaction
+        // rngcoin: only one randpay utxo is allowed per transaction
         bool found = false;
         for (const CTxIn& txin : tx->vin)
         {
@@ -3185,7 +3196,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
     }
     else
     {
-        // this is needed only for emercoin official blockchain, because of mistake we made at the beginning
+        // this is needed only for rngcoin official blockchain, because of mistake we made at the beginning
         unsigned int check = GetNextTargetRequired(pindexPrev, fProofOfStake, consensusParams);
         unsigned int max_error = check / 100000;
         if (!(block.nBits >= check - max_error && block.nBits <= check + max_error)) // +- 0.001% interval
@@ -3217,7 +3228,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
     return true;
 }
 
-// emercoin: note, this function can process blocks without strict order
+// rngcoin: note, this function can process blocks without strict order
 // use it only if all needed context information can be obtain from headers (headers are always in strict order)
 bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev, bool fCheckSign)
 {
@@ -3228,7 +3239,7 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
     bool fV7Enabled = IsV7Enabled(pindexPrev, consensusParams);
 
     // Check coinbase reward
-    CAmount powLimit = block.IsProofOfWork() ? GetProofOfWorkReward(block.nBits, fV7Enabled) - block.vtx[0]->GetMinFee() + MIN_TX_FEE : 0;
+    CAmount powLimit = block.IsProofOfWork() ? GetProofOfWorkReward(block.nBits, fV7Enabled, nHeight) - block.vtx[0]->GetMinFee() + MIN_TX_FEE : 0;
     if (block.vtx[0]->GetValueOut() > powLimit)
         return state.DoS(100, false, REJECT_INVALID, "bad-cb-amount", false, "coinbase pays too much");
 
@@ -3241,7 +3252,7 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
                               : block.GetBlockTime();
 
     // Check that all transactions are finalized
-    // emercoin: also forbid randpay until v7 fork
+    // rngcoin: also forbid randpay until v7 fork
     for (const auto& tx : block.vtx) {
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
             return state.DoS(10, false, REJECT_INVALID, "bad-txns-nonfinal", false, "non-final transaction");
@@ -3416,7 +3427,7 @@ static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidation
     if (!AcceptBlockHeader(block, block.IsProofOfStake(), state, chainparams, &pindex))
         return false;
 
-    // emercoin: we should only accept blocks that can be connected to a prev block with validated PoS
+    // rngcoin: we should only accept blocks that can be connected to a prev block with validated PoS
     if (pindex->pprev && !pindex->pprev->IsValid(BLOCK_VALID_TRANSACTIONS)) {
         return error("%s: this block does not connect to any valid known block", __func__);
     }
@@ -4147,7 +4158,7 @@ bool InitBlockIndex(const CChainParams& chainparams)
     // Check whether we're already initialized
     if (chainActive.Genesis() != NULL)
         //return true;
-        // emercoin: we want to execute checkpoint key initialization in both cases of this "if"
+        // rngcoin: we want to execute checkpoint key initialization in both cases of this "if"
         goto checkpoint_key_init;
 
     // Use the provided setting for -txindex in the new database
@@ -4169,7 +4180,7 @@ bool InitBlockIndex(const CChainParams& chainparams)
             if (!WriteBlockToDisk(block, blockPos, chainparams.MessageStart()))
                 return error("LoadBlockIndex(): writing genesis block to disk failed");
             CBlockIndex *pindex = AddToBlockIndex(block, false);
-            // emercoin: calculate pindex->nFlags for genesis block before doing FlushStateToDisk()
+            // rngcoin: calculate pindex->nFlags for genesis block before doing FlushStateToDisk()
             ppcoinContextualBlockChecks(block, state, pindex, false);
             if (!ReceivedBlockTransactions(block, state, pindex, blockPos))
                 return error("LoadBlockIndex(): genesis block not accepted");
@@ -4659,7 +4670,7 @@ public:
 } instance_of_cmaincleanup;
 
 // combination of GetCoinAge() and GetProofOfStakeReward()
-bool GetEmc7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmount &nReward)
+bool GetRng7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmount &nReward)
 {
     nReward = 0;
 
@@ -4721,10 +4732,10 @@ bool GetEmc7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmou
     nReward = ((bnSatYr * 6 / 100).GetLow64() / TX_DP_AMOUNT) * TX_DP_AMOUNT;
 
     if (fDebug && GetBoolArg("-printcreation", false))
-        LogPrintf("GetEmc7POSReward(): create=%s nCoinAge=%s\n", FormatMoney(nReward), bnSatYr.ToString());
+        LogPrintf("GetRng7POSReward(): create=%s nCoinAge=%s\n", FormatMoney(nReward), bnSatYr.ToString());
 
     return true;
-} // GetEmc7POSReward
+} // GetRng7POSReward
 
 typedef std::vector<unsigned char> valtype;
 bool SelectPubkeyForBlockSigning(const CBlock& block, vector<valtype>& vSolutions, bool fV7Enabled)
@@ -4806,7 +4817,7 @@ bool CheckMinTxOut(const CBlock& block, bool fV7Enabled)
         const CTransactionRef& tx0 = block.vtx[0];
         for (size_t j = 0; j < tx0->vout.size(); j++)
         {
-            // emercoin: enforce minimum output amount if not witness commitment
+            // rngcoin: enforce minimum output amount if not witness commitment
             bool fWC = commitpos >= 0 && (unsigned int)commitpos == j;
             if (!fWC && !tx0->vout[j].IsEmpty() && tx0->vout[j].nValue < MIN_TXOUT_AMOUNT)
                 return false;

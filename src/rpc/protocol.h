@@ -76,7 +76,7 @@ enum RPCErrorCode
     RPC_WALLET_ENCRYPTION_FAILED    = -16, //!< Failed to encrypt the wallet
     RPC_WALLET_ALREADY_UNLOCKED     = -17, //!< Wallet is already unlocked
 
-    //! emercoin/ppcoin
+    //! rngcoin/ppcoin
     RPC_INSUFFICIENT_SEND_AMOUNT    = -101,//! Transaction output is below minimum
 };
 

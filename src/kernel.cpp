@@ -18,8 +18,9 @@ using namespace std;
 // Hard checkpoints of stake modifiers to ensure they are deterministic
 static std::map<int, unsigned int> mapStakeModifierCheckpoints =
 {
-    { 0,     0x0e00670bu },
-    { 19000, 0xb185c126u }
+      {0, 0xfd11f4e7}
+/*    { 0,     0x0e00670bu },
+    { 19000, 0xb185c126u }*/
 };
 
 // Get the last stake modifier and its generation time from a given block
@@ -339,7 +340,7 @@ static bool GetKernelStakeModifier(CBlockIndex* pindexPrev, uint256 hashBlockFro
     nStakeModifierTime = pindexFrom->GetBlockTime();
     int64_t nStakeModifierSelectionInterval = GetStakeModifierSelectionInterval();
 
-    // emercoin: we need to iterate index forward but we cannot use chainActive.Next()
+    // rngcoin: we need to iterate index forward but we cannot use chainActive.Next()
     // because there is no guarantee that we are checking blocks in active chain.
     // So, we construct a temporary chain that we will iterate over.
     // pindexFrom - this block contains coins that are used to generate PoS

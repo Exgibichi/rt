@@ -36,7 +36,7 @@ struct Params {
     uint256 nMinimumChainTrust;
     uint256 defaultAssumeValid;
 
-    // emercoin stuff:
+    // rngcoin stuff:
     uint256 bnInitialHashTarget;
     int64_t nStakeTargetSpacing;
     int64_t nTargetSpacingMax;
@@ -47,6 +47,9 @@ struct Params {
     /** Used to check majorities for block version upgrade */
     int nRejectBlockOutdatedMajority;
     int nToCheckBlockUpgradeMajority;
+
+    uint64_t nPremine;
+    uint64_t nPremineLength;
 
     /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
     int nCoinbaseMaturity;

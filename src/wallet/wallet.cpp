@@ -29,6 +29,7 @@
 #include "namecoin.h"
 
 #include <assert.h>
+#include <iostream>
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
@@ -2287,7 +2288,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
   // If possible, solve subset sum by dynamic programming
   // Adeed by olegarch
 
-  // Maximal DP array size. Default=0.5G (12,800EMC)
+  // Maximal DP array size. Default=0.5G (12,800RNG)
   static uint32_t nMaxDP = 0;
   if(nMaxDP == 0)
       nMaxDP = GetArg("-maxdp", 128 * 1024 * 1024);
@@ -2501,7 +2502,7 @@ bool CWallet::FundTransaction(CMutableTransaction& tx, CAmount& nFeeRet, bool ov
 
     CReserveKey reservekey(this);
     CWalletTx wtx;
-    if (!CreateTransaction(vecSend, wtx, reservekey, nFeeRet, nChangePosInOut, strFailReason, &coinControl, false))
+    if (!CreateTransaction(vecSend, wtx, reservekey, nFeeRet, nChangePosInOut, strFailReason, tx.txComment.get(), &coinControl, false))
         return false;
 
     if (nChangePosInOut != -1)
@@ -2534,7 +2535,7 @@ bool CWallet::FundTransaction(CMutableTransaction& tx, CAmount& nFeeRet, bool ov
 }
 
 bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CWalletTx& wtxNameIn, CAmount nFeeInput,
-    CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut, std::string& strFailReason, const CCoinControl* coinControl, bool sign)
+    CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut, std::string& strFailReason, std::string strTxComment, const CCoinControl* coinControl, bool sign)
 {
     CAmount nValue = 0;
     int nChangePosRequest = nChangePosInOut;
@@ -2557,7 +2558,7 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
         return false;
     }
 
-    // emercoin: define some values used in case of namecoin tx creation
+    // rngcoin: define some values used in case of namecoin tx creation
     CAmount nNameTxInCredit = 0;
     unsigned int nNameTxOut = 0;
     if (!wtxNameIn.tx->IsNull())
@@ -2569,7 +2570,16 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
     wtxNew.fTimeReceivedIsTxTime = true;
     wtxNew.BindWallet(this);
     CMutableTransaction txNew;
-    txNew.nVersion = wtxNew.tx->nVersion; // emercoin: important for name transactions
+    txNew.nVersion = wtxNew.tx->nVersion; // rngcoin: important for name transactions
+    
+    // transaction comment
+    txNew.txComment.set(strTxComment);
+    std::cout << txNew.txComment.getSerializedLength() << std::endl;
+    if (txNew.txComment.getSerializedLength() > CTransaction::MAX_TX_COMMENT_LEN)
+    {
+        strFailReason = _("Transaction comment exceeds max size");
+        return false;
+    }
 
     // Discourage fee sniping.
     //
@@ -2610,8 +2620,8 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
             std::vector<COutput> vAvailableCoins;
             AvailableCoins(vAvailableCoins, true, coinControl, wtxNew.tx->nTime);
 
-            nFeeRet = max(nFeeInput, MIN_TX_FEE);  // emercoin: a good starting point, probably...
-            // Start with no fee and loop until there is enough fee
+            nFeeRet = max(nFeeInput, MIN_TX_FEE);  // rngcoin: a good starting point, probably...
+            // Start with txComment fee and loop until there is enough fee
             while (true)
             {
                 nChangePosInOut = nChangePosRequest;
@@ -2658,14 +2668,14 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
                 // Choose coins to use
                 CAmount nValueIn = 0;
                 setCoins.clear();
-                // emercoin: in case of name tx we have already supplied input
+                // rngcoin: in case of name tx we have already supplied input
                 //           skip coin selection if we have enough money in name input
                 if (nValueToSelect - nNameTxInCredit > 0 && !SelectCoins(vAvailableCoins, nValueToSelect - nNameTxInCredit, setCoins, nValueIn, coinControl))
                 {
                     strFailReason = _("Insufficient funds");
                     return false;
                 }
-                // emercoin: add name input
+                // rngcoin: add name input
                 if (!wtxNameIn.tx->IsNull())
                 {
                     setCoins.insert(setCoins.begin(), make_pair(&wtxNameIn, nNameTxOut));
@@ -2766,6 +2776,23 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
                 } else {
                     reservekey.ReturnKey();
                     nChangePosInOut = -1;
+
+                    // Add OP_RETURN vout containing transaction comment hash
+                    // 1000 byte penalty for "dust" output
+                    if (txNew.strTxComment.length() > 0)
+                    {
+                        uint256 msghash = Hash(txNew.strTxComment.begin(), txNew.strTxComment.end());
+                        std::vector<unsigned char> opdata;
+                        opdata.insert(opdata.end(), (unsigned char)'F');
+                        opdata.insert(opdata.end(), (unsigned char)'L');
+                        opdata.insert(opdata.end(), (unsigned char)'O');
+                        opdata.insert(opdata.end(), (unsigned char)'M');
+                        opdata.insert(opdata.end(), msghash.begin(), msghash.end());
+                        CScript scrout = CScript() << OP_RETURN << opdata;
+                        CTxOut txmsgTxOut(0, scrout);
+                        txNew.vout.push_back(txmsgTxOut);
+                        nFeeRet += nChange;
+                    }
                 }
 
                 // Fill vin
@@ -2796,8 +2823,8 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
                     vin.scriptWitness.SetNull();
                 }
 
-                CAmount nFeeNeeded = GetMinimumFee(nBytes);
-                // emercoin: disabled
+                CAmount nFeeNeeded = GetMinimumFee(nBytes, txNew.txComment.getSerializedLength());
+                // rngcoin: disabled
 //                if (coinControl && nFeeNeeded > 0 && coinControl->nMinimumTotalFee > nFeeNeeded) {
 //                    nFeeNeeded = coinControl->nMinimumTotalFee;
 //                }
@@ -2824,7 +2851,7 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
                     }
                 }
 
-                // emercoin: check that enough fee is included (at least MIN_TX_FEE per 10 kb)
+                // rngcoin: check that enough fee is included (at least MIN_TX_FEE per 10 kb)
                 CAmount nMinFee = max(nFeeInput, nFeeNeeded);
                 if (nFeeRet < nMinFee)
                 {
@@ -2886,21 +2913,21 @@ bool CWallet::CreateTransactionInner(const vector<CRecipient>& vecSend, const CW
 }
 
 bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet,
-                                int& nChangePosInOut, std::string& strFailReason, const CCoinControl* coinControl, bool sign)
+                                int& nChangePosInOut, std::string& strFailReason, std::string strTxComment, const CCoinControl* coinControl, bool sign)
 {
-    return CreateTransactionInner(vecSend, CWalletTx(), 0, wtxNew, reservekey, nFeeRet, nChangePosInOut, strFailReason, coinControl, sign);
+    return CreateTransactionInner(vecSend, CWalletTx(), 0, wtxNew, reservekey, nFeeRet, nChangePosInOut, strFailReason, strTxComment, coinControl, sign);
 }
 
 bool CWallet::CreateNameTx(const CRecipient& recipient, const CWalletTx& wtxNameIn, const CAmount& nFeeInput, CWalletTx& wtxNew, CReserveKey& reservekey,
-                           CAmount& nFeeRet, int& nChangePosInOut, std::string& strFailReason, const CCoinControl* coinControl, bool sign)
+                           CAmount& nFeeRet, int& nChangePosInOut, std::string& strFailReason, std::string strTxComment, const CCoinControl* coinControl, bool sign)
 {
     vector<CRecipient> vecSend = {recipient};
-    return CreateTransactionInner(vecSend, wtxNameIn, nFeeInput, wtxNew, reservekey, nFeeRet, nChangePosInOut, strFailReason, coinControl, sign);
+    return CreateTransactionInner(vecSend, wtxNameIn, nFeeInput, wtxNew, reservekey, nFeeRet, nChangePosInOut, strFailReason, strTxComment, coinControl, sign);
 }
 
 // ppcoin: create coin stake transaction
 typedef std::vector<unsigned char> valtype;
-bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int64_t nSearchInterval, CMutableTransaction& txNew, bool fV7Enabled)
+bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int64_t nSearchInterval, CMutableTransaction& txNew, bool fV7Enabled, unsigned int nHeight)
 {
     // Transaction index is required to get to block header
     if (!fTxIndex)
@@ -2911,7 +2938,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     // Should not be adjusted if you don't understand the consequences
     static unsigned int nStakeSplitAge = (60 * 60 * 24 * 90);
     LOCK2(cs_main, cs_wallet);
-    CAmount nPoWReward = GetProofOfWorkReward(GetLastBlockIndex(chainActive.Tip(), false)->nBits, fV7Enabled);
+    CAmount nPoWReward = GetProofOfWorkReward(GetLastBlockIndex(chainActive.Tip(), false)->nBits, fV7Enabled, nHeight);
     CAmount nCombineThreshold = nPoWReward / 3;
 
     arith_uint256 bnTargetPerCoinDay;
@@ -3085,7 +3112,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     {
         CAmount nReward = 0;
         CCoinsViewCache view(pcoinsTip);
-        if (!GetEmc7POSReward(txNew, view, nReward))
+        if (!GetRng7POSReward(txNew, view, nReward))
             return error("CreateCoinStake() : %s unable to get coin reward for coinstake", txNew.GetHash().ToString());
         if (nReward <= 10 * TX_DP_AMOUNT)
             return false; // Prevent extra small UTXO
@@ -3208,22 +3235,28 @@ bool CWallet::AddAccountingEntry(const CAccountingEntry& acentry, CWalletDB *pwa
     return true;
 }
 
-CAmount CWallet::GetRequiredFee(unsigned int nTxBytes)
+CAmount CWallet::GetRequiredFee(unsigned int nTxBytes, int txCommentLength)
 {
     return std::max(GetMinFee(nTxBytes), ::minRelayTxFee.GetFee(nTxBytes));
 }
 
-CAmount CWallet::GetMinimumFee(unsigned int nTxBytes)
+CAmount CWallet::GetMinimumFee(unsigned int nTxBytes, int txCommentLength)
 {
     // payTxFee is the user-set global for desired feerate
-    return GetMinimumFee(nTxBytes, payTxFee.GetFee(nTxBytes));
+    return GetMinimumFee(nTxBytes, payTxFee.GetFee(nTxBytes), txCommentLength);
 }
 
-CAmount CWallet::GetMinimumFee(unsigned int nTxBytes, CAmount targetFee)
+CAmount CWallet::GetMinimumFee(unsigned int nTxBytes, CAmount targetFee, int txCommentLength)
 {
     CAmount nFeeNeeded = targetFee;
+
+    if (nFeeNeeded < TX_COMMENT_BYTE_PRICE * txCommentLength)
+    {
+       nFeeNeeded = TX_COMMENT_BYTE_PRICE * txCommentLength;
+    }
+
     // prevent user from paying a fee below minRelayTxFee or minTxFee
-    nFeeNeeded = std::max(nFeeNeeded, GetRequiredFee(nTxBytes));
+    nFeeNeeded = std::max(nFeeNeeded, GetRequiredFee(nTxBytes, txCommentLength));
     // But always obey the maximum
     if (nFeeNeeded > maxTxFee)
         nFeeNeeded = maxTxFee;
@@ -3489,6 +3522,22 @@ bool CWallet::GetKeyFromPool(CPubKey& result)
         KeepKey(nIndex);
         result = keypool.vchPubKey;
     }
+    return true;
+}
+
+bool CWallet::GetNewRandomNumber(CPubKey& result)
+{
+    bool fCompressed = CanSupportFeature(FEATURE_COMPRPUBKEY); // default to compressed public keys if we want 0.6.0 wallets
+
+    CKey secret;
+
+    // use HD key derivation if HD was enabled during wallet creation
+    secret.MakeNewKey(fCompressed);
+
+    CPubKey pubkey = secret.GetPubKey();
+
+    result = pubkey;
+
     return true;
 }
 
@@ -4244,7 +4293,7 @@ bool CWallet::ParameterInteraction()
     }
     nTxConfirmTarget = GetArg("-txconfirmtarget", DEFAULT_TX_CONFIRM_TARGET);
     bSpendZeroConfChange = GetBoolArg("-spendzeroconfchange", DEFAULT_SPEND_ZEROCONF_CHANGE);
-    fSendFreeTransactions = DEFAULT_SEND_FREE_TRANSACTIONS;  // disabled in emercoin
+    fSendFreeTransactions = DEFAULT_SEND_FREE_TRANSACTIONS;  // disabled in rngcoin
     fWalletRbf = GetBoolArg("-walletrbf", DEFAULT_WALLET_RBF);
 
     if (fSendFreeTransactions && GetArg("-limitfreerelay", DEFAULT_LIMITFREERELAY) <= 0)
@@ -4380,7 +4429,7 @@ void SendMoneyCheck(const CAmount& nValue, const CAmount& curBalance)
     }
 }
 
-void SendMoney(const CTxDestination &address, CAmount nValue, bool fSubtractFeeFromAmount, CWalletTx& wtxNew)
+void SendMoney(const CTxDestination &address, CAmount nValue, bool fSubtractFeeFromAmount, CWalletTx& wtxNew, std::string strTxComment)
 {
     CAmount curBalance = pwalletMain->GetBalance();
     SendMoneyCheck(nValue, curBalance);
@@ -4396,7 +4445,7 @@ void SendMoney(const CTxDestination &address, CAmount nValue, bool fSubtractFeeF
     int nChangePosRet = -1;
     CRecipient recipient = {scriptPubKey, nValue, fSubtractFeeFromAmount};
     vecSend.push_back(recipient);
-    if (!pwalletMain->CreateTransaction(vecSend, wtxNew, reservekey, nFeeRequired, nChangePosRet, strError)) {
+    if (!pwalletMain->CreateTransaction(vecSend, wtxNew, reservekey, nFeeRequired, nChangePosRet, strError, strTxComment)) {
         if (!fSubtractFeeFromAmount && nValue + nFeeRequired > curBalance)
             strError = strprintf("Error: This transaction requires a transaction fee of at least %s", FormatMoney(nFeeRequired));
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
@@ -4408,7 +4457,7 @@ void SendMoney(const CTxDestination &address, CAmount nValue, bool fSubtractFeeF
     }
 }
 
-void SendName(CScript scriptPubKey, CAmount nValue, CWalletTx& wtxNew, const CWalletTx& wtxNameIn, CAmount nFeeInput)
+void SendName(CScript scriptPubKey, CAmount nValue, CWalletTx& wtxNew, const CWalletTx& wtxNameIn, CAmount nFeeInput, std::string strTxComment)
 {
     CAmount curBalance = pwalletMain->GetBalance();
     SendMoneyCheck(nValue, curBalance);
@@ -4419,7 +4468,7 @@ void SendName(CScript scriptPubKey, CAmount nValue, CWalletTx& wtxNew, const CWa
     std::string strError;
     int nChangePosRet = -1;
     CRecipient recipient = {scriptPubKey, nValue, false};
-    if (!pwalletMain->CreateNameTx(recipient, wtxNameIn, nFeeInput, wtxNew, reservekey, nFeeRequired, nChangePosRet, strError)) {
+    if (!pwalletMain->CreateNameTx(recipient, wtxNameIn, nFeeInput, wtxNew, reservekey, nFeeRequired, nChangePosRet, strError, strTxComment)) {
         if (nValue + nFeeRequired > curBalance)
             strError = strprintf("Error: This transaction requires a transaction fee of at least %s", FormatMoney(nFeeRequired));
         throw JSONRPCError(RPC_WALLET_ERROR, strError);

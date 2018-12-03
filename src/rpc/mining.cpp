@@ -242,7 +242,7 @@ UniValue setgenerate(const JSONRPCRequest& request)
 
     ForceSetArg("-gen", fGenerate ? "1" : "0");
     ForceSetArg("-genproclimit", itostr(nGenProcLimit));
-    GenerateEmercoins(fGenerate, nGenProcLimit, Params());
+    GenerateRngcoins(fGenerate, nGenProcLimit, Params());
 
     return NullUniValue;
 }
@@ -255,7 +255,7 @@ UniValue generatetoaddress(const JSONRPCRequest& request)
             "\nMine blocks immediately to a specified address (before the RPC call returns)\n"
             "\nArguments:\n"
             "1. nblocks      (numeric, required) How many blocks are generated immediately.\n"
-            "2. address      (string, required) The address to send the newly generated emercoin to.\n"
+            "2. address      (string, required) The address to send the newly generated rngcoin to.\n"
             "3. maxtries     (numeric, optional) How many iterations to try (default = 1000000).\n"
             "\nResult:\n"
             "[ blockhashes ]     (array) hashes of blocks generated\n"
@@ -520,10 +520,10 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
 
     if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0)
-        throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Emercoin is not connected!");
+        throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Rngcoin is not connected!");
 
     if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Rngcoin is downloading blocks...");
 
     static unsigned int nTransactionsUpdatedLast;
 
@@ -819,10 +819,10 @@ UniValue getauxblock(const JSONRPCRequest& request)
             "the aux proof of work and returns true if it was successful.");
 
     if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0)
-        throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Emercoin is not connected!");
+        throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Rngcoin is not connected!");
 
     if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Rngcoin is downloading blocks...");
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
@@ -950,7 +950,7 @@ UniValue estimatefee(const JSONRPCRequest& request)
             "confirmation within nblocks blocks. Uses virtual transaction size of transaction\n"
             "as defined in BIP 141 (witness data is discounted).\n"
             "\nArguments:\n"
-            "1. nblocks     (numeric, does nothing - backward compatability with emercoin RPC)\n"
+            "1. nblocks     (numeric, does nothing - backward compatability with rngcoin RPC)\n"
             "\nResult:\n"
             "n              (numeric) estimated fee-per-kilobyte\n"
             "\n"
@@ -1038,7 +1038,7 @@ static const CRPCCommand commands[] =
     { "mining",             "getblocktemplate",       &getblocktemplate,       true,  {"template_request"} },
     { "mining",             "submitblock",            &submitblock,            true,  {"hexdata","parameters"} },
 
-    // emercoin command
+    // rngcoin command
     { "mining",             "getauxblock",            &getauxblock,            true,  {"hash","auxpow"} },
 
     { "generating",         "getgenerate",            &getgenerate,            true,  {} },

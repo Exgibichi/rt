@@ -51,7 +51,7 @@ public:
     // header
     static const int32_t NORMAL_SERIALIZE_SIZE=80;
     static const int32_t CURRENT_VERSION=8;
-    int32_t nVersion;     // emercoin: it might contain merged mining information in higher bits. Use GetBlockVersion() to ignore it.
+    int32_t nVersion;     // rngcoin: it might contain merged mining information in higher bits. Use GetBlockVersion() to ignore it.
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
     uint32_t nTime;
@@ -59,7 +59,7 @@ public:
     uint32_t nNonce;
     std::shared_ptr<CAuxPow> auxpow;
 
-    // emercoin: copy from CBlockIndex.nFlags from other clients. We need this information because we are using headers-first syncronization.
+    // rngcoin: copy from CBlockIndex.nFlags from other clients. We need this information because we are using headers-first syncronization.
     int32_t nFlags;
 
 
@@ -79,7 +79,7 @@ public:
         READWRITE(nBits);
         READWRITE(nNonce);
 
-        // emercoin: do not serialize these fields when computing hash
+        // rngcoin: do not serialize these fields when computing hash
         if (!(s.GetType() & SER_GETHASH))
         {
             if (this->nVersion & BLOCK_VERSION_AUXPOW)

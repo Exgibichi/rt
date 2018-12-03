@@ -41,7 +41,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getnetworkhashps", 0, "nblocks" },
     { "getnetworkhashps", 1, "height" },
     { "sendtoaddress", 1, "amount" },
-    { "sendtoaddress", 4, "subtractfeefromamount" },
+    { "sendtoaddress", 5, "subtractfeefromamount" },
     { "settxfee", 0, "amount" },
     { "getreceivedbyaddress", 1, "minconf" },
     { "getreceivedbyaccount", 1, "minconf" },
@@ -74,7 +74,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "listsinceblock", 2, "include_watchonly" },
     { "sendmany", 1, "amounts" },
     { "sendmany", 2, "minconf" },
-    { "sendmany", 4, "subtractfeefrom" },
+    { "sendmany", 5, "subtractfeefrom" },
     { "scantxoutset", 1, "scanobjects" },
     { "addmultisigaddress", 0, "nrequired" },
     { "addmultisigaddress", 1, "keys" },
@@ -142,7 +142,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "reservebalance", 0, "reserve" },
     { "reservebalance", 1, "amount" },
 
-    // emercoin:
+    // rngcoin:
     { "name_new", 2, "days" },
     { "name_update", 2, "days" },
     { "name_scan", 1, "max-returned" },

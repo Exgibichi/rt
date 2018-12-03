@@ -149,7 +149,7 @@ CAmount GetNameOpFee(const CBlockIndex* pindex, const int nRentalDays, int op, c
     txMinFee += CENT - 1;
     txMinFee = (txMinFee / CENT) * CENT;
 
-    // reduce fee by 100 in 0.7.0emc
+    // reduce fee by 100 in 0.7.0rng
     txMinFee = txMinFee / 100;
 
     // Fee should be at least MIN_TX_FEE
@@ -298,12 +298,12 @@ UniValue sendtoname(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 4)
         throw runtime_error(
-            "sendtoname <name> <amount> [comment] [comment-to]\n"
+            "sendtoname <name> <amount> [comment] [comment-to] [tx-comment]\n"
             "<amount> is a real and is rounded to the nearest 0.01"
             + HelpRequiringPassphrase());
 
     if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Rngcoin is downloading blocks...");
 
     CNameVal name = nameValFromValue(request.params[0]);
     CAmount nAmount = AmountFromValue(request.params[1]);
@@ -315,12 +315,18 @@ UniValue sendtoname(const JSONRPCRequest& request)
     if (request.params.size() > 3 && !request.params[3].isNull() && !request.params[3].get_str().empty())
         wtx.mapValue["to"]      = request.params[3].get_str();
 
+    std::string txcomment;
+    if (request.params.size() > 4 && !request.params[4].isNull() && !request.params[4].get_str().empty())
+    {
+        txcomment = request.params[4].get_str();
+    }
+
     string error;
     CBitcoinAddress address;
     if (!GetNameCurrentAddress(name, address, error))
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, error);
 
-    SendMoney(address.Get(), nAmount, false, wtx);
+    SendMoney(address.Get(), nAmount, false, wtx, txcomment);
 
     UniValue res(UniValue::VOBJ);
     res.push_back(Pair("sending to", address.ToString()));
@@ -376,7 +382,7 @@ UniValue name_list(const JSONRPCRequest& request)
                 );
 
     if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Rngcoin is downloading blocks...");
 
     CNameVal nameUniq = request.params.size() > 0 ? nameValFromValue(request.params[0]) : CNameVal();
     string outputType = request.params.size() > 1 ? request.params[1].get_str() : "";
@@ -517,7 +523,7 @@ UniValue name_show(const JSONRPCRequest& request)
             );
 
     if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Rngcoin is downloading blocks...");
 
     UniValue oName(UniValue::VOBJ);
     CNameVal name = nameValFromValue(request.params[0]);
@@ -599,7 +605,7 @@ UniValue name_history(const JSONRPCRequest& request)
         );
 
     if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Rngcoin is downloading blocks...");
 
     CNameVal name = nameValFromValue(request.params[0]);
     bool fFullHistory = request.params.size() > 1 ? request.params[1].get_bool() : false;
@@ -736,7 +742,7 @@ UniValue name_filter(const JSONRPCRequest& request)
                 );
 
     if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Rngcoin is downloading blocks...");
 
     int nCountFrom = 0;
     int nCountNb = 0;
@@ -839,7 +845,7 @@ UniValue name_scan(const JSONRPCRequest& request)
                 );
 
     if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Rngcoin is downloading blocks...");
 
     CNameVal name      = request.params.size() > 0 ? nameValFromValue(request.params[0]) : CNameVal();
     int nMax           = request.params.size() > 1 ? request.params[1].get_int() : 500;
@@ -889,7 +895,7 @@ UniValue name_scan_address(const JSONRPCRequest& request)
                 );
 
     if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Emercoin is downloading blocks...");
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Rngcoin is downloading blocks...");
 
     string address     = request.params.size() > 0 ? request.params[0].get_str() : "";
     int nMaxShownValue = request.params.size() > 2 ? request.params[2].get_int() : 0;
@@ -1134,7 +1140,7 @@ NameTxReturn name_operation(const int op, const CNameVal& name, CNameVal value, 
     if (IsInitialBlockDownload())
     {
         ret.err_code = RPC_CLIENT_IN_INITIAL_DOWNLOAD;
-        ret.err_msg = "Emercoin is downloading blocks...";
+        ret.err_msg = "Rngcoin is downloading blocks...";
         return ret;
     }
 
@@ -1228,7 +1234,7 @@ NameTxReturn name_operation(const int op, const CNameVal& name, CNameVal value, 
             if (!address.IsValid())
             {
                 ret.err_code = RPC_INVALID_ADDRESS_OR_KEY;
-                ret.err_msg = "emercoin address is invalid";
+                ret.err_msg = "rngcoin address is invalid";
                 return ret;
             }
             scriptPubKey = GetScriptForDestination(address.Get());
@@ -1255,7 +1261,7 @@ NameTxReturn name_operation(const int op, const CNameVal& name, CNameVal value, 
 
     // set fee and send!
         CAmount nameFee = GetNameOpFee(chainActive.Tip(), nRentalDays, op, name, value);
-        SendName(nameScript, MIN_TXOUT_AMOUNT, wtx, wtxIn, nameFee);
+        SendName(nameScript, MIN_TXOUT_AMOUNT, wtx, wtxIn, nameFee, "");
     }
 
     //success! collect info and return

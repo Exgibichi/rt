@@ -275,7 +275,7 @@ UniValue getaddednodeinfo(const JSONRPCRequest& request)
             "    \"connected\" : true|false,          (boolean) If connected\n"
             "    \"addresses\" : [                    (list of objects) Only when connected = true\n"
             "       {\n"
-            "         \"address\" : \"192.168.0.201:8333\",  (string) The emercoin server IP and port we're connected to\n"
+            "         \"address\" : \"192.168.0.201:8333\",  (string) The rngcoin server IP and port we're connected to\n"
             "         \"connected\" : \"outbound\"           (string) connection, inbound or outbound\n"
             "       }\n"
             "     ]\n"
@@ -438,7 +438,7 @@ UniValue getnetworkinfo(const JSONRPCRequest& request)
 
     LOCK(cs_main);
     UniValue obj(UniValue::VOBJ);
-    obj.push_back(Pair("version",       EMERCOIN_VERSION));
+    obj.push_back(Pair("version",       RNGCOIN_VERSION));
     obj.push_back(Pair("subversion",    strSubVersion));
     obj.push_back(Pair("protocolversion",PROTOCOL_VERSION));
     if(g_connman)
@@ -650,7 +650,7 @@ static const CRPCCommand commands[] =
     { "network",            "clearbanned",            &clearbanned,            true,  {} },
     { "network",            "setnetworkactive",       &setnetworkactive,       true,  {"state"} },
 
-    // emercoin command
+    // rngcoin command
     { "network",            "getcheckpoint",          &getcheckpoint,          true,  {} },
 };
 

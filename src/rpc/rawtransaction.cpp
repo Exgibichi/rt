@@ -130,6 +130,8 @@ void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry, 
                 entry.push_back(Pair("confirmations", 0));
         }
     }
+
+    entry.push_back(Pair("tx-comment", tx.txComment.get()));
 }
 
 UniValue getrawtransaction(const JSONRPCRequest& request)
@@ -186,7 +188,7 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
             "         \"reqSigs\" : n,            (numeric) The required sigs\n"
             "         \"type\" : \"pubkeyhash\",  (string) The type, eg 'pubkeyhash'\n"
             "         \"addresses\" : [           (json array of string)\n"
-            "           \"address\"        (string) emercoin address\n"
+            "           \"address\"        (string) rngcoin address\n"
             "           ,...\n"
             "         ]\n"
             "       }\n"
@@ -380,7 +382,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
             "     ]\n"
             "2. \"outputs\"               (object, required) a json object with outputs\n"
             "    {\n"
-            "      \"address\": x.xxx,    (numeric or string, required) The key is the emercoin address, the numeric value (can be string) is the " + CURRENCY_UNIT + " amount\n"
+            "      \"address\": x.xxx,    (numeric or string, required) The key is the rngcoin address, the numeric value (can be string) is the " + CURRENCY_UNIT + " amount\n"
             "      \"data\": \"hex\"      (string, required) The key is \"data\", the value is hex encoded data\n"
             "      ,...\n"
             "    }\n"
@@ -453,7 +455,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
         } else {
             CBitcoinAddress address(name_);
             if (!address.IsValid())
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Emercoin address: ")+name_);
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Rngcoin address: ")+name_);
 
             if (setAddress.count(address))
                 throw JSONRPCError(RPC_INVALID_PARAMETER, string("Invalid parameter, duplicated address: ")+name_);
@@ -511,7 +513,7 @@ UniValue decoderawtransaction(const JSONRPCRequest& request)
             "         \"reqSigs\" : n,            (numeric) The required sigs\n"
             "         \"type\" : \"pubkeyhash\",  (string) The type, eg 'pubkeyhash'\n"
             "         \"addresses\" : [           (json array of string)\n"
-            "           \"12tvKAXCxZjSmdNbao16dKXC8tRWfcF5oc\"   (string) emercoin address\n"
+            "           \"12tvKAXCxZjSmdNbao16dKXC8tRWfcF5oc\"   (string) rngcoin address\n"
             "           ,...\n"
             "         ]\n"
             "       }\n"
@@ -554,7 +556,7 @@ UniValue decodescript(const JSONRPCRequest& request)
             "  \"type\":\"type\", (string) The output type\n"
             "  \"reqSigs\": n,    (numeric) The required signatures\n"
             "  \"addresses\": [   (json array of string)\n"
-            "     \"address\"     (string) emercoin address\n"
+            "     \"address\"     (string) rngcoin address\n"
             "     ,...\n"
             "  ],\n"
             "  \"p2sh\",\"address\" (string) address of P2SH script wrapping this redeem script (not returned if the script is already a P2SH).\n"
@@ -946,10 +948,10 @@ UniValue createrandpayaddr(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. \"encryptionkey\"   (string, optional) Encrypt privkey output with this key by AES/ECB)\n"
             "\nResult:\n"
-            "\"address\"            (string) Emercoin address.\n"
+            "\"address\"            (string) Rngcoin address.\n"
             "\"addrhex\"            (string) Raw 160-bit hex of address (binary, without checksum, result of MD4 of pubkey).\n"
             "\"privkey\"            (string) Privkey for this address.\n"
-            //emc add examples:
+            //rng add examples:
             //"\nExamples:\n"
             //"\nCreate an address\n"
             //+ HelpExampleCli("createrandpayaddr", "") +
@@ -987,7 +989,7 @@ UniValue randpay_createaddrchap(const JSONRPCRequest& request)
             "2. timio         (numeric, required) ?\n"
             "\nResult:\n"
             "\"addrchap\"     (string) Challenge packet that needs to be solved.\n"
-            //emc add examples:
+            //rng add examples:
             //"\nExamples:\n"
             //"\nCreate a priv/pubkey pair\n"
             //+ HelpExampleCli("randpay_createaddrchap", "") +
@@ -1026,16 +1028,17 @@ UniValue randpay_createtx(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 4)
         throw runtime_error(
-            "randpay_createtx amount \"addrchap\" risk timio\n"
+            "randpay_createtx amount \"addrchap\" risk timio \"tx_comment\"\n"
             "\nCreates randpay tx.\n"
             "\nArguments:\n"
-            "1. amount         (numeric, required) Amount of emc to send.\n"
+            "1. amount         (numeric, required) Amount of rng to send.\n"
             "2. \"addrchap\"   (string, required)  ?\n"
             "3. risk           (numeric, required) 1 / probability of success for random payments.\n"
             "4. timio          (numeric, required) Locks utxo from being spent in another tx for timio seconds.\n"
+            "5. \"tx_comment\"  (string, optional) A transaction comment. This comment is stored in the blockchain and is public.\n"
             "\nResult:\n"
             "\"transaction\"   (string) Hex string of the transaction.\n"
-            //emc add examples:
+            //rng add examples:
             //"\nExamples:\n"
             //"\nCreate randpay tx\n"
             //+ HelpExampleCli("randpay_createtx", "") +
@@ -1054,6 +1057,13 @@ UniValue randpay_createtx(const JSONRPCRequest& request)
     if (!request.params[3].isNum())
         throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. timio parameter must be numeric.");
     int32_t nTimio = request.params[3].get_int();
+
+    // Transaction comment
+    std::string txcomment;
+    if (request.params.size() > 4 && !request.params[4].isNull() && !request.params[4].get_str().empty())
+    {
+        txcomment = request.params[4].get_str();
+    }
 
     uint160 rand_addr;
     rand_addr.SetHex( (nRisk * addrchap + GetRand(nRisk)).ToString() );
@@ -1075,7 +1085,7 @@ UniValue randpay_createtx(const JSONRPCRequest& request)
     std::string strError;
     bool fSign = false;
 
-    if (!pwalletMain->CreateTransaction(vecSend, wtxNew, reservekey, nFeeRequired, nChangePosRet, strError, nullptr, fSign)) {
+    if (!pwalletMain->CreateTransaction(vecSend, wtxNew, reservekey, nFeeRequired, nChangePosRet, strError, txcomment, nullptr, fSign)) {
         if (!fSubtractFeeFromAmount && nAmount + nFeeRequired > curBalance)
             strError = strprintf("Error: This transaction requires a transaction fee of at least %s", FormatMoney(nFeeRequired));
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
@@ -1102,7 +1112,7 @@ UniValue randpay_submittx(const JSONRPCRequest& request)
             "2. risk              (numeric, required) 1 / probability of success for random payments.\n"
             "\nResult:\n"
             "\"transaction\"      (string) Hex string of the transaction\n"
-            //emc add examples:
+            //rng add examples:
             //"\nExamples:\n"
             //"\Send randpay tx\n"
             //+ HelpExampleCli("randpay_submittx", "") +
@@ -1119,7 +1129,7 @@ UniValue randpay_submittx(const JSONRPCRequest& request)
     
     UniValue result(UniValue::VOBJ);
 
-    //emc implement this command
+    //rng implement this command
 
     return result;
 }
@@ -1134,7 +1144,7 @@ static const CRPCCommand commands[] =
     { "rawtransactions",    "sendrawtransaction",     &sendrawtransaction,     false, {"hexstring","allowhighfees"} },
     { "rawtransactions",    "signrawtransaction",     &signrawtransaction,     false, {"hexstring","prevtxs","privkeys","sighashtype"} }, /* uses wallet if enabled */
 
-    // emercoin: randpay commands
+    // rngcoin: randpay commands
     { "hidden",    "randpay_createaddrchap",          &randpay_createaddrchap, true,  {"risk","timio"} },
     { "hidden",    "randpay_createtx",                &randpay_createtx,       true,  {"amount","addrchap","risk","timio"} },
     { "hidden",    "randpay_submittx",                &randpay_submittx,       false, {"hexstring","risk"} },

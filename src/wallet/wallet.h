@@ -57,7 +57,7 @@ static const CAmount DEFAULT_TRANSACTION_FEE = MIN_TX_FEE / 10; // per 1kb
 //! -fallbackfee default
 static const CAmount DEFAULT_FALLBACK_FEE = MIN_TX_FEE / 10;
 //! minimum recommended increment for BIP 125 replacement txs
-static const CAmount WALLET_INCREMENTAL_RELAY_FEE = 5 * (MIN_TX_FEE / 10); // emercoin: this value was changed by analogy. Most other fees were 1000, this one was 5000.
+static const CAmount WALLET_INCREMENTAL_RELAY_FEE = 5 * (MIN_TX_FEE / 10); // rngcoin: this value was changed by analogy. Most other fees were 1000, this one was 5000.
 //! target minimum change amount
 static const CAmount MIN_CHANGE = 2*MIN_TXOUT_AMOUNT;
 //! final minimum change amount after paying for fees
@@ -252,6 +252,8 @@ public:
     const uint256& GetHash() const { return tx->GetHash(); }
     bool IsCoinBase() const { return tx->IsCoinBase(); }
     bool IsCoinStake() const { return tx->IsCoinStake(); }
+
+    const std::string& GetTxComment() const { return tx->txComment.get(); }
 };
 
 /** 
@@ -632,7 +634,7 @@ private:
      */
     bool AddWatchOnly(const CScript& dest) override;
     bool CreateTransactionInner(const std::vector<CRecipient>& vecSend, const CWalletTx& wtxNameIn, CAmount nFeeInput, CWalletTx& wtxNew,
-            CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut, std::string& strFailReason, const CCoinControl *coinControl = NULL, bool sign = true);
+            CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut, std::string& strFailReason, std::string strTxComment, const CCoinControl *coinControl = NULL, bool sign = true);
 
 public:
     /*
@@ -821,10 +823,10 @@ public:
      * @note passing nChangePosInOut as -1 will result in setting a random position
      */
     bool CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut,
-                           std::string& strFailReason, const CCoinControl *coinControl = NULL, bool sign = true);
+                           std::string& strFailReason, std::string txComment, const CCoinControl *coinControl = NULL, bool sign = true);
     bool CreateNameTx(const CRecipient& recipient, const CWalletTx& wtxNameIn, const CAmount& nFeeInput, CWalletTx& wtxNew, CReserveKey& reservekey,
-                      CAmount& nFeeRet, int& nChangePosInOut, std::string& strFailReason, const CCoinControl *coinControl = NULL, bool sign = true);
-    bool CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int64_t nSearchInterval, CMutableTransaction &txNew, bool fV7Enabled);
+                      CAmount& nFeeRet, int& nChangePosInOut, std::string& strFailReason, std::string strTxComment, const CCoinControl *coinControl = NULL, bool sign = true);
+    bool CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int64_t nSearchInterval, CMutableTransaction &txNew, bool fV7Enabled, unsigned int nHeight);
     bool CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey, CConnman* connman, CValidationState& state);
 
     void ListAccountCreditDebit(const std::string& strAccount, std::list<CAccountingEntry>& entries);
@@ -837,17 +839,18 @@ public:
      * Estimate the minimum fee considering user set parameters
      * and the required fee
      */
-    static CAmount GetMinimumFee(unsigned int nTxBytes);
+    static CAmount GetMinimumFee(unsigned int nTxBytes, int txCommentLength);
+    //static CAmount GetMinimumFee(unsigned int nTxBytes, const CCoinControl& coin_control, const CTxMemPool& pool, const CBlockPolicyEstimator& estimator, FeeCalculation *feeCalc, int txCommentLength);
     /**
      * Estimate the minimum fee considering required fee and targetFee or if 0
      * then fee estimation for nConfirmTarget
      */
-    static CAmount GetMinimumFee(unsigned int nTxBytes, CAmount targetFee);
+    static CAmount GetMinimumFee(unsigned int nTxBytes, CAmount targetFee, int txCommentLength);
     /**
      * Return the minimum required fee taking into account the
      * floating relay fee and user set minimum transaction fee
      */
-    static CAmount GetRequiredFee(unsigned int nTxBytes);
+    static CAmount GetRequiredFee(unsigned int nTxBytes, int txCommentLength);
 
     bool NewKeyPool();
     bool TopUpKeyPool(unsigned int kpSize = 0);
@@ -855,6 +858,7 @@ public:
     void KeepKey(int64_t nIndex);
     void ReturnKey(int64_t nIndex);
     bool GetKeyFromPool(CPubKey &key);
+    bool GetNewRandomNumber(CPubKey &key);
     int64_t GetOldestKeyPoolTime();
     void GetAllReserveKeys(std::set<CKeyID>& setAddress) const;
 
@@ -1088,7 +1092,7 @@ bool CWallet::DummySignTx(CMutableTransaction &txNew, const ContainerType &coins
 }
 
 void SendMoneyCheck(const CAmount& nValue, const CAmount& curBalance);
-void SendMoney(const CTxDestination &address, CAmount nValue, bool fSubtractFeeFromAmount, CWalletTx& wtxNew);
-void SendName(CScript scriptPubKey, CAmount nValue, CWalletTx& wtxNew, const CWalletTx &wtxNameIn, CAmount nFeeInput);
+void SendMoney(const CTxDestination &address, CAmount nValue, bool fSubtractFeeFromAmount, CWalletTx& wtxNew, std::string strTxComment);
+void SendName(CScript scriptPubKey, CAmount nValue, CWalletTx& wtxNew, const CWalletTx &wtxNameIn, CAmount nFeeInput, std::string strTxComment);
 
 #endif // BITCOIN_WALLET_WALLET_H

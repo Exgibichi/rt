@@ -168,7 +168,7 @@ private:
 public:
     BlockAssembler(const CChainParams& chainparams);
     /** Construct a new block template with coinbase to scriptPubKeyIn */
-    // emercoin: if pwallet != NULL it will attempt to create coinstake
+    // rngcoin: if pwallet != NULL it will attempt to create coinstake
     std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx=true, CWallet* pwallet=nullptr, bool* pfPoSCancel=nullptr);
 
 private:
@@ -179,7 +179,7 @@ private:
     void AddToBlock(CTxMemPool::txiter iter);
 
     // Methods for how to add transactions to a block.
-    /** emercoin: add transactions at random */
+    /** rngcoin: add transactions at random */
     void addTxs();
     /** Add transactions based on tx "priority" */
     void addPriorityTxs();
@@ -225,6 +225,6 @@ namespace boost {
 /** Run the stake minter thread */
 void MintStake(boost::thread_group& threadGroup, CWallet* pwallet);
 /** Run the miner threads */
-void GenerateEmercoins(bool fGenerate, int nThreads, const CChainParams& chainparams);
+void GenerateRngcoins(bool fGenerate, int nThreads, const CChainParams& chainparams);
 
 #endif // BITCOIN_MINER_H
