@@ -161,8 +161,8 @@ public:
         consensus.BIP34Hash = uint256S("0x01");
         consensus.BIP65Height = 0;
         consensus.BIP66Height = 0;
-        consensus.MMHeight = 219809;
-        consensus.V7Height = 311210;
+        consensus.MMHeight = std::numeric_limits<int>::max();
+        consensus.V7Height = std::numeric_limits<int>::max();
         consensus.powLimit = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~arith_uint256(0) >> 32;
         consensus.bnInitialHashTarget = uint256S("0000001fffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~arith_uint256(0) >> 32;
         consensus.nTargetTimespan = 7 * 24 * 60 * 60; // one week
@@ -170,14 +170,14 @@ public:
 
         // rngcoin: PoS spacing = nStakeTargetSpacing
         //           PoW spacing = depends on how much PoS block are between last two PoW blocks, with maximum value = nTargetSpacingMax
-        consensus.nStakeTargetSpacing = 10 * 60;                // 10 minutes
+        consensus.nStakeTargetSpacing = 50;                // 50 seconds
         consensus.nTargetSpacingMax = 12 * consensus.nStakeTargetSpacing; // 2 hours
         consensus.nStakeMinAge = 60 * 60 * 24 * 30;             // minimum age for coin age
         consensus.nStakeMaxAge = 60 * 60 * 24 * 90;             // stake age of full weight
         consensus.nStakeModifierInterval = 6 * 60 * 60;         // time to elapse before new modifier is computed
 
-        consensus.nCoinbaseMaturity = 32;
-        consensus.nCoinbaseMaturityOld = 20;  // Used until block 193912 on mainNet.
+        consensus.nCoinbaseMaturity = 10;
+        consensus.nCoinbaseMaturityOld = 10;  // Used until block 193912 on mainNet.
 
         consensus.fPowAllowMinDifficultyBlocks = false;
 
@@ -190,7 +190,7 @@ public:
         consensus.nRejectBlockOutdatedMajority = 850;
         consensus.nToCheckBlockUpgradeMajority = 1000;
 
-        consensus.nPremine = 84000000;
+        consensus.nPremine = 84000000 * COIN;
         consensus.nPremineLength = 1000;
 
         /**
@@ -207,18 +207,19 @@ public:
         nPruneAfterHeight = 100000;
 
         //genesis = CreateGenesisBlock(1543390025, 1386628034, 424112391, 0x1d00ffff, 1, 0);
-        genesis = CreateGenesisBlock(1543527382, 1543527382, 96893647, 0x1d1fffff, 1, 0);
+        genesis = CreateGenesisBlock(1543844405, 1543844405, 2039026, 0x1d1fffff, 1, 0);
+
 
         //MineGenesisBlock(genesis, consensus);
 
-       if (true) {
-         LogPrintf("%s\n","recalculating params for mainnet.\n");
-         LogPrintf("new mainnet genesis: %s\n", genesis.ToString().c_str());
-       }
+        if (false) {
+          LogPrintf("%s\n","recalculating params for mainnet.\n");
+          LogPrintf("new mainnet genesis: %s\n", genesis.ToString().c_str());
+        }
 
         consensus.hashGenesisBlock = genesis.GetHash();
-        //assert(consensus.hashGenesisBlock == uint256S("0x00000008053002aded8128bd89794e59b6361eb9e135b00841d59bcbb922c648"));
-        //assert(genesis.hashMerkleRoot == uint256S("0xafadee093ae4d7b6771a60d15ef0a31337a7307d8739173f465fd4ef7ad3aecc"));
+        assert(consensus.hashGenesisBlock == uint256S("0x0000000aa436074d7418f95776fe05963f117242a67ca6583545c45f9a2a07da"));
+        assert(genesis.hashMerkleRoot == uint256S("0x2738d046a25f0dd4d23c1abf5d6df5ead4422fef99aa98ee903ce9f3de9e21ae"));
 
         // Note that of those with the service bits flag, most only support a subset of possible options
 /*        vSeeds.push_back(CDNSSeedData("rngcoin.com", "seed.rngcoin.com"));
@@ -226,9 +227,9 @@ public:
         vSeeds.push_back(CDNSSeedData("emergate.net", "seed.emergate.net"));
         vSeeds.push_back(CDNSSeedData("rngdns", "seed.rng"));*/
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);   // rngcoin: addresses begin with 'E'
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,92);   // rngcoin: addresses begin with 'e'
-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,128);
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);   // rngcoin: addresses begin with 'R'
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,122);   // rngcoin: addresses begin with 'e'
+        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,112);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x88)(0xB2)(0x1E).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x88)(0xAD)(0xE4).convert_to_container<std::vector<unsigned char> >();
 
@@ -242,7 +243,7 @@ public:
 
         checkpointData = (CCheckpointData) {
             boost::assign::map_list_of
-            ( 0,  uint256S("0x00000008053002aded8128bd89794e59b6361eb9e135b00841d59bcbb922c648"))
+            ( 0,  uint256S("0x0000000aa436074d7418f95776fe05963f117242a67ca6583545c45f9a2a07da"))
         };
 
         chainTxData = ChainTxData{
