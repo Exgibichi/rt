@@ -137,7 +137,7 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
  */
 static CBlock CreateGenesisBlock(uint32_t nTimeTx, uint32_t nTimeBlock, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
-    const char* pszTimestamp = "2013: Emergence is inevitable! heideg.livejournal.com/313676.html";
+    const char* pszTimestamp = "04/12/2018 start Rngcoin";
     const CScript genesisOutputScript = CScript();
     return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTimeTx, nTimeBlock, nNonce, nBits, nVersion, genesisReward);
 }
@@ -166,7 +166,7 @@ public:
         consensus.powLimit = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~arith_uint256(0) >> 32;
         consensus.bnInitialHashTarget = uint256S("0000001fffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~arith_uint256(0) >> 32;
         consensus.nTargetTimespan = 7 * 24 * 60 * 60; // one week
-        consensus.nTargetSpacing = 10 * 60;
+        consensus.nTargetSpacing = 50;
 
         // rngcoin: PoS spacing = nStakeTargetSpacing
         //           PoW spacing = depends on how much PoS block are between last two PoW blocks, with maximum value = nTargetSpacingMax
@@ -176,8 +176,8 @@ public:
         consensus.nStakeMaxAge = 60 * 60 * 24 * 90;             // stake age of full weight
         consensus.nStakeModifierInterval = 6 * 60 * 60;         // time to elapse before new modifier is computed
 
-        consensus.nCoinbaseMaturity = 10;
-        consensus.nCoinbaseMaturityOld = 10;  // Used until block 193912 on mainNet.
+        consensus.nCoinbaseMaturity = 30;
+        consensus.nCoinbaseMaturityOld = 30;  // Used until block 193912 on mainNet.
 
         consensus.fPowAllowMinDifficultyBlocks = false;
 
@@ -193,6 +193,10 @@ public:
         consensus.nPremine = 84000000 * COIN;
         consensus.nPremineLength = 1000;
 
+        consensus.baseReward = 90 * COIN;
+        consensus.nRewardReduceBlocks = 630720; // blocks in a year
+        consensus.miningOut = 8; //years
+
         /**
          * The message start string is designed to be unlikely to occur in normal data.
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
@@ -207,25 +211,18 @@ public:
         nPruneAfterHeight = 100000;
 
         //genesis = CreateGenesisBlock(1543390025, 1386628034, 424112391, 0x1d00ffff, 1, 0);
-        genesis = CreateGenesisBlock(1543844405, 1543844405, 2039026, 0x1d1fffff, 1, 0);
+        genesis = CreateGenesisBlock(1543926308, 1543926308, 49065897, 0x1d1fffff, 1, 0);
 
+       if (true) {
+          LogPrintf("%s\n","recalculating params for mainnet.\n");
+          LogPrintf("new mainnet genesis: %s\n", genesis.ToString().c_str());
+       }
 
         //MineGenesisBlock(genesis, consensus);
 
-        if (false) {
-          LogPrintf("%s\n","recalculating params for mainnet.\n");
-          LogPrintf("new mainnet genesis: %s\n", genesis.ToString().c_str());
-        }
-
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x0000000aa436074d7418f95776fe05963f117242a67ca6583545c45f9a2a07da"));
-        assert(genesis.hashMerkleRoot == uint256S("0x2738d046a25f0dd4d23c1abf5d6df5ead4422fef99aa98ee903ce9f3de9e21ae"));
-
-        // Note that of those with the service bits flag, most only support a subset of possible options
-/*        vSeeds.push_back(CDNSSeedData("rngcoin.com", "seed.rngcoin.com"));
-        vSeeds.push_back(CDNSSeedData("rngcoin.net", "seed.rngcoin.net"));
-        vSeeds.push_back(CDNSSeedData("emergate.net", "seed.emergate.net"));
-        vSeeds.push_back(CDNSSeedData("rngdns", "seed.rng"));*/
+        assert(consensus.hashGenesisBlock == uint256S("0x000000092d60d4a0609900825ad6f31ef7e5d482aed63ee60810388a3040bb78"));
+        assert(genesis.hashMerkleRoot == uint256S("0x08bfe8a03abacfd9e3179ca1fd5ba1e2625560b139c71bc669e52aba01b35aa0"));
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);   // rngcoin: addresses begin with 'R'
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,122);   // rngcoin: addresses begin with 'e'
@@ -297,8 +294,12 @@ public:
         consensus.nRejectBlockOutdatedMajority = 450;
         consensus.nToCheckBlockUpgradeMajority = 500;
 
-        consensus.nPremine = 84000000;
+        consensus.nPremine = 84000000 * COIN;
         consensus.nPremineLength = 1000;
+
+        consensus.baseReward = 90 * COIN;
+        consensus.nRewardReduceBlocks = 630720; // blocks in a year
+        consensus.miningOut = 8; //years
 
         pchMessageStart[0] = 0xcb;
         pchMessageStart[1] = 0xf2;
@@ -387,8 +388,12 @@ public:
         consensus.nRejectBlockOutdatedMajority = 850;
         consensus.nToCheckBlockUpgradeMajority = 1000;
 
-        consensus.nPremine = 84000000;
-        consensus.nPremineLength = 10;
+        consensus.nPremine = 84000000 * COIN;
+        consensus.nPremineLength = 1000;
+
+        consensus.baseReward = 90 * COIN;
+        consensus.nRewardReduceBlocks = 630720; // blocks in a year
+        consensus.miningOut = 8; //years
 
         pchMessageStart[0] = 0xcb;
         pchMessageStart[1] = 0xf2;

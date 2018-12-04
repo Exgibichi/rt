@@ -1231,42 +1231,17 @@ CAmount GetProofOfWorkReward(unsigned int nBits, bool fV7Enabled, unsigned int n
        return params.nPremine / params.nPremineLength;
     }
 
-    CBigNum bnSubsidyLimit = MAX_MINT_PROOF_OF_WORK;
-    CBigNum bnTarget;
-    bnTarget.SetCompact(nBits);
-    CBigNum bnTargetLimit(params.powLimit);
-    bnTargetLimit.SetCompact(bnTargetLimit.GetCompact());
+    unsigned int reductions = nHeight / params.nRewardReduceBlocks;
 
-    // ppcoin: subsidy is cut in half every 16x multiply of difficulty
-    // A reasonably continuous curve is used to avoid shock to market
-    // (nSubsidyLimit / nSubsidy) ** 4 == powLimit / bnTarget
-    CBigNum bnLowerBound = CENT;
-    CBigNum bnUpperBound = bnSubsidyLimit;
-    CBigNum bnMidPart, bnRewardPart;
+    if (reductions >= params.miningOut)
+        return 0;
 
-    bool bLowDiff = GetDifficulty(nBits) < 512;
-    bnRewardPart = bLowDiff ? bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit :
-                              bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit * bnSubsidyLimit;
-    while (bnLowerBound + CENT <= bnUpperBound)
-    {
-        CBigNum bnMidValue = (bnLowerBound + bnUpperBound) / 2;
-        bnMidPart = bLowDiff ? bnMidValue * bnMidValue * bnMidValue * bnMidValue * bnMidValue * bnMidValue :
-                               bnMidValue * bnMidValue * bnMidValue * bnMidValue;
-        if (fDebug && GetBoolArg("-printcreation", false))
-            LogPrintf("GetProofOfWorkReward() : lower=%lld upper=%lld mid=%lld\n", bnLowerBound.getuint64(), bnUpperBound.getuint64(), bnMidValue.getuint64());
+    CAmount nReward = POW_REWARDS[reductions];
 
-        if (bnMidPart * bnTargetLimit > bnRewardPart * bnTarget)
-            bnUpperBound = bnMidValue;
-        else
-            bnLowerBound = bnMidValue;
-    }
-
-    CAmount nSubsidy = bnUpperBound.getuint64();
-    nSubsidy = fV7Enabled ? (nSubsidy / TX_DP_AMOUNT) * TX_DP_AMOUNT : (nSubsidy / CENT) * CENT;
     if (fDebug && GetBoolArg("-printcreation", false))
-        LogPrintf("GetProofOfWorkReward() : create=%s nBits=0x%08x nSubsidy=%lld\n", FormatMoney(nSubsidy), nBits, nSubsidy);
+        LogPrintf("GetProofOfWorkReward() : create=%s nBits=0x%08x nSubsidy=%lld\n", FormatMoney(nReward), nBits, nReward);
 
-    return min(nSubsidy, MAX_MINT_PROOF_OF_WORK);
+    return min(nReward, MAX_MINT_PROOF_OF_WORK);
 }
 
 bool IsInitialBlockDownload()
@@ -3208,8 +3183,10 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, bool fProofOfStake, C
         return state.Invalid(false, REJECT_INVALID, "time-too-old", "block's timestamp is too early");
 
     // Check timestamp
-    if (block.GetBlockTime() > nAdjustedTime + nMaxClockDrift)
+    if (block.GetBlockTime() > nAdjustedTime + nMaxClockDrift) {
+        LogPrintf("Block time: %d, adjusted time: %d, max drift: %d\n", block.GetBlockTime(), nAdjustedTime, nMaxClockDrift);
         return state.Invalid(false, REJECT_INVALID, "time-too-new", "block timestamp too far in the future");
+    }
 
     // Reject outdated version blocks when 95% (75% on testnet) of the network has upgraded:
     // check for version 2, 3 and 4 upgrades
@@ -4729,7 +4706,9 @@ bool GetRng7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmou
     arith_uint256 bnSatYr(bnSatSecond / (365 * 24 * 3600)); // Sat * Sec -> Sat * Yr
 
     // Apply 6% APY and round to DP-unit
-    nReward = ((bnSatYr * 6 / 100).GetLow64() / TX_DP_AMOUNT) * TX_DP_AMOUNT;
+    //nReward = ((bnSatYr * 6 / 100).GetLow64() / TX_DP_AMOUNT) * TX_DP_AMOUNT;
+
+    nReward = Params().GetConsensus().baseReward;
 
     if (fDebug && GetBoolArg("-printcreation", false))
         LogPrintf("GetRng7POSReward(): create=%s nCoinAge=%s\n", FormatMoney(nReward), bnSatYr.ToString());

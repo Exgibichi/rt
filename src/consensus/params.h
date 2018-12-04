@@ -51,6 +51,10 @@ struct Params {
     uint64_t nPremine;
     uint64_t nPremineLength;
 
+    int32_t baseReward;
+    uint32_t nRewardReduceBlocks;
+    uint64_t miningOut;
+
     /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
     int nCoinbaseMaturity;
     int nCoinbaseMaturityOld;

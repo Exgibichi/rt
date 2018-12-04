@@ -217,8 +217,9 @@ static const unsigned int DEFAULT_CHECKLEVEL = 3;
 static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
 
 /** rngcoin values */
-static const CAmount MAX_MINT_PROOF_OF_WORK = 5020 * COIN;
-static const int64_t nMaxClockDrift = 7 * 24 * 2 * 60 * 60;       // two hours
+static const CAmount MAX_MINT_PROOF_OF_WORK = 90 * COIN;
+static const CAmount POW_REWARDS[] {90000000, 85500000, 81225000, 77163750, 73305562, 69640284, 66158270, 62850356};
+static const int64_t nMaxClockDrift = 2 * 60 * 60;       // two hours
 extern std::map<uint256, std::shared_ptr<CAuxPow>> mapDirtyAuxPow;
 extern int64_t nLastCoinStakeSearchInterval;
 
