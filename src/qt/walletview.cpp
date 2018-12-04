@@ -69,7 +69,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, WalletFrame *parent)
 
     receiveCoinsPage = new ReceiveCoinsDialog(platformStyle);
     sendCoinsPage = new SendCoinsDialog(platformStyle);
-    manageNamesPage = new ManageNamesPage();
+    // manageNamesPage = new ManageNamesPage();
 
     usedSendingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::SendingTab, this);
     usedReceivingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::ReceivingTab, this);
@@ -78,7 +78,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, WalletFrame *parent)
     addWidget(transactionsPage);
     addWidget(receiveCoinsPage);
     addWidget(sendCoinsPage);
-    addWidget(manageNamesPage);
+    // addWidget(manageNamesPage);
 
     // Clicking on a transaction on the overview pre-selects the transaction on the transaction history page
     connect(overviewPage, SIGNAL(transactionClicked(QModelIndex)), transactionView, SLOT(focusTransaction(QModelIndex)));
@@ -88,7 +88,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, WalletFrame *parent)
     connect(transactionView, SIGNAL(doubleClicked(QModelIndex)), transactionView, SLOT(showDetails()));
 
     // Double-clicking on a name on the name page copies all values
-    connect(manageNamesPage, SIGNAL(doubleClicked(QModelIndex)), manageNamesPage, SLOT(onCopyAllAction()));
+    // connect(manageNamesPage, SIGNAL(doubleClicked(QModelIndex)), manageNamesPage, SLOT(onCopyAllAction()));
 
     // Clicking on "Export" allows to export the transaction list
     connect(exportButton, SIGNAL(clicked()), transactionView, SLOT(exportClicked()));
@@ -144,7 +144,7 @@ void WalletView::setWalletModel(WalletModel *_walletModel)
     overviewPage->setWalletModel(_walletModel);
     receiveCoinsPage->setModel(_walletModel);
     sendCoinsPage->setModel(_walletModel);
-    manageNamesPage->setModel(_walletModel);
+    // manageNamesPage->setModel(_walletModel);
     usedReceivingAddressesPage->setModel(_walletModel->getAddressTableModel());
     usedSendingAddressesPage->setModel(_walletModel->getAddressTableModel());
 
@@ -216,10 +216,10 @@ void WalletView::gotoSendCoinsPage(QString addr)
         sendCoinsPage->setAddress(addr);
 }
 
-void WalletView::gotoManageNamesPage()
-{
-    setCurrentWidget(manageNamesPage);
-}
+// void WalletView::gotoManageNamesPage()
+// {
+//     setCurrentWidget(manageNamesPage);
+// }
 
 void WalletView::gotoSignMessageTab(QString addr)
 {

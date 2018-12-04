@@ -128,11 +128,11 @@ void WalletFrame::gotoSendCoinsPage(QString addr)
         view->gotoSendCoinsPage(addr);
 }
 
-void WalletFrame::gotoManageNamesPage()
-{
-    for (auto view: mapWalletViews.values())
-        view->gotoManageNamesPage();
-}
+// void WalletFrame::gotoManageNamesPage()
+// {
+//     for (auto view: mapWalletViews.values())
+//         view->gotoManageNamesPage();
+// }
 
 void WalletFrame::gotoSignMessageTab(QString addr)
 {
