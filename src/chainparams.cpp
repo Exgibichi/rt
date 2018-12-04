@@ -210,15 +210,7 @@ public:
         nDefaultPort = 9342;
         nPruneAfterHeight = 100000;
 
-        //genesis = CreateGenesisBlock(1543390025, 1386628034, 424112391, 0x1d00ffff, 1, 0);
         genesis = CreateGenesisBlock(1543926308, 1543926308, 49065897, 0x1d1fffff, 1, 0);
-
-       if (true) {
-          LogPrintf("%s\n","recalculating params for mainnet.\n");
-          LogPrintf("new mainnet genesis: %s\n", genesis.ToString().c_str());
-       }
-
-        //MineGenesisBlock(genesis, consensus);
 
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(consensus.hashGenesisBlock == uint256S("0x000000092d60d4a0609900825ad6f31ef7e5d482aed63ee60810388a3040bb78"));
