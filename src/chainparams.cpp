@@ -172,7 +172,7 @@ public:
         //           PoW spacing = depends on how much PoS block are between last two PoW blocks, with maximum value = nTargetSpacingMax
         consensus.nStakeTargetSpacing = 50;                // 50 seconds
         consensus.nTargetSpacingMax = 12 * consensus.nStakeTargetSpacing; // 2 hours
-        consensus.nStakeMinAge = 60 * 60 * 2;                       // minimum age for coin age
+        consensus.nStakeMinAge = 60 * 60 * 1;                       // minimum age for coin age
         consensus.nStakeMaxAge = 60 * 60 * 24;             // stake age of full weight
         consensus.nStakeModifierInterval = 6 * 60 * 60;         // time to elapse before new modifier is computed
 
