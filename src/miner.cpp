@@ -158,8 +158,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     LOCK(cs_main);
     CBlockIndex* pindexPrev = chainActive.Tip();
 
-    nHeight = pindexPrev->nHeight + 1;
-
     bool fV7Enabled = IsV7Enabled(pindexPrev, chainparams.GetConsensus());
 
     if (pwallet)  // attemp to find a coinstake
@@ -192,6 +190,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     LOCK(mempool.cs);
 
+    nHeight = pindexPrev->nHeight + 1;
+
     pblock->SetBlockVersion(GetArg("-blockversion", CBlockHeader::CURRENT_VERSION));
 
     pblock->nTime = GetAdjustedTime();
@@ -221,7 +221,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if (pblock->IsProofOfWork())
         coinbaseTx.vout[0].nValue = GetProofOfWorkReward(pblock->nBits, fV7Enabled, nHeight);
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
-    coinbaseTx.nTime = GetAdjustedTime();
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     if (fIncludeWitness)
         pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock);
@@ -806,7 +805,6 @@ void PoSMiner(CWallet *pwallet)
     }
 
     std::string strMintMessage = _("Info: Minting suspended due to locked wallet.");
-
     try {
         // Throw an error if no script was provided.  This can happen
         // due to some internal error but also if the keypool is empty.
@@ -828,9 +826,8 @@ void PoSMiner(CWallet *pwallet)
                 // Busy-wait for the network to come online so we don't waste time mining
                 // on an obsolete chain. In regtest mode we expect to fly solo.
                 while(g_connman == nullptr || g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0 || IsInitialBlockDownload())
-                    MilliSleep(5 * 60 * 1000);
+                    MilliSleep(30 * 1000);
             }
-
             //
             // Create new block
             //
@@ -865,7 +862,7 @@ void PoSMiner(CWallet *pwallet)
                 LogPrintf("CPUMiner : proof-of-stake block found %s\n", pblock->GetHash().ToString());
                 ProcessBlockFound(pblock, Params());
                 // Rest for ~3 minutes after successful block to preserve close quick
-                MilliSleep(60 * 1000 + GetRand(4 * 60 * 1000));
+                MilliSleep(10 * 1000 + GetRand(20 * 1000));
             }
             MilliSleep(pos_timio);
 

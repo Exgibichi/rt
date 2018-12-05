@@ -568,9 +568,10 @@ struct CMutableTransaction
 
     CMutableTransaction();
     CMutableTransaction(const CTransaction& tx);
-    CMutableTransaction(int nVersion, unsigned int nTime, const std::vector<CTxIn> vin, const std::vector<CTxOut> vout, unsigned int nLockTime)
-             : nVersion(nVersion), nTime(nTime), vin(vin), vout(vout), nLockTime(nLockTime)
+    CMutableTransaction(int nVersion, unsigned int nTime, const std::vector<CTxIn> vin, const std::vector<CTxOut> vout, unsigned int nLockTime, const std::string& txCommentStr)
+             : nVersion(nVersion), nTime(nTime), vin(vin), vout(vout), nLockTime(nLockTime), txComment()
     {
+        txComment.set(txCommentStr);
     }
 
     template <typename Stream>

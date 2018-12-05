@@ -180,7 +180,7 @@ uint256 CTransaction::GetWitnessHash() const
 /* For backward compatibility, the hash is initialized to 0. TODO: remove the need for this default constructor entirely. */
 CTransaction::CTransaction() :
     nVersion(CTransaction::CURRENT_VERSION),
-    nTime(),
+    nTime(GetAdjustedTime()),
     vin(),
     vout(),
     nLockTime(0),

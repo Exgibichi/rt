@@ -4705,10 +4705,8 @@ bool GetRng7POSReward(const CTransaction& tx, const CCoinsViewCache &view, CAmou
 
     arith_uint256 bnSatYr(bnSatSecond / (365 * 24 * 3600)); // Sat * Sec -> Sat * Yr
 
-    // Apply 6% APY and round to DP-unit
-    //nReward = ((bnSatYr * 6 / 100).GetLow64() / TX_DP_AMOUNT) * TX_DP_AMOUNT;
-
-    nReward = Params().GetConsensus().baseReward;
+    if (bnSatSecond > 0)
+        nReward = Params().GetConsensus().baseReward;
 
     if (fDebug && GetBoolArg("-printcreation", false))
         LogPrintf("GetRng7POSReward(): create=%s nCoinAge=%s\n", FormatMoney(nReward), bnSatYr.ToString());
